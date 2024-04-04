@@ -1,0 +1,32 @@
+#
+# This config contains behaviour data: Thread allocation, allowed fields for lookup, limits for arguments etc.
+#
+# The behaviour config is normally controlled by developers and is part of the code repository.
+# Sensitive information such as machine names and user/passwords should not be part of this config but belong
+# in the 'environment' and 'local' configurations
+#
+# It will be automatically merged with the environment config when accessed through the
+# application config system.
+#
+#
+config:
+  limits:
+    min: 10
+    max: 100
+  mylist:
+    - Hello
+    - World
+    - from
+    - java-template
+
+  speaker: "Dr. Jekyll"
+
+  # System properties are available. See https://docs.oracle.com/javase/tutorial/essential/environment/sysprop.html
+  userhome: "Home sweet ${user.home}"
+  # Fallbacks for system properties can be defined with :-
+  mostrandomnumber: ${nonexisting.property:-87}
+
+  # The configuration can auto-update at set intervals. See ServiceConfig for details
+  autoupdate:
+    enabled: false
+    intervalms: 60000

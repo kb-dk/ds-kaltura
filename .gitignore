@@ -1,0 +1,9 @@
+target/
+.classpath
+.project
+.settings/
+
+src/main/conf/ds-kaltura-environment.yaml
+src/main/conf/ds-kaltura-local.yaml
+src/main/java/dk/kb/kaltura/HelloWorld.java
+src/test/java/dk/kb/kaltura/HelloWorldTest.java
