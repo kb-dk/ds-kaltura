@@ -20,10 +20,7 @@ check_file "$SCRIPT_DIR/../lib/"
 
 source "$SCRIPT_DIR/../conf/appEnv.sh"
 
-if [ -z "$MAIN_CLASS" ]; then
-    echo "MAIN_CLASS has not been set" 1>&2
-    exit 1
-fi
+MAIN_CLASS=dk.kb.kaltura.jobs.UploadFile
 
 if [ -z "$APP_CONFIG" ]; then
     echo "APP_CONFIG has not been set" 1>&2

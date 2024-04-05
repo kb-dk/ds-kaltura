@@ -6,6 +6,8 @@
         </encoder>
     </appender>
 
+  <logger name="com.kaltura" level="WARN" />
+  <logger name="com.kaltura.*" level="WARN" />
 
     <root level="DEBUG">
         <appender-ref ref="STDOUT" />

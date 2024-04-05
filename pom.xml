@@ -5,7 +5,7 @@
   <parent>
     <groupId>org.sbforge</groupId>
     <artifactId>sbforge-parent</artifactId>
-    <version>24</version>
+    <version>25</version>
   </parent>
 
   <groupId>dk.kb.kaltura</groupId>
@@ -60,6 +60,18 @@
       <groupId>com.kaltura</groupId>
       <artifactId>kalturaApiClient</artifactId>
       <version>19.3.0</version>
+    
+    <!-- These are exluded to prevent too much debug log from kaltura client using log4j. -->
+    <exclusions>        
+        <exclusion>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+        </exclusion>
+        <exclusion>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+        </exclusion>
+    </exclusions>    
     </dependency>
         
     <dependency>

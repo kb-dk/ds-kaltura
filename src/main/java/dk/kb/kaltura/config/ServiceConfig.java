@@ -1,6 +1,5 @@
 package dk.kb.kaltura.config;
 
-import dk.kb.kaltura.Main;
 import dk.kb.util.yaml.YAML;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,21 +112,9 @@ public class ServiceConfig {
         }
     }
 
-    /**
-     * Demonstration of a first-class property, meaning that an explicit method has been provided.
-     * @see #getConfig() for alternative.
-     * @return the "Hello World" lines defined in the config file.
-     */
-    public static List<String> getHelloLines() {
-        return serviceConfig.getList("config.helloLines");
-    }
-
-    /**
-     * Another demonstration of a first-class property.
-     * @return the Hello World speaker, as defined in the config.
-     */
-    public static String getSpeaker() {
-        return serviceConfig.getString("config.speaker");
+    
+    public static String getKalturaUrl() {
+        return serviceConfig.getString("config.kaltura.url");
     }
 
 

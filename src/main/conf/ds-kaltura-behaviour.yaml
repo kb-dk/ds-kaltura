@@ -10,22 +10,14 @@
 #
 #
 config:
-  limits:
-    min: 10
-    max: 100
-  mylist:
-    - Hello
-    - World
-    - from
-    - java-template
-
-  speaker: "Dr. Jekyll"
-
-  # System properties are available. See https://docs.oracle.com/javase/tutorial/essential/environment/sysprop.html
-  userhome: "Home sweet ${user.home}"
-  # Fallbacks for system properties can be defined with :-
-  mostrandomnumber: ${nonexisting.property:-87}
-
+  # Only for integration test
+  kaltura:
+    url:  'https://kmc.kaltura.nordu.net'
+    partnerId:  380
+    userId:  'XXX@kb.dk'
+    adminSecret: 'xxxxx'
+    sessionKeepAliveSeconds: 86400
+    
   # The configuration can auto-update at set intervals. See ServiceConfig for details
   autoupdate:
     enabled: false
