@@ -31,21 +31,20 @@ import com.kaltura.client.utils.response.base.Response;
 
 
 /**
-* There are two methods on DsKalturaClient:
-*  
-* <p><ul>
-* <li> API lookup and map external ID to internal Kaltura ID
-* <li> Upload a media entry (video, audio etc.) to Kaltura with meta data.  
-*</ul><p>  
-*  
-*/
+ * There are two methods on DsKalturaClient:
+ *  
+ * <p><ul>
+ * <li> API lookup and map external ID to internal Kaltura ID
+ * <li> Upload a media entry (video, audio etc.) to Kaltura with meta data.  
+ *</ul><p>  
+ *  
+ */
 public class DsKalturaClient {
-    
+
     static {        
         // Kaltura library uses log4j2 and will remove this error message on start up: Log4j2 could not find a logging implementation
         System.setProperty("log4j2.loggerContextFactory", "org.apache.logging.log4j.simple.SimpleLoggerContextFactory");
     }
-    
 
     private Client client = null; //Client having a Kaltura session  that can be reused between API calls.
     private static final Logger log = LoggerFactory.getLogger(DsKalturaClient.class);

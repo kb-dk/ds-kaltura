@@ -1,7 +1,5 @@
 package dk.kb.kaltura.jobs;
 
-
-
 import dk.kb.kaltura.BuildInfoManager;
 import dk.kb.kaltura.client.DsKalturaClient;
 
@@ -15,71 +13,83 @@ import org.slf4j.LoggerFactory;
 
 import com.kaltura.client.enums.MediaType;
 
+/**
+ * <p>
+ * The script uploadfile.sh will call this class main method. If the video/audio has been uploaded sucessfully, the internal KalturaID will be logged  
+ * The script takes 6 arguments that must all be defined:
+ * </p>
+ * <ul>
+ *   <li>1) filePath - The absolute path to the video or audio file</li>
+ *   <li>2) referenceId - The referenceId we have for the record so it can later be found in Kaltura </li>
+ *   <li>3) mediaType - VIDEO or AUDIO</li>
+ *   <li>4) title - The title of the video/audio. This can be  configured to be shown in the Kaltura player </li>
+ *   <li>5) description - A longer description of the video/audio. This can configured to be shown in the Kaltura player</li>
+ *   <li>6) tag - Use 'DR-KULTURA' since all uploaded record that then be found easy in Kaltura/li>
+ * </ul>
+ */
 public class UploadFile extends JobsBase implements Callable<Integer>{ 
 
     private static final Logger log = LoggerFactory.getLogger(UploadFile.class);
 
-    public enum MEDIATYPES {VIDEO, AUDIO}
-    
-    
-    
+    public enum MEDIATYPES {VIDEO, AUDIO}  //There are more types in Kaltura, but only support these for now.
+
+
     @CommandLine.Parameters(index = "0", type = String.class) //Required
     private String filePath;
-        
+
     @CommandLine.Parameters(index = "1", type = String.class) //Required
     private String referenceId;
-    
+
     @CommandLine.Parameters(index = "2", type = MEDIATYPES.class, description = "Valid values: ${COMPLETION-CANDIDATES}", defaultValue = "VIDEO")
     private MEDIATYPES mediatype;
-    
+
     @CommandLine.Parameters(index = "3", type = String.class) //Required
     private String title;
-    
+
     @CommandLine.Parameters(index = "4", type = String.class) //Required
     private String description;
-    
+
     @CommandLine.Parameters(index = "5", type = String.class) //Required
     private String tag;
-    
-    
+
+
     /*
      * Implement the normal 'main' method here
      */
     @Override
     public Integer call() throws Exception {        
 
-       MediaType kalturaMediaType=null;
-       switch (mediatype) {
-       case VIDEO:
-           kalturaMediaType=MediaType.VIDEO;
-           break;              
-      
-      case AUDIO:
-        kalturaMediaType=MediaType.AUDIO;
-        break;              
-    } 
-       
-        
-       DsKalturaClient kalturaClient = getKalturaClient();
-       String kalturaId=kalturaClient.uploadMedia(filePath,referenceId,kalturaMediaType,title,description,tag);
-       String message="ReferenceId:"+referenceId +" -> kalturaId:"+kalturaId;
-       log.info(message);
-       System.out.println(message);
-       return 0; //Exit code
+        MediaType kalturaMediaType=null;
+        switch (mediatype) {
+        case VIDEO:
+            kalturaMediaType=MediaType.VIDEO;
+            break;              
+
+        case AUDIO:
+            kalturaMediaType=MediaType.AUDIO;
+            break;              
+        } 
+
+        DsKalturaClient kalturaClient = getKalturaClient();
+        String kalturaId=kalturaClient.uploadMedia(filePath,referenceId,kalturaMediaType,title,description,tag);
+        String message="Upload succes. Entry has kalturaId:"+kalturaId;
+        log.info(message);
+        System.out.println(message);
+        return 0; //Exit code
     }
 
 
     public static void main(String... args) {
         BuildInfoManager.logApplicationInfo(); // Mandated by Operations
         System.out.println("Arguments passed by commandline is: " + Arrays.asList(args));
-        
+
         CommandLine app = new CommandLine(new UploadFile());
         int exitCode = app.execute(args);
         SystemControl.exit(exitCode);
     }
 
- 
-    
+
+
     /**
      * Handles communication with the calling environment. Currently only in the form of sending the proper exit code.
      */

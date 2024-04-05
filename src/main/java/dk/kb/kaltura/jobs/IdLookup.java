@@ -12,6 +12,15 @@ import java.util.concurrent.Callable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>
+ * The script idlookup.sh will call this class main method. If the record is found in Kaltura the method will log the internal Kaltura ID.  
+ * The script takes 1 argument that must be defined:
+ * </p>
+ * <ul>
+ *   <li>1) referenceId- The referenceId given to the record by us when the file was uploaded to Kaltura</li>
+ * </ul>
+ */
 public class IdLookup extends JobsBase implements Callable<Integer>{ 
 
     private static final Logger log = LoggerFactory.getLogger(IdLookup.class);
