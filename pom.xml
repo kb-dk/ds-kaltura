@@ -12,12 +12,12 @@
   <artifactId>ds-kaltura</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <scm>
-    <url>https://github.com/kb-dk/ds-kaltura</url>
-    <connection>git@github.com:kb-dk/ds-kaltura.git</connection>
-    <developerConnection>git@github.com:kb-dk/ds-kaltura.git</developerConnection>
-    <tag>HEAD</tag>
-  </scm>
+   <scm>
+     <url>https://github.com/kb-dk/ds-kaltura</url>
+     <connection>scm:git:git@github.com:kb-dk/ds-kaltura.git</connection>
+     <developerConnection>scm:git:git@github.com:kb-dk/ds-kaltura.git</developerConnection>
+     <tag>HEAD</tag>
+    </scm>
 
   <repositories>
     <repository>
