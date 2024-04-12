@@ -16,15 +16,15 @@ import com.kaltura.client.enums.MediaType;
 /**
  * <p>
  * The script uploadfile.sh will call this class main method. If the video/audio has been uploaded sucessfully, the internal KalturaID will be logged  
- * The script takes 6 arguments that must all be defined:
+ * The script takes 1 arguments and 5 options that has meta-data information
  * </p>
  * <ul>
- *   <li>1) filePath - The absolute path to the video or audio file</li>
- *   <li>2) referenceId - The referenceId we have for the record so it can later be found in Kaltura </li>
- *   <li>3) mediaType - VIDEO or AUDIO</li>
- *   <li>4) title - The title of the video/audio. This can be  configured to be shown in the Kaltura player </li>
- *   <li>5) description - A longer description of the video/audio. This can configured to be shown in the Kaltura player</li>
- *   <li>6) tag - Use 'DR-KULTURA' since all uploaded record that then be found easy in Kaltura/li>
+ *   <li>argument 1) filePath - The absolute path to the video or audio file</li>
+ *   <li>option -referenceId or --referenceId. The referenceId we have for the record so it can later be found in Kaltura </li>
+ *   <li>option -type or --type. Example: VIDEO or AUDIO</li>
+ *   <li>option -title or --title.  The title of the video/audio. This can be  configured to be shown in the Kaltura player </li>
+ *   <li>option -description or --description. A longer description of the video/audio. This can configured to be shown in the Kaltura player</li>
+ *   <li>option -tag  or --tag. Use 'DR-KULTURA' since all uploaded record that then be found easy in Kaltura/li>
  * </ul>
  */
 public class UploadFile extends JobsBase implements Callable<Integer>{ 
@@ -36,22 +36,27 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
 
     @CommandLine.Parameters(index = "0", type = String.class) //Required
     private String filePath;
-
-    @CommandLine.Parameters(index = "1", type = String.class) //Required
+    
+    
+    @CommandLine.Option(names = {"-referenceid", "--referenceid"}, required = true, type = String.class, 
+                                   description = "The referenceId given to the entry at Kaltura.")
     private String referenceId;
 
-    @CommandLine.Parameters(index = "2", type = MEDIATYPES.class, description = "Valid values: ${COMPLETION-CANDIDATES}", defaultValue = "VIDEO")
-    private MEDIATYPES mediatype;
+    @CommandLine.Option(names = {"-type", "--type"}, required = true, type =  MEDIATYPES.class,
+            description = "Valid values: ${COMPLETION-CANDIDATES}")
+    private MEDIATYPES mediatype;    
 
-    @CommandLine.Parameters(index = "3", type = String.class) //Required
+    @CommandLine.Option(names = {"-title", "--title"}, required = true, type = String.class, 
+            description = "The title(name) for the entry in Kaltura")   
     private String title;
 
-    @CommandLine.Parameters(index = "4", type = String.class) //Required
+    @CommandLine.Option(names = {"-description", "--description"}, required = true, type = String.class, 
+            description = "The description for the entry in Kaltura")    
     private String description;
 
-    @CommandLine.Parameters(index = "5", type = String.class) //Required
+    @CommandLine.Option(names = {"-tag", "--tag"}, required = true, type = String.class, 
+            description = "The tag given to the entry. Tag works a collection identifier at Kaltura. Recommended value is 'DS-KALTURA'")
     private String tag;
-
 
     /*
      * Implement the normal 'main' method here

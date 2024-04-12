@@ -53,10 +53,10 @@ public class DsKalturaClient {
     private int partnerId;
     private String adminSecret;
     private long sessionKeepAliveSeconds;
-    private static long lastSessionStart=0;
+    private long lastSessionStart=0;
 
     /**
-     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
+     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again. 
      * 
      * @param kalturaUrl The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL. 
      * @param userId The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
@@ -131,6 +131,9 @@ public class DsKalturaClient {
      * <li> Create the metadata record in Kaltura  
      * <li> Connect the metadata record with the tokenID
      * </ul><p>  
+     * 
+     * If there for some reason happens an error after the file is uploaded and not connected to the metadata record, it does not
+     * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it. 
      * 
      * @param filePath File path to the media file to upload. 
      * @param referenceId. Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
