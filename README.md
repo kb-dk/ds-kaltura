@@ -27,11 +27,13 @@ The project can both be used as a jar dependency library and as a stand-alone ja
 ## Usage as stand-alone-project
 Example call for getKulturaInternalId:
 
-`bin/idlookup.sh 0_vvp1ozjl`  (the id '0_vvp1ozjl' does exist as of 20240405)
+`bin/idlookup.sh 67624fe7-b1d9-4225-8afb-e41d8a1190ac`  (the id '67624fe7-b1d9-4225-8afb-e41d8a1190ac' does exist as of 20240412)
 
 Example call for uploadMedia:
 
-`bin/uploadfile.sh /home/teg/kaltura_files/video/4328a664-403e-4574-960a-8a85195b8e69 test_ref_teg123 VIDEO 'title' 'en description' DS-KALTURA`
+`bin/uploadfile.sh /home/digisam/teg/4328a664-403e-4574-960a-8a85195b8e69 -referenceid=test_ref_teg1239 -type=VIDEO -title='title9' -description='description9' -tag='DS-KALTURA'`
+
+Just call`bin/uploadfile.sh` to see usage
 
 
 
