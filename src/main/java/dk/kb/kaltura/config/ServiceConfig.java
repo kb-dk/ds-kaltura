@@ -16,10 +16,9 @@ import java.util.Set;
  * If wanted, changes to the configuration source (typically files) can result in an update of the ServiceConfig and
  * a callback to relevant classes. To enable this, add autoupdate keys to the YAML config:
  * <pre>
- * config:
- *   autoupdate:
- *     enabled: true
- *     intervalms: 60000
+ * autoupdate:
+ *   enabled: true
+ *   intervalms: 60000
  * </pre>
  * Notifications on config changes can be received using {@link #registerObserver(Observer)}.
  *
@@ -37,9 +36,9 @@ public class ServiceConfig {
 
     private static final Set<Observer> observers = new HashSet<>();
 
-    private static final String AUTO_UPDATE_KEY = ".config.autoupdate.enabled";
+    private static final String AUTO_UPDATE_KEY = ".autoupdate.enabled";
     private static final boolean AUTO_UPDATE_DEFAULT = false;
-    private static final String AUTO_UPDATE_MS_KEY = ".config.autoupdate.intervalms";
+    private static final String AUTO_UPDATE_MS_KEY = ".autoupdate.intervalms";
     private static final long AUTO_UPDATE_MS_DEFAULT = 60*1000; // every minute
 
     private static boolean autoUpdate = AUTO_UPDATE_DEFAULT;
@@ -114,7 +113,7 @@ public class ServiceConfig {
 
     
     public static String getKalturaUrl() {
-        return serviceConfig.getString("config.kaltura.url");
+        return serviceConfig.getString("kaltura.url");
     }
 
 

@@ -9,16 +9,15 @@
 # application config system.
 #
 #
-config:
-  # Only for integration test
-  kaltura:
-    url:  'https://kmc.kaltura.nordu.net'
-    partnerId:  380
-    userId:  'XXX@kb.dk'
-    adminSecret: 'xxxxx'
-    sessionKeepAliveSeconds: 86400
-    
-  # The configuration can auto-update at set intervals. See ServiceConfig for details
-  autoupdate:
-    enabled: false
-    intervalms: 60000
+# Only for integration test
+kaltura:
+  url:  'https://kmc.kaltura.nordu.net'
+  partnerId:  380
+  userId:  'XXX@kb.dk'
+  adminSecret: 'xxxxx'
+  sessionKeepAliveSeconds: 86400
+
+# The configuration can auto-update at set intervals. See ServiceConfig for details
+autoupdate:
+  enabled: false
+  intervalms: 60000
