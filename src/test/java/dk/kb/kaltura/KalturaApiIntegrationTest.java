@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
 
+import dk.kb.kaltura.config.ServiceConfig;
+import dk.kb.util.yaml.YAML;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -22,17 +25,19 @@ import dk.kb.kaltura.client.DsKalturaClient;
  */
 @Tag("integration")
 public class KalturaApiIntegrationTest {
-
     private static final Logger log = LoggerFactory.getLogger(KalturaApiIntegrationTest.class);
     
-    private String kalturaUrl="https://kmc.kaltura.nordu.net";
-    private int partnerId=380; // The partnerId we have to use. Not secret
-    private String userId="@kb.dk";// <-- Change to valid value
-    private String adminSecret="xxx"; // <-- Change to valid value. DO NOT CHECK THE SECRET INTO GITHUB.
-    private long sessionKeepAliveSeconds=86400;
-    
-    
-    
+    private static final long DEFAULT_KEEP_ALIVE = 86400;
+
+    @BeforeAll
+    public static void setup() throws IOException {
+        ServiceConfig.initialize("src/main/conf/ds-kaltura-*.yaml"); // Does not seem like a solid construction
+        if ("xxxxx".equals(ServiceConfig.getConfig().getString("kaltura.adminSecret"))) {
+            throw new IllegalStateException("The kaltura.adminSecret must be set to perform integration test. " +
+                    "Please add it to the local configuration (NOT the *-behaviour.YAML configuration)");
+        }
+    }
+
     @Test
     public void callKalturaApi() throws Exception{
                                
@@ -70,8 +75,14 @@ public class KalturaApiIntegrationTest {
             assertNotNull(kalturaId);
      }
         
-    private DsKalturaClient getClientSession() throws IOException {        
-        return new DsKalturaClient(kalturaUrl,userId,partnerId,adminSecret,sessionKeepAliveSeconds);        
+    private DsKalturaClient getClientSession() throws IOException {
+        final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
+        return new DsKalturaClient(
+                conf.getString("url"),
+                conf.getString("userId"),
+                conf.getInteger("partnerId"),
+                conf.getString("adminSecret"),
+                conf.getLong("sessionKeepAliveSeconds", DEFAULT_KEEP_ALIVE));
     }
     
 }
