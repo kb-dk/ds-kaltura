@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
+import java.util.List;
 
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
@@ -36,6 +37,16 @@ public class KalturaApiIntegrationTest {
             throw new IllegalStateException("The kaltura.adminSecret must be set to perform integration test. " +
                     "Please add it to the local configuration (NOT the *-behaviour.YAML configuration)");
         }
+    }
+
+    @Test
+    public void multipleLookups() throws IOException {
+        //These data can change in Kaltura
+        String referenceId="7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7";
+        String kalturaInternallId="0_vvp1ozjl";
+
+        DsKalturaClient clientSession = getClientSession();
+        System.out.println(clientSession.getKulturaInternalIds(List.of("dr")).replace("{", "\n{"));
     }
 
     @Test

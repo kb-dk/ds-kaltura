@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.kaltura.client.enums.ESearchItemType;
+import com.kaltura.client.services.ESearchService;
+import com.kaltura.client.types.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,12 +23,6 @@ import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
-import com.kaltura.client.types.FilterPager;
-import com.kaltura.client.types.ListResponse;
-import com.kaltura.client.types.MediaEntryFilter;
-import com.kaltura.client.types.UploadToken;
-import com.kaltura.client.types.UploadedFileTokenResource;
-import com.kaltura.client.types.MediaEntry;
 import com.kaltura.client.Client;
 import com.kaltura.client.utils.response.base.Response;
 
@@ -120,6 +117,25 @@ public class DsKalturaClient {
         }
 
         return response.results.getObjects().get(0).getId();    
+    }
+
+    public String getKulturaInternalIds(List<String> referenceIds) throws IOException{
+
+        // Adapted from Java samples at https://developer.kaltura.com
+
+        // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
+        Client clientSession = getClientInstance();
+        ESearchEntryParams searchParams = new ESearchEntryParams();
+        ESearchEntryOperator operator = new ESearchEntryOperator();
+        searchParams.setSearchOperator(operator);
+
+        ESearchUnifiedItem item = new ESearchUnifiedItem();
+        item.setItemType(ESearchItemType.EXACT_MATCH);
+        item.searchTerm(referenceIds.get(0));
+        operator.setSearchItems(List.of(item));
+
+        ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams);
+        return requestBuilder.build(clientSession).getBody();
     }
 
     /**
@@ -223,7 +239,3 @@ public class DsKalturaClient {
         }
     }
 }
-
-
-
-
