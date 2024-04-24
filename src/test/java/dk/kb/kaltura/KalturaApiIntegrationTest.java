@@ -1,10 +1,9 @@
 package dk.kb.kaltura;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
@@ -17,6 +16,8 @@ import org.slf4j.LoggerFactory;
 import com.kaltura.client.enums.MediaType;
 
 import dk.kb.kaltura.client.DsKalturaClient;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 
 /**
@@ -45,8 +46,21 @@ public class KalturaApiIntegrationTest {
         String referenceId="7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7";
         String kalturaInternallId="0_vvp1ozjl";
 
+
+        List<List<String>> tests = List.of(
+                List.of(referenceId,kalturaInternallId)
+        );
+
         DsKalturaClient clientSession = getClientSession();
-        System.out.println(clientSession.getKulturaInternalIds(List.of("dr")).replace("{", "\n{"));
+        Map<String, String> map = clientSession.getKulturaInternalIds(
+                tests.stream().map(e -> e.get(0)).collect(Collectors.toList()));
+
+        for (List<String> test: tests) {
+            String refID = test.get(0);
+            String kalID = test.get(1);
+          assertTrue(map.containsKey(refID), "There should be a mapping for referenceId '" + refID + "'");
+          assertEquals(kalID, map.get(refID), "The mapping for '" + refID + " should be as expected");
+        }
     }
 
     @Test

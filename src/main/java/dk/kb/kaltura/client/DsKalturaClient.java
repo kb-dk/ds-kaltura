@@ -1,21 +1,13 @@
 package dk.kb.kaltura.client;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import com.kaltura.client.enums.ESearchItemType;
-import com.kaltura.client.services.ESearchService;
-import com.kaltura.client.types.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-
 import com.kaltura.client.APIOkRequestsExecutor;
+import com.kaltura.client.Client;
 import com.kaltura.client.Configuration;
+import com.kaltura.client.enums.ESearchEntryFieldName;
+import com.kaltura.client.enums.ESearchItemType;
 import com.kaltura.client.enums.MediaType;
 import com.kaltura.client.enums.SessionType;
+import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
 import com.kaltura.client.services.MediaService.AddContentMediaBuilder;
 import com.kaltura.client.services.MediaService.AddMediaBuilder;
@@ -23,8 +15,29 @@ import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
-import com.kaltura.client.Client;
+import com.kaltura.client.types.BaseEntry;
+import com.kaltura.client.types.ESearchEntryBaseItem;
+import com.kaltura.client.types.ESearchEntryItem;
+import com.kaltura.client.types.ESearchEntryOperator;
+import com.kaltura.client.types.ESearchEntryParams;
+import com.kaltura.client.types.ESearchEntryResponse;
+import com.kaltura.client.types.ESearchEntryResult;
+import com.kaltura.client.types.FilterPager;
+import com.kaltura.client.types.ListResponse;
+import com.kaltura.client.types.MediaEntry;
+import com.kaltura.client.types.MediaEntryFilter;
+import com.kaltura.client.types.UploadToken;
+import com.kaltura.client.types.UploadedFileTokenResource;
 import com.kaltura.client.utils.response.base.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -101,7 +114,7 @@ public class DsKalturaClient {
         ListMediaBuilder request =  MediaService.list(filter);               
 
         //Getting this line correct was very hard. Little documentation and has to know which object to cast to.                
-        //For some documentation about the "Kaltura search" api see: https://developer.kaltura.com/api-docs/service/media/action/list                
+        //For some documentation about the "Kaltura search" api see: https://developer.kaltura.com/api-docs/service/media/action/list
         Response <ListResponse<MediaEntry>> response = (Response <ListResponse<MediaEntry>>) APIOkRequestsExecutor.getExecutor().execute(request.build(clientSession));
         List<MediaEntry> mediaEntries = response.results.getObjects();           
 
@@ -119,23 +132,47 @@ public class DsKalturaClient {
         return response.results.getObjects().get(0).getId();    
     }
 
-    public String getKulturaInternalIds(List<String> referenceIds) throws IOException{
+    @SuppressWarnings("unchecked")
+    public Map<String, String> getKulturaInternalIds(List<String> referenceIds) throws IOException{
 
         // Adapted from Java samples at https://developer.kaltura.com
 
         // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
+        // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
+        // TODO: This returns the full item representation. How to reduce to only the [id, referenceId] fields?
+
         Client clientSession = getClientInstance();
         ESearchEntryParams searchParams = new ESearchEntryParams();
         ESearchEntryOperator operator = new ESearchEntryOperator();
         searchParams.setSearchOperator(operator);
 
-        ESearchUnifiedItem item = new ESearchUnifiedItem();
-        item.setItemType(ESearchItemType.EXACT_MATCH);
-        item.searchTerm(referenceIds.get(0));
-        operator.setSearchItems(List.of(item));
+        List<ESearchEntryBaseItem> items = referenceIds.stream()
+                .map(this::createReferenceIdItem)
+                .collect(Collectors.toList());
+        operator.setSearchItems(items);
 
         ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams);
-        return requestBuilder.build(clientSession).getBody();
+        Response<ESearchEntryResponse> response = (Response<ESearchEntryResponse>)
+                APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
+
+        return response.results.getObjects().stream()
+                .map(ESearchEntryResult::getObject)
+                .collect(Collectors.toMap(
+                        BaseEntry::getReferenceId,
+                        BaseEntry::getId,
+                        (e1, e2) -> {
+                            throw new IllegalArgumentException("referenceId '" + e1 + "' fund for duplicate entries");
+                        },
+                        LinkedHashMap::new));
+    }
+
+    private ESearchEntryItem createReferenceIdItem(String referenceId) {
+        ESearchEntryItem item = new ESearchEntryItem();
+        item.setFieldName(ESearchEntryFieldName.REFERENCE_ID);
+        //ESearchUnifiedItem item = new ESearchUnifiedItem();
+        item.searchTerm(referenceId);
+        item.setItemType(ESearchItemType.EXACT_MATCH);
+        return item;
     }
 
     /**
