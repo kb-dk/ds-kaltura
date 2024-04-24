@@ -202,7 +202,7 @@ public class DsKalturaClient {
     private synchronized Client getClientInstance() throws IOException{
         try {
 
-            if (System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds/1000) {            
+            if (System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 //Create the client
                 //KalturaConfiguration config = new KalturaConfiguration();
                 Configuration config = new Configuration();
