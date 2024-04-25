@@ -5,6 +5,7 @@ import com.kaltura.client.Client;
 import com.kaltura.client.Configuration;
 import com.kaltura.client.enums.ESearchEntryFieldName;
 import com.kaltura.client.enums.ESearchItemType;
+import com.kaltura.client.enums.ESearchOperatorType;
 import com.kaltura.client.enums.MediaType;
 import com.kaltura.client.enums.SessionType;
 import com.kaltura.client.services.ESearchService;
@@ -223,6 +224,7 @@ public class DsKalturaClient {
         // Setup request
         ESearchEntryParams searchParams = new ESearchEntryParams();
         ESearchEntryOperator operator = new ESearchEntryOperator();
+        operator.setOperator(ESearchOperatorType.OR_OP);
         searchParams.setSearchOperator(operator);
         operator.setSearchItems(items);
         FilterPager pager = new FilterPager();

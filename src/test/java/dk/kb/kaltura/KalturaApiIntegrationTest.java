@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -39,15 +40,22 @@ public class KalturaApiIntegrationTest {
     public static final String REFERENCE_ID1 = "9ac77346-32d5-4733-b38f-91dd25649f88";
     public static final String REFERENCE_ID2 = "108c27ed-4e7a-4d4b-8674-9fee57ab925f";
     public static final String REFERENCE_ID3 = "89fbdd2e-82b1-483a-99d7-810101ef33b2";
+
     // referenceID, kalturaID
-    public static final List<List<String>> KNOWN_PAIRS_NEW = List.of(
+    public static final List<List<String>> KNOWN_PAIRS_1 = List.of(
+            List.of(REFERENCE_ID1, KALTURA_ID1)
+    );
+    public static final List<List<String>> KNOWN_PAIRS_3 = List.of(
             List.of(REFERENCE_ID1, KALTURA_ID1),
             List.of(REFERENCE_ID2, KALTURA_ID2),
             List.of(REFERENCE_ID3, KALTURA_ID3)
     );
-    public static final List<List<String>> KNOWN_PAIRS = List.of(
+    public static final List<List<String>> KNOWN_PAIRS_OLD = List.of(
             List.of("7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7", "0_vvp1ozjl")
     );
+
+    // The IDs used by the unit test
+    public static final List<List<String>> KNOWN_PAIRS = KNOWN_PAIRS_3;
 
     @BeforeAll
     public static void setup() throws IOException {
@@ -94,7 +102,8 @@ public class KalturaApiIntegrationTest {
         System.out.println(ids);
     }
 
-    @Test
+    // Old stress test to see why repeated calls failed (they don't anymore)
+    @Disabled
     public void callKalturaApi() throws Exception{
 
         //These data can change in Kaltura
