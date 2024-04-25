@@ -51,7 +51,7 @@ public class KalturaApiIntegrationTest {
                 List.of(referenceId,kalturaInternallId)
         );
 
-        DsKalturaClient clientSession = getClientSession();
+        DsKalturaClient clientSession = getClient();
         Map<String, String> map = clientSession.getKulturaInternalIds(
                 tests.stream().map(e -> e.get(0)).collect(Collectors.toList()));
 
@@ -64,13 +64,20 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
+    public void simpleSearch() throws IOException {
+        List<String> ids = getClient().searchTerm("dr");
+        assertFalse(ids.isEmpty(), "Search result should not be empty");
+        System.out.println(ids);
+    }
+
+    @Test
     public void callKalturaApi() throws Exception{
                                
         //These data can change in Kaltura
         String referenceId="7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7"; 
         String kalturaInternallId="0_vvp1ozjl";
 
-        DsKalturaClient clientSession=getClientSession();
+        DsKalturaClient clientSession= getClient();
         
         int success=0;
         for (int i = 0;i<10;i++) {                  
@@ -89,7 +96,7 @@ public class KalturaApiIntegrationTest {
      */
     @Test
     public void kalturaUpload() throws Exception{                             
-            DsKalturaClient clientSession=getClientSession();                  
+            DsKalturaClient clientSession= getClient();
             String file="/home/xxx/videos/test.mp4"; // <-- Change to local video file
             String referenceId="ref_test_1234s";
             MediaType mediaType=MediaType.VIDEO;
@@ -100,7 +107,7 @@ public class KalturaApiIntegrationTest {
             assertNotNull(kalturaId);
      }
         
-    private DsKalturaClient getClientSession() throws IOException {
+    private DsKalturaClient getClient() throws IOException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(
                 conf.getString("url"),
