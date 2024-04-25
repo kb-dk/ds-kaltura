@@ -23,13 +23,31 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Unittest that will call the API search method. Search for a local refenceId to get the Kaltura internal id for the record.
  * Using Kaltura client v.19.3.3 there is no longer sporadic errors when calling the API.
- * 
+ *
  */
 @Tag("integration")
 public class KalturaApiIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(KalturaApiIntegrationTest.class);
-    
+
     private static final long DEFAULT_KEEP_ALIVE = 86400;
+
+    // ID's valid as of 2024-04-25 but subject to change
+    // TODO: Add a step to setup() creating test kaltura<->reference IDs 
+    public static final String KALTURA_ID1 = "0_84jdv1bw";
+    public static final String KALTURA_ID2 = "0_ahzrnnyh";
+    public static final String KALTURA_ID3 = "0_vbv44dk7";
+    public static final String REFERENCE_ID1 = "9ac77346-32d5-4733-b38f-91dd25649f88";
+    public static final String REFERENCE_ID2 = "108c27ed-4e7a-4d4b-8674-9fee57ab925f";
+    public static final String REFERENCE_ID3 = "89fbdd2e-82b1-483a-99d7-810101ef33b2";
+    // referenceID, kalturaID
+    public static final List<List<String>> KNOWN_PAIRS_NEW = List.of(
+            List.of(REFERENCE_ID1, KALTURA_ID1),
+            List.of(REFERENCE_ID2, KALTURA_ID2),
+            List.of(REFERENCE_ID3, KALTURA_ID3)
+    );
+    public static final List<List<String>> KNOWN_PAIRS = List.of(
+            List.of("7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7", "0_vvp1ozjl")
+    );
 
     @BeforeAll
     public static void setup() throws IOException {
@@ -41,25 +59,31 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void multipleLookups() throws IOException {
-        //These data can change in Kaltura
-        String referenceId="7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7";
-        String kalturaInternallId="0_vvp1ozjl";
+    public void kalturaIDsLookup() throws IOException {
+        Map<String, String> map = getClient().getKulturaIds(
+                KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
+        log.debug("kalturaIDsLookup() got {} results from {} IDs", map.size(), KNOWN_PAIRS.size());
 
+        for (List<String> knownPair: KNOWN_PAIRS) {
+            String refID = knownPair.get(0);
+            String kalID = knownPair.get(1);
+            assertTrue(map.containsKey(refID), "There should be a mapping for referenceId '" + refID + "'");
+            assertEquals(kalID, map.get(refID), "The mapping for '" + refID + " should be as expected");
+        }
+    }
 
-        List<List<String>> tests = List.of(
-                List.of(referenceId,kalturaInternallId)
-        );
+    // We have no scenario where this lookup is used
+    @Test
+    public void referenceIDsLookup() throws IOException {
+        Map<String, String> map = getClient().getReferenceIds(
+                KNOWN_PAIRS.stream().map(e -> e.get(1)).collect(Collectors.toList()));
+        log.debug("referenceIDsLookup() got {} hits for {} kalturaIDs", map.size(), KNOWN_PAIRS.size());
 
-        DsKalturaClient clientSession = getClient();
-        Map<String, String> map = clientSession.getKulturaInternalIds(
-                tests.stream().map(e -> e.get(0)).collect(Collectors.toList()));
-
-        for (List<String> test: tests) {
+        for (List<String> test: KNOWN_PAIRS) {
             String refID = test.get(0);
             String kalID = test.get(1);
-          assertTrue(map.containsKey(refID), "There should be a mapping for referenceId '" + refID + "'");
-          assertEquals(kalID, map.get(refID), "The mapping for '" + refID + " should be as expected");
+            assertTrue(map.containsKey(kalID), "There should be a mapping for kalturaId '" + kalID + "'");
+            assertEquals(refID, map.get(kalID), "The mapping for '" + kalID + " should be as expected");
         }
     }
 
@@ -72,41 +96,41 @@ public class KalturaApiIntegrationTest {
 
     @Test
     public void callKalturaApi() throws Exception{
-                               
+
         //These data can change in Kaltura
-        String referenceId="7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7"; 
+        String referenceId="7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7";
         String kalturaInternallId="0_vvp1ozjl";
 
         DsKalturaClient clientSession= getClient();
-        
+
         int success=0;
-        for (int i = 0;i<10;i++) {                  
+        for (int i = 0;i<10;i++) {
             String kalturaId = clientSession.getKulturaInternalId(referenceId);
             assertEquals(kalturaInternallId, kalturaId,"API error was reproduced after "+success+" number of calls");
             log.debug("API returned internal Kaltura id:"+kalturaId);
-            success++;            
-            Thread.sleep(1000L);                        
-        }        
+            success++;
+            Thread.sleep(1000L);
+        }
     }
-    
-    
+
+
     /**
      * When uploading a file to Kaltura, remember to delete it from the Kaltura 
-     * 
+     *
      */
     @Test
-    public void kalturaUpload() throws Exception{                             
-            DsKalturaClient clientSession= getClient();
-            String file="/home/xxx/videos/test.mp4"; // <-- Change to local video file
-            String referenceId="ref_test_1234s";
-            MediaType mediaType=MediaType.VIDEO;
-            String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
-            String title="test2 title from unittest";
-            String description="test2 description from unittest";            
-            String kalturaId = clientSession.uploadMedia(file, referenceId,mediaType,title,description,tag);   
-            assertNotNull(kalturaId);
-     }
-        
+    public void kalturaUpload() throws Exception{
+        DsKalturaClient clientSession= getClient();
+        String file="/home/xxx/videos/test.mp4"; // <-- Change to local video file
+        String referenceId="ref_test_1234s";
+        MediaType mediaType=MediaType.VIDEO;
+        String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
+        String title="test2 title from unittest";
+        String description="test2 description from unittest";
+        String kalturaId = clientSession.uploadMedia(file, referenceId,mediaType,title,description,tag);
+        assertNotNull(kalturaId);
+    }
+
     private DsKalturaClient getClient() throws IOException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(
@@ -116,5 +140,5 @@ public class KalturaApiIntegrationTest {
                 conf.getString("adminSecret"),
                 conf.getLong("sessionKeepAliveSeconds", DEFAULT_KEEP_ALIVE));
     }
-    
+
 }

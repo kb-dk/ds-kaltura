@@ -131,19 +131,7 @@ public class DsKalturaClient {
      *         Unresolvable {@code referenceIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
-    @SuppressWarnings("unchecked")
-    public Map<String, String> getKulturaInternalIds(List<String> referenceIds) throws IOException{
-        // Adapted from Java samples at https://developer.kaltura.com
-        // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
-        // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
-        // TODO: This retrieves the full item representation. How to reduce to only [id, referenceId] fields?
-
-        if (referenceIds.size() > BATCH_SIZE) {
-            // TODO: Change this to multiple batch requests
-            throw new IllegalArgumentException(
-                    "ID request for " + referenceIds.size() + " IDs exceeds current limit of " + BATCH_SIZE);
-        }
-
+    public Map<String, String> getKulturaIds(List<String> referenceIds) throws IOException{
         if (referenceIds.isEmpty()) {
             log.info("getKulturaInternalIds(referenceIDs) called with empty list of IDs");
             return Collections.emptyMap();
@@ -165,6 +153,29 @@ public class DsKalturaClient {
                                 entry.getReferenceId(), previousID, entry.getId());
                     }});
         return pairs;
+    }
+
+    /**
+     * Resolve referenceIDs for a list of Kaltura IDs.
+     * @param kalturaIDs a list of {@code kalturaIDs}.
+     * @return a map from {@code kalturaID} to {@code referenceID}.
+     *         Unresolvable {@code kalturaIDs} will not be present in the map.
+     * @throws IOException if the remote request failed.
+     */
+    public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws IOException{
+        if (kalturaIDs.isEmpty()) {
+            log.info("getReferenceIds(kalturaIDs) called with empty list of IDs");
+            return Collections.emptyMap();
+        }
+
+        List<ESearchEntryBaseItem> items = kalturaIDs.stream()
+                .map(this::createKalturaIdItem)
+                .collect(Collectors.toList());
+        Response<ESearchEntryResponse> response = searchMulti(items);
+
+        return response.results.getObjects().stream()
+                        .map(ESearchEntryResult::getObject)
+                .collect(Collectors.toMap(BaseEntry::getId, BaseEntry::getReferenceId));
     }
 
     /**
@@ -203,6 +214,12 @@ public class DsKalturaClient {
         // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
         // TODO: This retrieves the full item representation. How to reduce to only [id, referenceId] fields?
 
+        if (items.size() > BATCH_SIZE) {
+            // TODO: Change this to multiple batch requests
+            throw new IllegalArgumentException(
+                    "Request for " + items.size() + " items exceeds current limit of " + BATCH_SIZE);
+        }
+
         // Setup request
         ESearchEntryParams searchParams = new ESearchEntryParams();
         ESearchEntryOperator operator = new ESearchEntryOperator();
@@ -213,25 +230,32 @@ public class DsKalturaClient {
 
         // Issue search
         ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
-        try {
-            Object o = APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(getClientInstance()));
-            return (Response<ESearchEntryResponse>)
-                    APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(getClientInstance()));
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            throw new RuntimeException(e);
-        }
+        return (Response<ESearchEntryResponse>)
+                APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(getClientInstance()));
     }
 
     /**
      * Build a search item aka search clause for the given {@code referenceId}.
-     * @param referenceId typically the UUID for a stream filename.
+     * @param referenceID typically the UUID for a stream filename.
      * @return a search item ready for search or for building more complex search requests.
      */
-    private ESearchEntryItem createReferenceIdItem(String referenceId) {
+    private ESearchEntryItem createReferenceIdItem(String referenceID) {
         ESearchEntryItem item = new ESearchEntryItem();
         item.setFieldName(ESearchEntryFieldName.REFERENCE_ID);
-        item.searchTerm(referenceId);
+        item.searchTerm(referenceID);
+        item.setItemType(ESearchItemType.EXACT_MATCH);
+        return item;
+    }
+
+    /**
+     * Build a search item aka search clause for the given {@code ID}.
+     * @param kalturaID typically the UUID for a stream filename.
+     * @return a search item ready for search or for building more complex search requests.
+     */
+    private ESearchEntryItem createKalturaIdItem(String kalturaID) {
+        ESearchEntryItem item = new ESearchEntryItem();
+        item.setFieldName(ESearchEntryFieldName.ID);
+        item.searchTerm(kalturaID);
         item.setItemType(ESearchItemType.EXACT_MATCH);
         return item;
     }
