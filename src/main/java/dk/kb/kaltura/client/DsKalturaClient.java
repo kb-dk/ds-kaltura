@@ -1,18 +1,14 @@
 package dk.kb.kaltura.client;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.File;
-
 import com.kaltura.client.APIOkRequestsExecutor;
+import com.kaltura.client.Client;
 import com.kaltura.client.Configuration;
+import com.kaltura.client.enums.ESearchEntryFieldName;
+import com.kaltura.client.enums.ESearchItemType;
+import com.kaltura.client.enums.ESearchOperatorType;
 import com.kaltura.client.enums.MediaType;
 import com.kaltura.client.enums.SessionType;
+import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
 import com.kaltura.client.services.MediaService.AddContentMediaBuilder;
 import com.kaltura.client.services.MediaService.AddMediaBuilder;
@@ -20,14 +16,18 @@ import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
-import com.kaltura.client.types.FilterPager;
-import com.kaltura.client.types.ListResponse;
-import com.kaltura.client.types.MediaEntryFilter;
-import com.kaltura.client.types.UploadToken;
-import com.kaltura.client.types.UploadedFileTokenResource;
-import com.kaltura.client.types.MediaEntry;
-import com.kaltura.client.Client;
+import com.kaltura.client.types.*;
 import com.kaltura.client.utils.response.base.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -41,7 +41,10 @@ import com.kaltura.client.utils.response.base.Response;
  */
 public class DsKalturaClient {
 
-    static {        
+    // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
+    public static final int BATCH_SIZE = 100;
+
+    static {
         // Kaltura library uses log4j2 and will remove this error message on start up: Log4j2 could not find a logging implementation
         System.setProperty("log4j2.loggerContextFactory", "org.apache.logging.log4j.simple.SimpleLoggerContextFactory");
     }
@@ -104,7 +107,7 @@ public class DsKalturaClient {
         ListMediaBuilder request =  MediaService.list(filter);               
 
         //Getting this line correct was very hard. Little documentation and has to know which object to cast to.                
-        //For some documentation about the "Kaltura search" api see: https://developer.kaltura.com/api-docs/service/media/action/list                
+        //For some documentation about the "Kaltura search" api see: https://developer.kaltura.com/api-docs/service/media/action/list
         Response <ListResponse<MediaEntry>> response = (Response <ListResponse<MediaEntry>>) APIOkRequestsExecutor.getExecutor().execute(request.build(clientSession));
         List<MediaEntry> mediaEntries = response.results.getObjects();           
 
@@ -120,6 +123,143 @@ public class DsKalturaClient {
         }
 
         return response.results.getObjects().get(0).getId();    
+    }
+
+    /**
+     * Resolve Kaltura IDs for a list of referenceIDs.
+     * @param referenceIds a list of {@code referenceIDs}, typically UUIDs from stream filenames.
+     * @return a map from {@code referenceID} to {@code kalturaID}.
+     *         Unresolvable {@code referenceIDs} will not be present in the map.
+     * @throws IOException if the remote request failed.
+     */
+    public Map<String, String> getKulturaIds(List<String> referenceIds) throws IOException{
+        if (referenceIds.isEmpty()) {
+            log.info("getKulturaInternalIds(referenceIDs) called with empty list of IDs");
+            return Collections.emptyMap();
+        }
+
+        List<ESearchEntryBaseItem> items = referenceIds.stream()
+                .map(this::createReferenceIdItem)
+                .collect(Collectors.toList());
+        Response<ESearchEntryResponse> response = searchMulti(items);
+
+        // Collect result while checking for duplicates
+        final Map<String, String> pairs = new LinkedHashMap<>(referenceIds.size());
+        response.results.getObjects().stream()
+                .map(ESearchEntryResult::getObject)
+                .forEach(entry -> {
+                    String previousID;
+                    if ((previousID = pairs.put(entry.getReferenceId(), entry.getId())) != null) {
+                        log.warn("Warning: referenceID '{}' resolved to multiple kalturaIDs [\"{}\", \"{}\"]",
+                                entry.getReferenceId(), previousID, entry.getId());
+                    }});
+        return pairs;
+    }
+
+    /**
+     * Resolve referenceIDs for a list of Kaltura IDs.
+     * @param kalturaIDs a list of {@code kalturaIDs}.
+     * @return a map from {@code kalturaID} to {@code referenceID}.
+     *         Unresolvable {@code kalturaIDs} will not be present in the map.
+     * @throws IOException if the remote request failed.
+     */
+    public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws IOException{
+        if (kalturaIDs.isEmpty()) {
+            log.info("getReferenceIds(kalturaIDs) called with empty list of IDs");
+            return Collections.emptyMap();
+        }
+
+        List<ESearchEntryBaseItem> items = kalturaIDs.stream()
+                .map(this::createKalturaIdItem)
+                .collect(Collectors.toList());
+        Response<ESearchEntryResponse> response = searchMulti(items);
+
+        return response.results.getObjects().stream()
+                        .map(ESearchEntryResult::getObject)
+                .collect(Collectors.toMap(BaseEntry::getId, BaseEntry::getReferenceId));
+    }
+
+    /**
+     * Simple free form term search in Kaltura.
+     * @param term a search term, such as {@code dr} or {@code tv avisen}.
+     * @return a list of Kaltura IDs for matching records, empty if no hits. Max result size is {@link #BATCH_SIZE}.
+     * @throws IOException if the remote request failed.
+     */
+    public List<String> searchTerm(String term) throws IOException{
+        // Adapted from Java samples at https://developer.kaltura.com
+        // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
+        // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
+        // TODO: This retrieves the full item representation. How to reduce to only [id, referenceId] fields?
+
+        ESearchUnifiedItem item = new ESearchUnifiedItem();
+        item.setItemType(ESearchItemType.EXACT_MATCH);
+        item.searchTerm(term);
+        
+        return searchMulti(List.of(item)).results.getObjects().stream()
+                .map(ESearchEntryResult::getObject)
+                .map(BaseEntry::getId)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Generic multi search for a list of {@link ESearchEntryBaseItem items},
+     * returning at most {@link #BATCH_SIZE} results.
+     * @param items at least 1 search item.
+     * @return the response from a Kaltura search for the given items.
+     * @throws IOException if the remote request failed.
+     */
+    @SuppressWarnings("unchecked")
+    private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws IOException{
+        // Adapted from Java samples at https://developer.kaltura.com
+        // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
+        // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
+        // TODO: This retrieves the full item representation. How to reduce to only [id, referenceId] fields?
+
+        if (items.size() > BATCH_SIZE) {
+            // TODO: Change this to multiple batch requests
+            throw new IllegalArgumentException(
+                    "Request for " + items.size() + " items exceeds current limit of " + BATCH_SIZE);
+        }
+
+        // Setup request
+        ESearchEntryParams searchParams = new ESearchEntryParams();
+        ESearchEntryOperator operator = new ESearchEntryOperator();
+        operator.setOperator(ESearchOperatorType.OR_OP);
+        searchParams.setSearchOperator(operator);
+        operator.setSearchItems(items);
+        FilterPager pager = new FilterPager();
+        pager.setPageSize(BATCH_SIZE);
+
+        // Issue search
+        ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
+        return (Response<ESearchEntryResponse>)
+                APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(getClientInstance()));
+    }
+
+    /**
+     * Build a search item aka search clause for the given {@code referenceId}.
+     * @param referenceID typically the UUID for a stream filename.
+     * @return a search item ready for search or for building more complex search requests.
+     */
+    private ESearchEntryItem createReferenceIdItem(String referenceID) {
+        ESearchEntryItem item = new ESearchEntryItem();
+        item.setFieldName(ESearchEntryFieldName.REFERENCE_ID);
+        item.searchTerm(referenceID);
+        item.setItemType(ESearchItemType.EXACT_MATCH);
+        return item;
+    }
+
+    /**
+     * Build a search item aka search clause for the given {@code ID}.
+     * @param kalturaID typically the UUID for a stream filename.
+     * @return a search item ready for search or for building more complex search requests.
+     */
+    private ESearchEntryItem createKalturaIdItem(String kalturaID) {
+        ESearchEntryItem item = new ESearchEntryItem();
+        item.setFieldName(ESearchEntryFieldName.ID);
+        item.searchTerm(kalturaID);
+        item.setItemType(ESearchItemType.EXACT_MATCH);
+        return item;
     }
 
     /**
@@ -202,7 +342,7 @@ public class DsKalturaClient {
     private synchronized Client getClientInstance() throws IOException{
         try {
 
-            if (System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds/1000) {            
+            if (System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 //Create the client
                 //KalturaConfiguration config = new KalturaConfiguration();
                 Configuration config = new Configuration();
@@ -223,7 +363,3 @@ public class DsKalturaClient {
         }
     }
 }
-
-
-
-
