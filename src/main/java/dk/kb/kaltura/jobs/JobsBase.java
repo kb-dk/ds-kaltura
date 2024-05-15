@@ -17,10 +17,11 @@ public abstract class JobsBase {
         String kalturaUrl=ServiceConfig.getConfig().getString("kaltura.url");
         String userId=ServiceConfig.getConfig().getString("kaltura.userId");
         int partnerId=ServiceConfig.getConfig().getInteger("kaltura.partnerId");        
-        String adminSecret=ServiceConfig.getConfig().getString("kaltura.adminSecret");
+        String appToken=ServiceConfig.getConfig().getString("kaltura.appToken");
+        String appTokenId=ServiceConfig.getConfig().getString("kaltura.appTokenId");
         long keepAliveSeconds=ServiceConfig.getConfig().getLong("kaltura.sessionKeepAliveSeconds");
 
-        DsKalturaClient client = new DsKalturaClient(kalturaUrl, userId, partnerId, adminSecret, keepAliveSeconds);               
+        DsKalturaClient client = new DsKalturaClient(kalturaUrl, userId, partnerId, appToken, appTokenId, keepAliveSeconds);
         return client;        
     }
 }

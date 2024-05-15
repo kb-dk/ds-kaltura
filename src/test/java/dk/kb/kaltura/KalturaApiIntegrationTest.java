@@ -26,13 +26,12 @@ public class KalturaApiIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(KalturaApiIntegrationTest.class);
     
     private String kalturaUrl="https://kmc.kaltura.nordu.net";
-    private int partnerId=380; // The partnerId we have to use. Not secret
-    private String userId="@kb.dk";// <-- Change to valid value
-    private String adminSecret="xxx"; // <-- Change to valid value. DO NOT CHECK THE SECRET INTO GITHUB.
+    private int partnerId=399; // The partnerId we have to use. Not secret
+    private String userId="";// <-- Change to valid value
     private long sessionKeepAliveSeconds=86400;
-    
-    
-    
+    private String token = ""; // <-- Change to valid value. DO NOT CHECK THE SECRET INTO GITHUB.
+    private String tokenId = ""; //  <-- Change to valid value. DO NOT CHECK THE SECRET INTO GITHUB.
+
     @Test
     public void callKalturaApi() throws Exception{
                                
@@ -71,7 +70,7 @@ public class KalturaApiIntegrationTest {
      }
         
     private DsKalturaClient getClientSession() throws IOException {        
-        return new DsKalturaClient(kalturaUrl,userId,partnerId,adminSecret,sessionKeepAliveSeconds);        
+        return new DsKalturaClient(kalturaUrl,userId,partnerId,token,tokenId,sessionKeepAliveSeconds);
     }
     
 }

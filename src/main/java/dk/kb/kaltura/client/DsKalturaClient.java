@@ -1,7 +1,8 @@
 package dk.kb.kaltura.client;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -20,6 +21,10 @@ import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
+import com.kaltura.client.services.AppTokenService;
+import com.kaltura.client.services.SessionService;
+import com.kaltura.client.types.StartWidgetSessionResponse;
+import com.kaltura.client.types.SessionInfo;
 import com.kaltura.client.types.FilterPager;
 import com.kaltura.client.types.ListResponse;
 import com.kaltura.client.types.MediaEntryFilter;
@@ -51,7 +56,8 @@ public class DsKalturaClient {
     private String kalturaUrl;
     private String userId;
     private int partnerId;
-    private String adminSecret;
+    private String token;
+    private String tokenId;
     private long sessionKeepAliveSeconds;
     private long lastSessionStart=0;
 
@@ -61,19 +67,21 @@ public class DsKalturaClient {
      * @param kalturaUrl The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL. 
      * @param userId The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
      * @param partnerId The partner id for kaltura. Kind of a collectionId. 
-     * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
+//     * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
      * @param sessionKeepAliveSeconds Reuse the Kaltura Session for performance. Sessions will be refreshed at the given interval. Recommended value 86400 (1 day)
      * 
      * @throws IOException  If session could not be created at Kaltura
      */
-    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String adminSecret, long sessionKeepAliveSeconds) throws IOException {        
+    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
+                           long sessionKeepAliveSeconds) throws IOException {
         if (sessionKeepAliveSeconds <600) { //Enforce some kind of reuse of session since authenticating sessions will accumulate at Kaltura.
             throw new IllegalArgumentException("SessionKeepAliveSeconds must be at least 600 seconds (10 minutes) ");
         }               
         this.kalturaUrl=kalturaUrl;
         this.userId=userId;
         this.partnerId=partnerId;
-        this.adminSecret=adminSecret;
+        this.token = token;
+        this.tokenId = tokenId;
         this.sessionKeepAliveSeconds=sessionKeepAliveSeconds;    
         getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
     }
@@ -136,9 +144,9 @@ public class DsKalturaClient {
      * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it. 
      * 
      * @param filePath File path to the media file to upload. 
-     * @param referenceId. Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
+     * @param referenceId Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
      * @param mediaType enum type. MediaType.AUDIO or MediaType.VIDEO
-     * @param name Name/titel for the resource in Kaltura
+     * @param title Name/titel for the resource in Kaltura
      * @param description , optional description 
      * @param tag Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
      *
@@ -194,6 +202,46 @@ public class DsKalturaClient {
         return entryId;
     }
 
+    private String generateWidgetSession(Client client) {
+        log.debug("Generating Widget Session...");
+        String widgetId = "_" + client.getPartnerId();
+        int expiry = Client.EXPIRY;
+        SessionService.StartWidgetSessionSessionBuilder requestBuilder =
+                SessionService.startWidgetSession(widgetId,
+                                expiry);
+        var request = requestBuilder.build(client);
+        Response<StartWidgetSessionResponse> response =
+                    (Response<StartWidgetSessionResponse>) APIOkRequestsExecutor.getExecutor().execute(request);
+        return response.results.getKs();
+    }
+
+
+    /*
+    * Returns hash of token and ks. Returns null if error occurs.
+     */
+    private String computeHash (String token, String ks){
+        client.setSessionId(ks);
+        try{
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update((ks + token).getBytes());
+            byte[] res = md.digest();
+            StringBuilder hashString = new StringBuilder();
+            for (byte i : res) {
+                int decimal = (int)i & 0XFF;
+                String hex = Integer.toHexString(decimal);
+                if (hex.length() % 2 == 1) {
+                    hex = "0" + hex;
+                }
+                hashString.append(hex);
+            }
+            return hashString.toString();
+        }catch (NoSuchAlgorithmException e){
+            log.warn("SHA-256 algorithm not available");
+        }
+        return null;
+    }
+
+
 
     /*
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
@@ -207,11 +255,11 @@ public class DsKalturaClient {
                 //KalturaConfiguration config = new KalturaConfiguration();
                 Configuration config = new Configuration();
                 config.setEndpoint(kalturaUrl);
-                Client client = new Client(config);                          
-                String ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId);
-                client.setKs(ks);         
-                this.client=client;                        
-                lastSessionStart=System.currentTimeMillis(); //Reset timer           
+                Client client = new Client(config);
+                client.setPartnerId(partnerId);
+                this.client=client;
+                startClientSession(client, this.token);
+                lastSessionStart=System.currentTimeMillis(); //Reset timer
                 log.info("Refreshed Kaltura client session");
                 return client;
             }
@@ -221,6 +269,31 @@ public class DsKalturaClient {
             log.warn("Connecting to Kaltura failed. KalturaUrl={},error={}",kalturaUrl,e.getMessage());
             throw new IOException (e);
         }
+    }
+
+    /*
+     * Sets client session to a privileged session using appToken.
+     */
+    private void startClientSession(Client client, String token) {
+        String widgetSession = generateWidgetSession(client);
+        client.setKs(widgetSession);
+        String hash = computeHash(token, widgetSession);
+        String ks = startTokenSession(hash, client);
+        client.setKs(ks);
+    }
+
+    /*
+     * Returns a privileged session using a token+session hash.
+     *
+     */
+    private String startTokenSession(String hash, Client client) {
+        AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
+                AppTokenService.startSession(this.tokenId, hash);
+        sessionBuilder.type(SessionType.ADMIN.name());
+        sessionBuilder.userId(this.userId);
+        Response<SessionInfo> response = (Response<SessionInfo>)
+                APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
+        return response.results.getKs();
     }
 }
 
