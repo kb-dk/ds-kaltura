@@ -62,12 +62,13 @@ public class DsKalturaClient {
     private long lastSessionStart=0;
 
     /**
-     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again. 
-     * 
-     * @param kalturaUrl The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL. 
-     * @param userId The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
-     * @param partnerId The partner id for kaltura. Kind of a collectionId. 
-//     * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
+     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
+     *
+     * @param kalturaUrl              The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
+     * @param userId                  The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
+     * @param partnerId               The partner id for kaltura. Kind of a collectionId. //     * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
+     * @param token                   the token
+     * @param tokenId                 the token id
      * @param sessionKeepAliveSeconds Reuse the Kaltura Session for performance. Sessions will be refreshed at the given interval. Recommended value 86400 (1 day)
      * 
      * @throws IOException  If session could not be created at Kaltura
@@ -216,8 +217,10 @@ public class DsKalturaClient {
     }
 
 
-    /*
-    * Returns hash of token and ks. Returns null if error occurs.
+    /**
+     * @param token AppToken String for computing hash
+     * @param ks    Unprivileged Kaltura Widget Session for computing hash
+     * @return A string representing a tokenHash package or an empty string if Error Occurs.
      */
     private String computeHash (String token, String ks){
         client.setSessionId(ks);
@@ -238,27 +241,26 @@ public class DsKalturaClient {
         }catch (NoSuchAlgorithmException e){
             log.warn("SHA-256 algorithm not available");
         }
-        return null;
+        return "";
     }
 
 
 
-    /*
+    /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
-     * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded   
+     * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
+     *
      */
     private synchronized Client getClientInstance() throws IOException{
         try {
 
-            if (System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds/1000) {            
-                //Create the client
-                //KalturaConfiguration config = new KalturaConfiguration();
+            if (System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds/1000) {
                 Configuration config = new Configuration();
                 config.setEndpoint(kalturaUrl);
                 Client client = new Client(config);
                 client.setPartnerId(partnerId);
+                startClientSession(client, this.token, this.tokenId, this.userId);
                 this.client=client;
-                startClientSession(client, this.token);
                 lastSessionStart=System.currentTimeMillis(); //Reset timer
                 log.info("Refreshed Kaltura client session");
                 return client;
@@ -274,23 +276,22 @@ public class DsKalturaClient {
     /*
      * Sets client session to a privileged session using appToken.
      */
-    private void startClientSession(Client client, String token) {
+    private void startClientSession(Client client, String token, String tokenId, String userId) {
         String widgetSession = generateWidgetSession(client);
         client.setKs(widgetSession);
         String hash = computeHash(token, widgetSession);
-        String ks = startTokenSession(hash, client);
+        String ks = startTokenSession(hash, client, tokenId, userId);
         client.setKs(ks);
     }
 
     /*
      * Returns a privileged session using a token+session hash.
-     *
      */
-    private String startTokenSession(String hash, Client client) {
+    private String startTokenSession(String hash, Client client, String tokenId, String userId) {
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
-                AppTokenService.startSession(this.tokenId, hash);
+                AppTokenService.startSession(tokenId, hash);
         sessionBuilder.type(SessionType.ADMIN.name());
-        sessionBuilder.userId(this.userId);
+        sessionBuilder.userId(userId);
         Response<SessionInfo> response = (Response<SessionInfo>)
                 APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
         return response.results.getKs();
