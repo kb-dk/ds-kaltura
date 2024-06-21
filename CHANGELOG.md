@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
-## [1.1.0] - 2024-06-21
+## [1.2.0] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-1.2.0) - 2024-05-28 - 2024-06-21
 - Remove the root `.config` from the configuration
 - More methods.
 
