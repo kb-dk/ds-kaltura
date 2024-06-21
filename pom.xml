@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.sbforge</groupId>
-    <artifactId>sbforge-parent</artifactId>
-    <version>25</version>
+    <groupId>dk.statsbiblioteket.sbprojects</groupId>
+    <artifactId>sbprojects-parent</artifactId>
+    <version>80</version>
   </parent>
-
+    
   <groupId>dk.kb.kaltura</groupId>
   <artifactId>ds-kaltura</artifactId>
   <version>1.2.0-SNAPSHOT</version>
