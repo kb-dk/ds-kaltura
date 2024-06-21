@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 
+
+
+## [1.1.0] - 2024-06-21
 - Remove the root `.config` from the configuration
+- More methods.
 
 ## [1.0.0] - YYYY-MM-DD
 ### Added
