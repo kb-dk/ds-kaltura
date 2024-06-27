@@ -123,6 +123,14 @@ public class KalturaApiIntegrationTest {
     }
 
 
+    @Test
+    public void testDeleteEntry() throws Exception{
+        String not_found_entryId="0_xxxxxx"; //Change to an existing ID if need to test a successful deletion.        
+        DsKalturaClient clientSession= getClient();
+        boolean success= clientSession.deleteStreamByEntryId(not_found_entryId);
+        assertFalse(success); //The record does not exist in Kaltura and can therefor not be deleted.
+    }
+    
     /**
      * When uploading a file to Kaltura, remember to delete it from the Kaltura 
      *

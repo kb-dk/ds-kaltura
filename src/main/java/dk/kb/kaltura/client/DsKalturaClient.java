@@ -12,6 +12,7 @@ import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
 import com.kaltura.client.services.MediaService.AddContentMediaBuilder;
 import com.kaltura.client.services.MediaService.AddMediaBuilder;
+import com.kaltura.client.services.MediaService.DeleteMediaBuilder;
 import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
@@ -82,6 +83,24 @@ public class DsKalturaClient {
     }
 
 
+    /** 
+     * <p>
+     * Delete a stream and all meta-data for the record in Kaltura.
+     * It can not be restored in Kaltura and must be uploaded again if deleted by mistake.       
+     * </p>
+     *  
+     * @param entryId The unique id in the Kaltura platform for the stream
+     * @return True if record was found and deleted. False if the record with the entryId could not be found in Kaltura.
+     * @throws IOException if Kaltura API called failed.
+     */
+    public boolean deleteStreamByEntryId(String entryId) throws IOException{                
+         Client clientSession = getClientInstance();        
+         DeleteMediaBuilder request = MediaService.delete(entryId);         
+         Response<?> execute = APIOkRequestsExecutor.getExecutor().execute(request.build(clientSession)); // no object in response. Only status
+         return execute.isSuccess();
+    }
+    
+    
     /**
      * Search Kaltura for a referenceId. The referenceId was given to Kaltura when uploading the record.<br>
      * We use filenames (file_id) as refereceIds. Example: b16bc5cb-1ea9-48d4-8e3c-2a94abae501b <br>
