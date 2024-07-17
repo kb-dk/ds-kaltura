@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- New manuel delete job that takes an input file of kaltura entryId's and deletes each stream+metadata in Kaltura for the entries.
+
 
 ### Changed
 
+## [1.2.2] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-1.2.2) - 2024-07-17
+- New manuel delete job that takes an input file of kaltura entryId's and deletes each stream+metadata in Kaltura for the entries.
 
 ## [1.2.1] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-1.2.1) - 2024-06-27
 ### Added
