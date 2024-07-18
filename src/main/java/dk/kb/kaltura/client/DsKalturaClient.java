@@ -19,6 +19,9 @@ import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.response.base.Response;
+
+import dk.kb.util.webservice.exception.InternalServiceException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +121,6 @@ public class DsKalturaClient {
 
         MediaEntryFilter filter = new MediaEntryFilter();
         filter.setReferenceIdEqual(referenceId);
-        //filter.idEqual("0_g9ys622b"); //Example to search for id
 
         FilterPager pager = new FilterPager();
         pager.setPageIndex(10);
@@ -128,6 +130,14 @@ public class DsKalturaClient {
         //Getting this line correct was very hard. Little documentation and has to know which object to cast to.                
         //For some documentation about the "Kaltura search" api see: https://developer.kaltura.com/api-docs/service/media/action/list
         Response <ListResponse<MediaEntry>> response = (Response <ListResponse<MediaEntry>>) APIOkRequestsExecutor.getExecutor().execute(request.build(clientSession));
+      
+        //This is not normal situation. Normally Kaltura will return empty list: ({"objects":[],"totalCount":0,"objectType":"KalturaMediaListResponse"})
+        // When this happens something is wrong in kaltura and we dont know if there is results or not
+        if (response.results == null) {
+           log.error("Unexpected NULL response from Kaltura for referenceId:"+referenceId);
+            throw new InternalServiceException("Unexpected null response from Kaltura for referenceId:"+referenceId);            
+        }
+        
         List<MediaEntry> mediaEntries = response.results.getObjects();           
 
         int numberResults = mediaEntries.size();
