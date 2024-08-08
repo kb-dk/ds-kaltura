@@ -54,18 +54,15 @@ public class DsKalturaClient {
     private Client client = null; //Client having a Kaltura session  that can be reused between API calls.
     private static final Logger log = LoggerFactory.getLogger(DsKalturaClient.class);
     private String kalturaUrl;
-    private String userId;
     private int partnerId;
     private String token;
     private String tokenId;
     private long sessionKeepAliveSeconds;
     private long lastSessionStart=0;
-
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
      *
      * @param kalturaUrl              The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
-     * @param userId                  The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
      * @param partnerId               The partner id for kaltura. Kind of a collectionId. //     * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
      * @param token                   the token
      * @param tokenId                 the token id
@@ -73,13 +70,12 @@ public class DsKalturaClient {
      * 
      * @throws IOException  If session could not be created at Kaltura
      */
-    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
+    public DsKalturaClient(String kalturaUrl, int partnerId, String token, String tokenId,
                            long sessionKeepAliveSeconds) throws IOException {
         if (sessionKeepAliveSeconds <600) { //Enforce some kind of reuse of session since authenticating sessions will accumulate at Kaltura.
             throw new IllegalArgumentException("SessionKeepAliveSeconds must be at least 600 seconds (10 minutes) ");
         }               
         this.kalturaUrl=kalturaUrl;
-        this.userId=userId;
         this.partnerId=partnerId;
         this.token = token;
         this.tokenId = tokenId;
@@ -259,7 +255,7 @@ public class DsKalturaClient {
                 config.setEndpoint(kalturaUrl);
                 Client client = new Client(config);
                 client.setPartnerId(partnerId);
-                startClientSession(client, this.token, this.tokenId, this.userId);
+                startClientSession(client, this.token, this.tokenId);
                 this.client=client;
                 lastSessionStart=System.currentTimeMillis(); //Reset timer
                 log.info("Refreshed Kaltura client session");
@@ -276,22 +272,21 @@ public class DsKalturaClient {
     /*
      * Sets client session to a privileged session using appToken.
      */
-    private void startClientSession(Client client, String token, String tokenId, String userId) {
+    private void startClientSession(Client client, String token, String tokenId) {
         String widgetSession = generateWidgetSession(client);
         client.setKs(widgetSession);
         String hash = computeHash(token, widgetSession);
-        String ks = startTokenSession(hash, client, tokenId, userId);
+        String ks = startAppTokenSession(hash, client, tokenId);
         client.setKs(ks);
     }
 
     /*
      * Returns a privileged session using a token+session hash.
      */
-    private String startTokenSession(String hash, Client client, String tokenId, String userId) {
+    private String startAppTokenSession(String hash, Client client, String tokenId) {
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
                 AppTokenService.startSession(tokenId, hash);
         sessionBuilder.type(SessionType.ADMIN.name());
-        sessionBuilder.userId(userId);
         Response<SessionInfo> response = (Response<SessionInfo>)
                 APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
         return response.results.getKs();
