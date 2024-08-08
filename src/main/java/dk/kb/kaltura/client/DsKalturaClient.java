@@ -53,11 +53,11 @@ public class DsKalturaClient {
 
     private Client client = null; //Client having a Kaltura session  that can be reused between API calls.
     private static final Logger log = LoggerFactory.getLogger(DsKalturaClient.class);
-    private String kalturaUrl;
-    private int partnerId;
-    private String token;
-    private String tokenId;
-    private long sessionKeepAliveSeconds;
+    private final String kalturaUrl;
+    private final int partnerId;
+    private final String token;
+    private final String tokenId;
+    private final long sessionKeepAliveSeconds;
     private long lastSessionStart=0;
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
