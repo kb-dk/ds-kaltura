@@ -144,7 +144,8 @@ public class KalturaApiIntegrationTest {
         String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title="test2 title from unittest";
         String description="test2 description from unittest";
-        String kalturaId = clientSession.uploadMedia(file, referenceId,mediaType,title,description,tag);
+        Integer flavorId = Integer.valueOf(3);
+        String kalturaId = clientSession.uploadMedia(file, referenceId,mediaType,title,description,tag,flavorId);
         assertNotNull(kalturaId);
     }
 

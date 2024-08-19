@@ -305,16 +305,19 @@ public class DsKalturaClient {
      * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it. 
      * 
      * @param filePath File path to the media file to upload. 
-     * @param referenceId. Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
+     * @param referenceId Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
      * @param mediaType enum type. MediaType.AUDIO or MediaType.VIDEO
-     * @param name Name/titel for the resource in Kaltura
+     * @param title Name/titel for the resource in Kaltura
      * @param description , optional description 
      * @param tag Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
+     * @param flavorId Optional flavorId. This sets what flavor the file should be uploaded as. If not set flavor
+     *                 will be source, i.e. flavorParamId = 0.
      *
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'     
      */
     @SuppressWarnings("unchecked")
-    public String uploadMedia(String filePath,String referenceId,MediaType mediaType,String title,String description, String tag) throws IOException{
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
+                              String tag, Integer flavorId) throws IOException{
 
         if (referenceId== null) {
             throw new IllegalArgumentException("referenceId must be defined");            
@@ -346,6 +349,7 @@ public class DsKalturaClient {
         entry.setMediaType(mediaType);
         entry.setName(title);
         entry.setDescription(description);
+        entry.setReferenceId(referenceId);
         if(tag != null) {
             entry.setTags(tag);
         }
@@ -357,7 +361,16 @@ public class DsKalturaClient {
         //Connect uploaded file with meta data entry       
         UploadedFileTokenResource resource = new UploadedFileTokenResource();
         resource.setToken(tokenId);
-        AddContentMediaBuilder requestBuilder = MediaService.addContent(entryId, resource);        
+
+        AddContentMediaBuilder requestBuilder;
+        if( flavorId == null){
+            requestBuilder = MediaService.addContent(entryId, resource);
+        }else{
+            AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
+            paramContainer.setAssetParamsId(flavorId);
+            paramContainer.setResource(resource);
+            requestBuilder = MediaService.addContent(entryId, paramContainer);
+        }
         APIOkRequestsExecutor.getExecutor().queue(requestBuilder.build(clientSession));
 
         return entryId;

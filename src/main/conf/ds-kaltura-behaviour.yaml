@@ -12,7 +12,7 @@
 # Only for integration test
 kaltura:
   url:  'https://kmc.kaltura.nordu.net'
-  partnerId:  380
+  partnerId:  399
   userId:  'XXX@kb.dk'
   adminSecret: 'xxxxx'
   sessionKeepAliveSeconds: 86400
