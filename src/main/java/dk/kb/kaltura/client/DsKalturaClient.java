@@ -291,34 +291,6 @@ public class DsKalturaClient {
         return item;
     }
 
-
-    /**
-     * Upload a video or audio file to Kaltura.
-     * The upload require 4 API calls to Kaltura
-     * <p><ul>
-     * <li> Request a upload token
-     * <li> Upload file using the upload token. Get a tokenID for the upload
-     * <li> Create the metadata record in Kaltura
-     * <li> Connect the metadata record with the tokenID
-     * </ul><p>
-     * <p>
-     * If there for some reason happens an error after the file is uploaded and not connected to the metadata record, it does not
-     * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it.
-     *
-     * @param filePath    File path to the media file to upload.
-     * @param referenceId Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
-     * @param mediaType   enum type. MediaType.AUDIO or MediaType.VIDEO
-     * @param title       Name/titel for the resource in Kaltura
-     * @param description , optional description
-     * @param tag         Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
-     * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
-     * @throws IOException the io exception
-     */
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
-                              String tag) throws IOException{
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null);
-    }
-
     /**
      * Upload a video or audio file to Kaltura.
      * The upload require 4 API calls to Kaltura
