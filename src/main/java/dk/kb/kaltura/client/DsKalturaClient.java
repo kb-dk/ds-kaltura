@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 
 /**
  * There are two methods on DsKalturaClient:
- *
+ *  
  * <p><ul>
  * <li> API lookup and map external ID to internal Kaltura ID
  * <li> Upload a media entry (video, audio etc.) to Kaltura with meta data.
@@ -73,7 +73,7 @@ public class DsKalturaClient {
      *
      * @throws IOException  If session could not be created at Kaltura
      */
-    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String adminSecret, long sessionKeepAliveSeconds) throws IOException {
+    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String adminSecret, long sessionKeepAliveSeconds) throws IOException {        
         if (sessionKeepAliveSeconds <600) { //Enforce some kind of reuse of session since authenticating sessions will accumulate at Kaltura.
             throw new IllegalArgumentException("SessionKeepAliveSeconds must be at least 600 seconds (10 minutes) ");
         }               
@@ -86,30 +86,30 @@ public class DsKalturaClient {
     }
 
 
-    /**
+    /** 
      * <p>
      * Delete a stream and all meta-data for the record in Kaltura.
-     * It can not be restored in Kaltura and must be uploaded again if deleted by mistake.
+     * It can not be restored in Kaltura and must be uploaded again if deleted by mistake.       
      * </p>
-     *
+     *  
      * @param entryId The unique id in the Kaltura platform for the stream
      * @return True if record was found and deleted. False if the record with the entryId could not be found in Kaltura.
      * @throws IOException if Kaltura API called failed.
      */
-    public boolean deleteStreamByEntryId(String entryId) throws IOException{
+    public boolean deleteStreamByEntryId(String entryId) throws IOException{                
          Client clientSession = getClientInstance();        
          DeleteMediaBuilder request = MediaService.delete(entryId);         
          Response<?> execute = APIOkRequestsExecutor.getExecutor().execute(request.build(clientSession)); // no object in response. Only status
          return execute.isSuccess();
     }
-
-
+    
+    
     /**
      * Search Kaltura for a referenceId. The referenceId was given to Kaltura when uploading the record.<br>
      * We use filenames (file_id) as refereceIds. Example: b16bc5cb-1ea9-48d4-8e3c-2a94abae501b <br>
-     * <br>
+     * <br> 
      * The Kaltura response contains a lot more information that is required, so it is not a light weight call against Kaltura.
-     *
+     *  
      * @param referenceId External reference ID given when uploading the entry to Kaltura.
      * @return The Kaltura id (internal id). Return null if the refId is not found.
      * @throws IOException if Kaltura called failed, or more than 1 entry was found with the referenceId.
@@ -326,6 +326,35 @@ public class DsKalturaClient {
      * <li> Upload file using the upload token. Get a tokenID for the upload
      * <li> Create the metadata record in Kaltura
      * <li> Connect the metadata record with the tokenID
+     * </ul><p>
+     * <p>
+     * If there for some reason happens an error after the file is uploaded and not connected to the metadata record, it does not
+     * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it.
+     *
+     * @param filePath    File path to the media file to upload.
+     * @param referenceId Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
+     * @param mediaType   enum type. MediaType.AUDIO or MediaType.VIDEO
+     * @param title       Name/titel for the resource in Kaltura
+     * @param description , optional description
+     * @param tag         Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
+     * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
+     * @throws IOException the io exception
+     */
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
+                              String tag) throws IOException{
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null);
+    }
+
+    /**
+     * Upload a video or audio file to Kaltura.
+     * The upload require 4 API calls to Kaltura
+     * <p><ul>
+     * <li> Request a upload token
+     * <li> Upload file using the upload token. Get a tokenID for the upload
+     * <li> Create the metadata record in Kaltura
+     * <li> Connect the metadata record with the tokenID
+     * </ul><p>
+     * <p>
      * </ul><p>
      * <p>
      * If there for some reason happens an error after the file is uploaded and not connected to the metadata record, it does not
