@@ -40,7 +40,8 @@ import java.util.stream.Collectors;
  * <p><ul>
  * <li> API lookup and map external ID to internal Kaltura ID
  * <li> Upload a media entry (video, audio etc.) to Kaltura with meta data.
- * </ul><p>
+ *</ul><p>
+ *
  */
 public class DsKalturaClient {
 
@@ -64,12 +65,13 @@ public class DsKalturaClient {
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
      *
-     * @param kalturaUrl              The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
-     * @param userId                  The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
-     * @param partnerId               The partner id for kaltura. Kind of a collectionId.
-     * @param adminSecret             The adminsecret used as password for authenticating. Must not be shared.
+     * @param kalturaUrl The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
+     * @param userId The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
+     * @param partnerId The partner id for kaltura. Kind of a collectionId.
+     * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
      * @param sessionKeepAliveSeconds Reuse the Kaltura Session for performance. Sessions will be refreshed at the given interval. Recommended value 86400 (1 day)
-     * @throws IOException If session could not be created at Kaltura
+     *
+     * @throws IOException  If session could not be created at Kaltura
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String adminSecret, long sessionKeepAliveSeconds) throws IOException {
         if (sessionKeepAliveSeconds <600) { //Enforce some kind of reuse of session since authenticating sessions will accumulate at Kaltura.
@@ -154,9 +156,9 @@ public class DsKalturaClient {
 
     /**
      * Resolve Kaltura IDs for a list of referenceIDs.
-     *
      * @param referenceIds a list of {@code referenceIDs}, typically UUIDs from stream filenames.
-     * @return a map from {@code referenceID} to {@code kalturaID}.         Unresolvable {@code referenceIDs} will not be present in the map.
+     * @return a map from {@code referenceID} to {@code kalturaID}.
+     *         Unresolvable {@code referenceIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
     public Map<String, String> getKulturaIds(List<String> referenceIds) throws IOException{
@@ -185,9 +187,9 @@ public class DsKalturaClient {
 
     /**
      * Resolve referenceIDs for a list of Kaltura IDs.
-     *
      * @param kalturaIDs a list of {@code kalturaIDs}.
-     * @return a map from {@code kalturaID} to {@code referenceID}.         Unresolvable {@code kalturaIDs} will not be present in the map.
+     * @return a map from {@code kalturaID} to {@code referenceID}.
+     *         Unresolvable {@code kalturaIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
     public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws IOException{
@@ -208,7 +210,6 @@ public class DsKalturaClient {
 
     /**
      * Simple free form term search in Kaltura.
-     *
      * @param term a search term, such as {@code dr} or {@code tv avisen}.
      * @return a list of Kaltura IDs for matching records, empty if no hits. Max result size is {@link #BATCH_SIZE}.
      * @throws IOException if the remote request failed.
