@@ -138,8 +138,8 @@ public class KalturaApiIntegrationTest {
     @Test
     public void kalturaUpload() throws Exception{
         DsKalturaClient clientSession= getClient();
-        String file="/home/adpe/Downloads/test1.mp4"; // <-- Change to local video file
-        String referenceId="/home/xxxx/Videos/test.mp4";
+        String file="/home/xxxx/Videos/test1.mp4"; // <-- Change to local video file
+        String referenceId="ref_test_1234s";
         MediaType mediaType=MediaType.VIDEO;
         String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title="test2 title from unittest";
@@ -161,7 +161,7 @@ public class KalturaApiIntegrationTest {
         String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title="test3 title from unittest";
         String description="test3 description from unittest";
-        Integer flavorParamId = Integer.valueOf(3); // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
+        Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
         String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag, flavorParamId);
         assertNotNull(kalturaId);
     }
