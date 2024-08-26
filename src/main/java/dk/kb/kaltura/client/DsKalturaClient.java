@@ -39,9 +39,9 @@ import java.util.stream.Collectors;
  *  
  * <p><ul>
  * <li> API lookup and map external ID to internal Kaltura ID
- * <li> Upload a media entry (video, audio etc.) to Kaltura with meta data.  
- *</ul><p>  
- *  
+ * <li> Upload a media entry (video, audio etc.) to Kaltura with meta data.
+ *</ul><p>
+ *
  */
 public class DsKalturaClient {
 
@@ -63,14 +63,14 @@ public class DsKalturaClient {
     private long lastSessionStart=0;
 
     /**
-     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again. 
-     * 
-     * @param kalturaUrl The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL. 
+     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
+     *
+     * @param kalturaUrl The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
      * @param userId The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
-     * @param partnerId The partner id for kaltura. Kind of a collectionId. 
+     * @param partnerId The partner id for kaltura. Kind of a collectionId.
      * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
      * @param sessionKeepAliveSeconds Reuse the Kaltura Session for performance. Sessions will be refreshed at the given interval. Recommended value 86400 (1 day)
-     * 
+     *
      * @throws IOException  If session could not be created at Kaltura
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String adminSecret, long sessionKeepAliveSeconds) throws IOException {        
@@ -292,29 +292,62 @@ public class DsKalturaClient {
     }
 
     /**
-     * Upload a video or audio file to Kaltura. 
+     * Upload a video or audio file to Kaltura.
      * The upload require 4 API calls to Kaltura
      * <p><ul>
      * <li> Request a upload token
      * <li> Upload file using the upload token. Get a tokenID for the upload
-     * <li> Create the metadata record in Kaltura  
+     * <li> Create the metadata record in Kaltura
      * <li> Connect the metadata record with the tokenID
-     * </ul><p>  
-     * 
+     * </ul><p>
+     * <p>
+     * </ul><p>
+     * <p>
      * If there for some reason happens an error after the file is uploaded and not connected to the metadata record, it does not
-     * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it. 
-     * 
-     * @param filePath File path to the media file to upload. 
-     * @param referenceId. Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
-     * @param mediaType enum type. MediaType.AUDIO or MediaType.VIDEO
-     * @param name Name/titel for the resource in Kaltura
-     * @param description , optional description 
-     * @param tag Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
+     * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it.
      *
-     * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'     
+     * @param filePath    File path to the media file to upload.
+     * @param referenceId Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
+     * @param mediaType   enum type. MediaType.AUDIO or MediaType.VIDEO
+     * @param title       Name/titel for the resource in Kaltura
+     * @param description , optional description
+     * @param tag         Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
+     * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
+     * @throws IOException the io exception
+     */
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
+                              String tag) throws IOException{
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null);
+    }
+
+    /**
+     * Upload a video or audio file to Kaltura.
+     * The upload require 4 API calls to Kaltura
+     * <p><ul>
+     * <li> Request a upload token
+     * <li> Upload file using the upload token. Get a tokenID for the upload
+     * <li> Create the metadata record in Kaltura
+     * <li> Connect the metadata record with the tokenID
+     * </ul><p>
+     * <p>
+     * </ul><p>
+     * <p>
+     * If there for some reason happens an error after the file is uploaded and not connected to the metadata record, it does not
+     * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it.
+     *
+     * @param filePath      File path to the media file to upload.
+     * @param referenceId   Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
+     * @param mediaType     enum type. MediaType.AUDIO or MediaType.VIDEO
+     * @param title         Name/titel for the resource in Kaltura
+     * @param description   , optional description
+     * @param tag           Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
+     * @param flavorParamId Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor                 will be source, i.e. flavorParamId = 0.
+     * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
+     * @throws IOException the io exception
      */
     @SuppressWarnings("unchecked")
-    public String uploadMedia(String filePath,String referenceId,MediaType mediaType,String title,String description, String tag) throws IOException{
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
+                              String tag, Integer flavorParamId) throws IOException{
 
         if (referenceId== null) {
             throw new IllegalArgumentException("referenceId must be defined");            
@@ -346,6 +379,7 @@ public class DsKalturaClient {
         entry.setMediaType(mediaType);
         entry.setName(title);
         entry.setDescription(description);
+        entry.setReferenceId(referenceId);
         if(tag != null) {
             entry.setTags(tag);
         }
@@ -357,7 +391,16 @@ public class DsKalturaClient {
         //Connect uploaded file with meta data entry       
         UploadedFileTokenResource resource = new UploadedFileTokenResource();
         resource.setToken(tokenId);
-        AddContentMediaBuilder requestBuilder = MediaService.addContent(entryId, resource);        
+
+        AddContentMediaBuilder requestBuilder;
+        if( flavorParamId == null){
+            requestBuilder = MediaService.addContent(entryId, resource);
+        }else{
+            AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
+            paramContainer.setAssetParamsId(flavorParamId);
+            paramContainer.setResource(resource);
+            requestBuilder = MediaService.addContent(entryId, paramContainer);
+        }
         APIOkRequestsExecutor.getExecutor().queue(requestBuilder.build(clientSession));
 
         return entryId;
