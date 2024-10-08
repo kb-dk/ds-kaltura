@@ -24,6 +24,31 @@ are mixed in Kaltura with other projects.
 The project can both be used as a jar dependency library and as a stand-alone java project with script support.
 
 
+## AppTokens and admin secret
+
+The library contains a script to manage application tokens in kaltura. You can add an application token with
+
+`bin/appTokens.sh add -s '<admin secret> -d'Description of the app token'`
+
+It outputs the token and a token_id which can be used when configuring the kaltura client like this:
+
+`kaltura:
+   token: 'xxxx'
+  tokenId: 'yyyy'
+`
+
+An application token can be deleted with
+
+`bin/appTokens.sh delete -s '<admin secret> -i'<tokenId>'`
+
+Or you can get a list of the current app tokens with:
+
+`bin/appTokens.sh list -s '<admin secret>'`
+
+
+
+
+
 ## Usage as stand-alone-project
 Example call for getKulturaInternalId:
 
