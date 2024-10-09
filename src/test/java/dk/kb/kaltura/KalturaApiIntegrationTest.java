@@ -5,8 +5,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.types.AppToken;
+import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -60,10 +63,10 @@ public class KalturaApiIntegrationTest {
     @BeforeAll
     public static void setup() throws IOException {
         ServiceConfig.initialize("src/main/conf/ds-kaltura-*.yaml"); // Does not seem like a solid construction
-        if ("xxxxx".equals(ServiceConfig.getConfig().getString("kaltura.adminSecret"))) {
+/*        if ("xxxxx".equals(ServiceConfig.getConfig().getString("kaltura.adminSecret"))) {
             throw new IllegalStateException("The kaltura.adminSecret must be set to perform integration test. " +
                     "Please add it to the local configuration (NOT the *-behaviour.YAML configuration)");
-        }
+        }*/
     }
 
     @Test
@@ -166,13 +169,37 @@ public class KalturaApiIntegrationTest {
         assertNotNull(kalturaId);
     }
 
+    @Test
+    public void listAppTokens() throws Exception{
+        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
+        List<AppToken> tokens = client.listAppTokens();
+        tokens.stream().forEach((appToken) -> {
+            System.out.println(appToken.getId()+" "+appToken.getCreatedAt()+" "+appToken.getExpiry()+" "+appToken.getSessionUserId()+" "+appToken.getDescription());
+        });
+    }
+
+    @Test
+    public void addAppToken() throws Exception{
+        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
+        AppToken appToken = client.addAppToken("description");
+        System.out.println(appToken.getId()+" "+appToken.getToken()+" "+appToken.getExpiry()+" "+appToken.getDescription());
+    }
+
+    @Test
+    public void deleteAppToken() throws Exception {
+        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
+        client.deleteAppToken("0_zjli5ev2");
+    }
+
     private DsKalturaClient getClient() throws IOException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(
                 conf.getString("url"),
                 conf.getString("userId"),
                 conf.getInteger("partnerId"),
-                conf.getString("adminSecret"),
+                conf.getString("token"),
+                conf.getString("tokenId"),
+                conf.getString("adminSecret",null),
                 conf.getLong("sessionKeepAliveSeconds", DEFAULT_KEEP_ALIVE));
     }
 
