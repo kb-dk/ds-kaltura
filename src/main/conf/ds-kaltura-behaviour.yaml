@@ -14,8 +14,8 @@ kaltura:
   url:  'https://kmc.kaltura.nordu.net'
   partnerId:  399
   userId:  'XXX@kb.dk'
-  token: 'xxxx'
-  tokenId: 'yyyy'
+  token: 'yyyyy'
+  tokenId: 'yyyyy'
   sessionKeepAliveSeconds: 86400
 
 # The configuration can auto-update at set intervals. See ServiceConfig for details

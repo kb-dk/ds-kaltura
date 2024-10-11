@@ -52,6 +52,10 @@ annotate the testcase with `@Tag("slow")` in the java code.
 To run all unit tests including the ones tagged as slow, enable the `allTests` maven profile: e.g. `mvn clean package -PallTests`.
 
 
+## Running integration tests
+
+To run the integration tests you need to generate an appToken and add it to add it to the local configuration
+
 ## Changelog
 
 The changelog follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) guidelines.
