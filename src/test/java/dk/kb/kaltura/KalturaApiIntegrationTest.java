@@ -63,10 +63,11 @@ public class KalturaApiIntegrationTest {
     @BeforeAll
     public static void setup() throws IOException {
         ServiceConfig.initialize("src/main/conf/ds-kaltura-*.yaml"); // Does not seem like a solid construction
-/*        if ("xxxxx".equals(ServiceConfig.getConfig().getString("kaltura.adminSecret"))) {
-            throw new IllegalStateException("The kaltura.adminSecret must be set to perform integration test. " +
-                    "Please add it to the local configuration (NOT the *-behaviour.YAML configuration)");
-        }*/
+        if ("yyyyy".equals(ServiceConfig.getConfig().getString("kaltura.tokenId")) &&
+                ("yyyyy".equals(ServiceConfig.getConfig().getString("kaltura.token")))) {
+            throw new IllegalStateException("An kaltura.token and kaltura.tokenId must be set to perform integration test. Please generate an appToken and" +
+                    "add it to the local configuration (NOT the *-behaviour.YAML configuration)");
+        }
     }
 
     @Test
