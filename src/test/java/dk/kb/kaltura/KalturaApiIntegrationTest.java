@@ -173,7 +173,6 @@ public class KalturaApiIntegrationTest {
     public void listAppTokens() throws Exception{
         AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
         List<AppToken> tokens = client.listAppTokens();
-        System.out.println("#tokens:"+tokens.size());
         tokens.stream().forEach((appToken) -> {
             System.out.println(appToken.getId()+" "+appToken.getCreatedAt()+" "+appToken.getExpiry()+" "+appToken.getSessionUserId()+" "+appToken.getDescription());
         });
