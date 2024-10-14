@@ -10,8 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ### Changed
-- Bump kb-util to v1.5.11
 
+
+## [1.2.4] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-1.2.4) - 2024-10-14
+- Bump kb-util to v1.5.11
+- Client can be created with AppTokens and no longer needs kaltura mastersecret. Creating new AppTokens still require mastersecret
 
 ## [1.2.3] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-1.2.3) - 2024-07-18
 - Handle rare error from Kaltura with empty response.
