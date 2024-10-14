@@ -36,12 +36,12 @@ public class KalturaApiIntegrationTest {
 
     // ID's valid as of 2024-04-25 but subject to change
     // TODO: Add a step to setup() creating test kaltura<->reference IDs 
-    public static final String KALTURA_ID1 = "0_84jdv1bw";
-    public static final String KALTURA_ID2 = "0_ahzrnnyh";
-    public static final String KALTURA_ID3 = "0_vbv44dk7";
-    public static final String REFERENCE_ID1 = "9ac77346-32d5-4733-b38f-91dd25649f88";
-    public static final String REFERENCE_ID2 = "108c27ed-4e7a-4d4b-8674-9fee57ab925f";
-    public static final String REFERENCE_ID3 = "89fbdd2e-82b1-483a-99d7-810101ef33b2";
+    public static final String KALTURA_ID1 = "0_954nx5eh";
+    public static final String KALTURA_ID2 = "0_sjjppu7s";
+    public static final String KALTURA_ID3 = "0_zo7k1tgh";
+    public static final String REFERENCE_ID1 = "0b1af131-879a-4286-8637-50f0f4b0705f";
+    public static final String REFERENCE_ID2 = "9ee1e45a-60e4-4a9d-a44e-72c089bc924d";
+    public static final String REFERENCE_ID3 = "8cd60e55-72a2-482e-9715-67a2f884a285";
 
     // referenceID, kalturaID
     public static final List<List<String>> KNOWN_PAIRS_1 = List.of(
