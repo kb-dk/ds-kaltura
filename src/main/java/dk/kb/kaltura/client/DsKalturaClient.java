@@ -450,8 +450,10 @@ public class DsKalturaClient {
         String hash = computeHash(client, token, widgetSession);
         String ks = null;
         if (StringUtils.isEmpty(this.adminSecret)) {
+            log.info("Starting KalturaSession from appToken");
             ks = startAppTokenSession(hash, client, tokenId);
         } else {
+            log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless unless you generating appTokens.");
             ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId);
         }
 
