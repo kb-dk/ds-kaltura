@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.types.AppToken;
+import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,12 +36,12 @@ public class KalturaApiIntegrationTest {
 
     // ID's valid as of 2024-04-25 but subject to change
     // TODO: Add a step to setup() creating test kaltura<->reference IDs 
-    public static final String KALTURA_ID1 = "0_84jdv1bw";
-    public static final String KALTURA_ID2 = "0_ahzrnnyh";
-    public static final String KALTURA_ID3 = "0_vbv44dk7";
-    public static final String REFERENCE_ID1 = "9ac77346-32d5-4733-b38f-91dd25649f88";
-    public static final String REFERENCE_ID2 = "108c27ed-4e7a-4d4b-8674-9fee57ab925f";
-    public static final String REFERENCE_ID3 = "89fbdd2e-82b1-483a-99d7-810101ef33b2";
+    public static final String KALTURA_ID1 = "0_954nx5eh";
+    public static final String KALTURA_ID2 = "0_sjjppu7s";
+    public static final String KALTURA_ID3 = "0_zo7k1tgh";
+    public static final String REFERENCE_ID1 = "0b1af131-879a-4286-8637-50f0f4b0705f";
+    public static final String REFERENCE_ID2 = "9ee1e45a-60e4-4a9d-a44e-72c089bc924d";
+    public static final String REFERENCE_ID3 = "8cd60e55-72a2-482e-9715-67a2f884a285";
 
     // referenceID, kalturaID
     public static final List<List<String>> KNOWN_PAIRS_1 = List.of(
@@ -60,9 +62,10 @@ public class KalturaApiIntegrationTest {
     @BeforeAll
     public static void setup() throws IOException {
         ServiceConfig.initialize("src/main/conf/ds-kaltura-*.yaml"); // Does not seem like a solid construction
-        if ("xxxxx".equals(ServiceConfig.getConfig().getString("kaltura.adminSecret"))) {
-            throw new IllegalStateException("The kaltura.adminSecret must be set to perform integration test. " +
-                    "Please add it to the local configuration (NOT the *-behaviour.YAML configuration)");
+        if ("yyyyy".equals(ServiceConfig.getConfig().getString("kaltura.tokenId")) &&
+                ("yyyyy".equals(ServiceConfig.getConfig().getString("kaltura.token")))) {
+            throw new IllegalStateException("An kaltura.token and kaltura.tokenId must be set to perform integration test. Please generate an appToken and" +
+                    "add it to the local configuration (NOT the *-behaviour.YAML configuration)");
         }
     }
 
@@ -166,13 +169,37 @@ public class KalturaApiIntegrationTest {
         assertNotNull(kalturaId);
     }
 
+    @Test
+    public void listAppTokens() throws Exception{
+        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
+        List<AppToken> tokens = client.listAppTokens();
+        tokens.stream().forEach((appToken) -> {
+            System.out.println(appToken.getId()+" "+appToken.getCreatedAt()+" "+appToken.getExpiry()+" "+appToken.getSessionUserId()+" "+appToken.getDescription());
+        });
+    }
+
+    @Test
+    public void addAppToken() throws Exception{
+        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
+        AppToken appToken = client.addAppToken("description");
+        System.out.println(appToken.getId()+" "+appToken.getToken()+" "+appToken.getExpiry()+" "+appToken.getDescription());
+    }
+
+    @Test
+    public void deleteAppToken() throws Exception {
+        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
+        client.deleteAppToken("0_zjli5ev2");
+    }
+
     private DsKalturaClient getClient() throws IOException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(
                 conf.getString("url"),
                 conf.getString("userId"),
                 conf.getInteger("partnerId"),
-                conf.getString("adminSecret"),
+                conf.getString("token"),
+                conf.getString("tokenId"),
+                conf.getString("adminSecret",null),
                 conf.getLong("sessionKeepAliveSeconds", DEFAULT_KEEP_ALIVE));
     }
 

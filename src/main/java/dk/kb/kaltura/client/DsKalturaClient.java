@@ -3,18 +3,12 @@ package dk.kb.kaltura.client;
 import com.kaltura.client.APIOkRequestsExecutor;
 import com.kaltura.client.Client;
 import com.kaltura.client.Configuration;
-import com.kaltura.client.enums.ESearchEntryFieldName;
-import com.kaltura.client.enums.ESearchItemType;
-import com.kaltura.client.enums.ESearchOperatorType;
-import com.kaltura.client.enums.MediaType;
-import com.kaltura.client.enums.SessionType;
-import com.kaltura.client.services.ESearchService;
-import com.kaltura.client.services.MediaService;
+import com.kaltura.client.enums.*;
+import com.kaltura.client.services.*;
 import com.kaltura.client.services.MediaService.AddContentMediaBuilder;
 import com.kaltura.client.services.MediaService.AddMediaBuilder;
 import com.kaltura.client.services.MediaService.DeleteMediaBuilder;
 import com.kaltura.client.services.MediaService.ListMediaBuilder;
-import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
 import com.kaltura.client.types.*;
@@ -22,11 +16,15 @@ import com.kaltura.client.utils.response.base.Response;
 
 import dk.kb.util.webservice.exception.InternalServiceException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -58,6 +56,8 @@ public class DsKalturaClient {
     private String kalturaUrl;
     private String userId;
     private int partnerId;
+    private String token;
+    private String tokenId;
     private String adminSecret;
     private long sessionKeepAliveSeconds;
     private long lastSessionStart=0;
@@ -68,20 +68,26 @@ public class DsKalturaClient {
      * @param kalturaUrl The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
      * @param userId The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
      * @param partnerId The partner id for kaltura. Kind of a collectionId.
+     * @param tokenId The id of the applicationi token
+     * @param token The application token used for generating client sessions
      * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
      * @param sessionKeepAliveSeconds Reuse the Kaltura Session for performance. Sessions will be refreshed at the given interval. Recommended value 86400 (1 day)
      *
+     * Either a token/tokenId a adminSecret must be provided for authentication.
+     *
      * @throws IOException  If session could not be created at Kaltura
      */
-    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String adminSecret, long sessionKeepAliveSeconds) throws IOException {        
+    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, long sessionKeepAliveSeconds) throws IOException {
         if (sessionKeepAliveSeconds <600) { //Enforce some kind of reuse of session since authenticating sessions will accumulate at Kaltura.
             throw new IllegalArgumentException("SessionKeepAliveSeconds must be at least 600 seconds (10 minutes) ");
         }               
         this.kalturaUrl=kalturaUrl;
         this.userId=userId;
+        this.token=token;
+        this.tokenId=tokenId;
+        this.adminSecret = adminSecret;
         this.partnerId=partnerId;
-        this.adminSecret=adminSecret;
-        this.sessionKeepAliveSeconds=sessionKeepAliveSeconds;    
+        this.sessionKeepAliveSeconds=sessionKeepAliveSeconds;
         getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
     }
 
@@ -406,24 +412,24 @@ public class DsKalturaClient {
         return entryId;
     }
 
-
-    /*
+    /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
-     * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded   
+     * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
+     *
      */
     private synchronized Client getClientInstance() throws IOException{
         try {
 
-            if (System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
+            if (client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 //Create the client
                 //KalturaConfiguration config = new KalturaConfiguration();
                 Configuration config = new Configuration();
                 config.setEndpoint(kalturaUrl);
-                Client client = new Client(config);                          
-                String ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId);
-                client.setKs(ks);         
-                this.client=client;                        
-                lastSessionStart=System.currentTimeMillis(); //Reset timer           
+                Client client = new Client(config);
+                client.setPartnerId(partnerId);
+                startClientSession(client, this.token, this.tokenId);
+                this.client=client;
+                lastSessionStart=System.currentTimeMillis(); //Reset timer
                 log.info("Refreshed Kaltura client session");
                 return client;
             }
@@ -434,4 +440,75 @@ public class DsKalturaClient {
             throw new IOException (e);
         }
     }
+
+    /*
+     * Sets client session to a privileged session using appToken.
+     */
+    private void startClientSession(Client client, String token, String tokenId) throws Exception {
+        String widgetSession = generateWidgetSession(client);
+        client.setKs(widgetSession);
+        String hash = computeHash(client, token, widgetSession);
+        String ks = null;
+        if (StringUtils.isEmpty(this.adminSecret)) {
+            log.info("Starting KalturaSession from appToken");
+            ks = startAppTokenSession(hash, client, tokenId);
+        } else {
+            log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless unless you generating appTokens.");
+            ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId);
+        }
+
+        client.setKs(ks);
+    }
+
+    private String generateWidgetSession(Client client) {
+        log.debug("Generating Widget Session...");
+        String widgetId = "_" + client.getPartnerId();
+        int expiry = Client.EXPIRY;
+        SessionService.StartWidgetSessionSessionBuilder requestBuilder =
+                SessionService.startWidgetSession(widgetId,
+                        expiry);
+        var request = requestBuilder.build(client);
+        Response<StartWidgetSessionResponse> response =
+                (Response<StartWidgetSessionResponse>) APIOkRequestsExecutor.getExecutor().execute(request);
+        return response.results.getKs();
+    }
+
+
+    /**
+     * @param token AppToken String for computing hash
+     * @param ks    Unprivileged Kaltura Widget Session for computing hash
+     * @return A string representing a tokenHash package or an empty string if Error Occurs.
+     */
+    private String computeHash(Client client, String token, String ks){
+        client.setSessionId(ks);
+        try{
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.update((ks + token).getBytes("UTF-8"));
+            byte[] res = md.digest();
+            StringBuilder hashString = new StringBuilder();
+            for (byte i : res) {
+                int decimal = (int)i & 0XFF;
+                String hex = Integer.toHexString(decimal);
+                if (hex.length() % 2 == 1) {
+                    hex = "0" + hex;
+                }
+                hashString.append(hex);
+            }
+            return hashString.toString();
+        }catch (NoSuchAlgorithmException | UnsupportedEncodingException e){
+            log.warn("SHA-256 algorithm not available");
+        }
+        return "";
+    }
+
+    private String startAppTokenSession(String hash, Client client, String tokenId) {
+        AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
+                AppTokenService.startSession(tokenId, hash);
+        sessionBuilder.type(SessionType.ADMIN.name());
+        Response<SessionInfo> response = (Response<SessionInfo>)
+                APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
+        return response.results.getKs();
+    }
+
+
 }
