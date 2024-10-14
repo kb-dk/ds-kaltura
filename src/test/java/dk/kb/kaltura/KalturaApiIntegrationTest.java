@@ -9,7 +9,6 @@ import com.kaltura.client.types.AppToken;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
-import org.checkerframework.checker.units.qual.A;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -174,6 +173,7 @@ public class KalturaApiIntegrationTest {
     public void listAppTokens() throws Exception{
         AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
         List<AppToken> tokens = client.listAppTokens();
+        System.out.println("#tokens:"+tokens.size());
         tokens.stream().forEach((appToken) -> {
             System.out.println(appToken.getId()+" "+appToken.getCreatedAt()+" "+appToken.getExpiry()+" "+appToken.getSessionUserId()+" "+appToken.getDescription());
         });
