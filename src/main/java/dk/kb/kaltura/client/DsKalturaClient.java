@@ -453,7 +453,7 @@ public class DsKalturaClient {
             log.info("Starting KalturaSession from appToken");
             ks = startAppTokenSession(hash, client, tokenId);
         } else {
-            log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless unless you generating appTokens.");
+            log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you generating appTokens.");
             ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId);
         }
 
