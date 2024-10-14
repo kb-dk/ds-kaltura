@@ -68,8 +68,8 @@ public class DsKalturaClient {
      * @param kalturaUrl The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
      * @param userId The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
      * @param partnerId The partner id for kaltura. Kind of a collectionId.
-     * @param tokenId The id of the applicationi token
      * @param token The application token used for generating client sessions
+     * @param tokenId The id of the application token
      * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
      * @param sessionKeepAliveSeconds Reuse the Kaltura Session for performance. Sessions will be refreshed at the given interval. Recommended value 86400 (1 day)
      *
