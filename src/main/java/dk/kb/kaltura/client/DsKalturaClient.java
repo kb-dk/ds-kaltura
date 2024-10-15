@@ -420,7 +420,9 @@ public class DsKalturaClient {
     private synchronized Client getClientInstance() throws IOException{
         try {
 
+
             if (client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
+                log.info("Refreshing Kaltura client session, millis since last refresh:"+(System.currentTimeMillis()-lastSessionStart));
                 //Create the client
                 //KalturaConfiguration config = new KalturaConfiguration();
                 Configuration config = new Configuration();
