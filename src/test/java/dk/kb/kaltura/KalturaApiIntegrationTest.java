@@ -111,7 +111,7 @@ public class KalturaApiIntegrationTest {
         String entry_id="0_h5p9kkqk"; // Hvornår var det nu det var  (tv, stage miljø)
                 
         boolean  success = getClient().blockStreamByEntryId(entry_id);
-        assertTrue(success,"The steam was not blocked. Check in the KMC it was not blocked before");
+        assertTrue(success,"The steam was not blocked.Check that the entry id exists.");
     }
 
 
