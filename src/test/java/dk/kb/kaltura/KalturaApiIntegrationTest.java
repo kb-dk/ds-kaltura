@@ -104,6 +104,16 @@ public class KalturaApiIntegrationTest {
         assertFalse(ids.isEmpty(), "Search result should not be empty");
         System.out.println(ids);
     }
+    
+    
+    @Test
+    public void blockStream() throws IOException {
+        String entry_id="0_h5p9kkqk"; // Hvornår var det nu det var  (tv, stage miljø)
+                
+        boolean  success = getClient().blockStreamByEntryId(entry_id);
+        assertTrue(success,"The steam was not blocked. Check in the KMC it was not blocked before");
+    }
+
 
     // Old stress test to see why repeated calls failed (they don't anymore)
     @Disabled

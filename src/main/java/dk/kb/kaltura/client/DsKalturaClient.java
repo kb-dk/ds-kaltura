@@ -9,6 +9,7 @@ import com.kaltura.client.services.MediaService.AddContentMediaBuilder;
 import com.kaltura.client.services.MediaService.AddMediaBuilder;
 import com.kaltura.client.services.MediaService.DeleteMediaBuilder;
 import com.kaltura.client.services.MediaService.ListMediaBuilder;
+import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
 import com.kaltura.client.types.*;
@@ -109,6 +110,24 @@ public class DsKalturaClient {
          return execute.isSuccess();
     }
     
+    
+    /** 
+     * <p>
+     * Block a stream and all meta-data for the record in Kaltura.
+     * The stream can not be played. An Kaltura administrator can still see the stream in the KMC and remove the flag it needed.  
+     * In KMC refine -> moderation status -> rejected so see a list of all rejected streams and search in them      
+     * </p>
+     *  
+     * @param entryId The unique id in the Kaltura platform for the stream
+     * @return True if record was found and blocked. False if the record with the entryId could not be found in Kaltura.
+     * @throws IOException if Kaltura API called failed.
+     */
+    public boolean blockStreamByEntryId(String entryId) throws IOException{                
+         Client clientSession = getClientInstance();        
+         RejectMediaBuilder request = MediaService.reject(entryId);         
+         Response<?> execute = APIOkRequestsExecutor.getExecutor().execute(request.build(clientSession)); // no object in response. Only status
+         return execute.isSuccess();
+    }
     
     /**
      * Search Kaltura for a referenceId. The referenceId was given to Kaltura when uploading the record.<br>
