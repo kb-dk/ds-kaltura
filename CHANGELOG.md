@@ -6,11 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+
 ### Added
 - Method to reject a stream in Kaltura. The stream can not be played with rejected status. A KMC moderator can
 see all rejected videos in the KMC and change status again if needed.
 
 ### Changed
+
+## [1.2.6] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-1.2.6) - 2024-11-19
+### Added
+- Method to reject a stream in Kaltura. The stream can not be played with rejected status. A KMC moderator can
+see all rejected videos in the KMC and change status again if needed.
 
 ## [1.2.5] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-1.2.5) - 2024-10-15
 ### Changed
