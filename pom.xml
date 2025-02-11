@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>dk.kb</groupId>
+        <groupId>dk.kb.dsparent</groupId>
         <artifactId>ds-parent</artifactId>
         <version>1.0.0-SNAPSHOT</version>
     </parent>
@@ -62,7 +62,7 @@
       <version>19.3.0</version>
     
     <!-- These are exluded to prevent too much debug log from kaltura client using log4j. -->
-    <exclusions>        
+    <exclusions>
         <exclusion>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
@@ -71,7 +71,7 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
         </exclusion>
-    </exclusions>    
+    </exclusions>
     </dependency>
         
     <dependency>
