@@ -2,15 +2,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>dk.statsbiblioteket.sbprojects</groupId>
-    <artifactId>sbprojects-parent</artifactId>
-    <version>80</version>
-  </parent>
+    <parent>
+        <groupId>dk.kb</groupId>
+        <artifactId>ds-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
     
   <groupId>dk.kb.kaltura</groupId>
   <artifactId>ds-kaltura</artifactId>
-  <version>1.2.7-SNAPSHOT</version>
+  <version>${ds.version}</version>
 
    <scm>
      <url>https://github.com/kb-dk/ds-kaltura</url>
@@ -98,7 +98,6 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <version>5.6.2</version>
-      <scope>test</scope>
     </dependency> 
   </dependencies>
 
