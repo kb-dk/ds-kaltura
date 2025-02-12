@@ -77,7 +77,6 @@
     <dependency>
       <groupId>dk.kb.util</groupId>
       <artifactId>kb-util</artifactId>
-      <version>1.5.11</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
