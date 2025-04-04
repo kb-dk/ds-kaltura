@@ -180,6 +180,63 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
+    public void getReportTableTest() throws Exception{
+        DsKalturaClient client = getClient();
+        List<List<String>> rows = client.getReportTable(ReportType.CONTENT_INTERACTIONS, "20230330", "20260101", "count_download");
+
+        System.out.println("Total Rows: " + (rows.size()-1));
+        Set rowSet = rows.stream().collect(Collectors.toSet());
+        System.out.println("Set size: " + (rowSet.size()-1));
+        for (List<String> i:rows){
+            System.out.println(i.toString());
+        }
+        assertEquals(rows.size(), rowSet.size());
+    }
+
+    @Test
+    public void createErrorReport() throws Exception{
+        DsKalturaClient client = getClient();
+        ReportInputFilter reportInputFilter = new ReportInputFilter();
+        reportInputFilter.setFromDay("20250330");
+        reportInputFilter.setToDay("20990101");
+        reportInputFilter.setDomainIn("Unknown");
+        List<List<String>> rows = client.getReportTable(ReportType.QOE_ERROR_TRACKING_CODES, reportInputFilter,
+                "");
+
+        Map <String, List<String>> rowMap = rows.stream().collect(Collectors.toMap(x -> x.get(0), x -> x.subList(1, x.size())));
+
+        File error_f = new File("src/test/resources/kaltura-playkit-error-codes");
+        final YAML error_yaml =  YAML.parse(error_f).getSubMap("ERRORTYPES");
+        // Flip keys and values
+        Map<String, String> flippedData = new HashMap<>();
+        for (Map.Entry<String, Object> entry : error_yaml.entrySet()) {
+            flippedData.put(entry.getValue().toString(), entry.getKey());
+        }
+
+        for (String errorCode : rowMap.keySet()){
+            if(errorCode.equals("errorcode") || errorCode.equals("Unknown")) {
+                continue;
+            }
+
+            reportInputFilter.errorCodeIn(errorCode.toString());
+            List<List<String>> rows_loop;
+
+            rows_loop = client.getReportTable(ReportType.QOE_ERROR_TRACKING_ENTRY,
+                    reportInputFilter, "error");
+
+            if (rows_loop.size() != 0) {
+                System.out.println((flippedData.get(errorCode) != null ? flippedData.get(errorCode) :
+                    "UNKNOWN") + ":" + errorCode + " | count: " + rowMap.get(errorCode).get(1));
+                for (List<String> i : rows_loop) {
+                    System.out.println(i.toString());
+                }
+                System.out.println("\n-------------------------------------\n");
+            }
+        }
+    }
+
+
+    @Test
     public void listAppTokens() throws Exception{
         AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
         List<AppToken> tokens = client.listAppTokens();
