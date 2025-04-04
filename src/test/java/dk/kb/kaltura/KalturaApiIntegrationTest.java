@@ -2,9 +2,12 @@ package dk.kb.kaltura;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.*;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.AppToken;
@@ -73,8 +76,8 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void kalturaIDsLookup() throws IOException {
-        Map<String, String> map = getClient().getKulturaIds(
+    public void kalturaIDsLookup() throws IOException, APIException {
+        Map<String, String> map = getClient().getKalturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
         log.debug("kalturaIDsLookup() got {} results from {} IDs", map.size(), KNOWN_PAIRS.size());
 
