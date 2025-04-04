@@ -1,12 +1,17 @@
 package dk.kb.kaltura;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.AppToken;
+import com.kaltura.client.types.ReportInputFilter;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
@@ -188,7 +193,10 @@ public class KalturaApiIntegrationTest {
     @Test
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
-        List<List<String>> rows = client.getReportTable(ReportType.CONTENT_INTERACTIONS, "20230330", "20260101", "count_download");
+        ReportInputFilter filter = new ReportInputFilter();
+        filter.setFromDay("20250330");
+        filter.setToDay("20250401");
+        List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, filter,"count_download");
 
         System.out.println("Total Rows: " + (rows.size()-1));
         Set rowSet = rows.stream().collect(Collectors.toSet());
