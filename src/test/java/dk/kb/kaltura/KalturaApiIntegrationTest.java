@@ -182,6 +182,10 @@ public class KalturaApiIntegrationTest {
         Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
         String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag, flavorParamId);
         assertNotNull(kalturaId);
+        MediaService.GetMediaBuilder getMediaBuilder = MediaService.get(kalturaId);
+        Response<MediaEntry> response1;
+        response1 = (Response<MediaEntry>) APIOkRequestsExecutor.getExecutor().execute(getMediaBuilder.build(clientSession.getClient()));
+        assertTrue(response1.isSuccess());
     }
 
     @Test

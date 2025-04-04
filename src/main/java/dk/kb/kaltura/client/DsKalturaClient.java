@@ -148,7 +148,8 @@ public class DsKalturaClient {
         filter.setReferenceIdEqual(referenceId);
 
         FilterPager pager = new FilterPager();
-        pager.setPageIndex(10);
+        pager.setPageIndex(1);
+        pager.setPageSize(BATCH_SIZE);
 
         ListMediaBuilder request =  MediaService.list(filter);               
 
@@ -186,7 +187,7 @@ public class DsKalturaClient {
      *         Unresolvable {@code referenceIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
-    public Map<String, String> getKulturaIds(List<String> referenceIds) throws IOException{
+    public Map<String, String> getKalturaIds(List<String> referenceIds) throws IOException{
         if (referenceIds.isEmpty()) {
             log.info("getKulturaInternalIds(referenceIDs) called with empty list of IDs");
             return Collections.emptyMap();
@@ -316,6 +317,110 @@ public class DsKalturaClient {
         return item;
     }
 
+    private String addUploadToken() throws IOException, APIException {
+        //Get a token that will allow upload
+        Client clientsession = getClientInstance();
+        UploadToken uploadToken = new UploadToken();
+        AddUploadTokenBuilder uploadTokenRequestBuilder = UploadTokenService.add(uploadToken);
+        Response<UploadToken> response = (Response<UploadToken>)
+                APIOkRequestsExecutor.getExecutor().execute(uploadTokenRequestBuilder.build(clientsession));
+
+        if (response.isSuccess()) {
+            log.debug("UploadToken \"{}\" successfully added.", response.results.getId());
+            return response.results.getId();
+        }else{
+            log.error("Adding uploadToken failed because: \"{}\"", response.error.getMessage());
+            throw response.error;
+        }
+    }
+
+    private String uploadFile(String uploadTokenId, String filePath) throws IOException, APIException {
+        Client client = getClientInstance();
+
+        //Upload the file using the upload token.
+        File fileData = new File(filePath);
+        boolean resume = false;
+        boolean finalChunk = true;
+        int resumeAt = -1;
+
+        if (!fileData.exists() & !fileData.canRead()) {
+            try {
+                throw new IOException(filePath + " not accessible");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        UploadUploadTokenBuilder uploadBuilder = UploadTokenService.upload(uploadTokenId, fileData, resume, finalChunk,
+                resumeAt);
+        Response<UploadToken> response =
+                (Response<UploadToken> ) APIOkRequestsExecutor.getExecutor().execute(uploadBuilder.build(client));
+        if (response.isSuccess()) {
+            log.debug("File \"{}\" uploaded successfully to upload token \"{}\".", filePath,
+                    response.results.getId());
+            return response.results.getId();
+        } else {
+            log.error("Failed to upload file \"{}\" to upload token \"{}\" because: \"{}\"", filePath,
+                    uploadTokenId, response.error.getMessage());
+            throw response.error;
+        }
+
+    }
+
+    private String addEmptyEntry(MediaType mediaType, String title, String description, String referenceId, String tag) throws IOException, APIException {
+        Client clientSession = getClientInstance();
+
+        //Create entry with meta data
+        MediaEntry entry = new MediaEntry();
+        entry.setMediaType(mediaType);
+        entry.setName(title);
+        entry.setDescription(description);
+        entry.setReferenceId(referenceId);
+        if(tag != null) {
+            entry.setTags(tag);
+        }
+
+        AddMediaBuilder addEntryBuilder = MediaService.add(entry);
+        Response <MediaEntry> response = (Response <MediaEntry>)  APIOkRequestsExecutor.getExecutor().execute(addEntryBuilder.build(clientSession)); // No need for return object
+
+        if(response.isSuccess()) {
+            log.debug("Added entry \"{}\" successfully.", response.results.getId());
+            return response.results.getId();
+        }else{
+            log.error("Failed to add entry with reference ID \"{}\" because: \"{}\"", referenceId, response.error.getMessage());
+            throw response.error;
+        }
+
+    }
+
+    private String addContentToEntry(String uploadtokenId, String entryId, Integer flavorParamId) throws APIException, IOException {
+
+        Client clientSession = getClientInstance();
+        //Connect uploaded file with meta data entry
+        UploadedFileTokenResource resource = new UploadedFileTokenResource();
+        resource.setToken(uploadtokenId);
+        AddContentMediaBuilder requestBuilder;
+
+        if( flavorParamId == null){
+            requestBuilder = MediaService.addContent(entryId, resource);
+        }else{
+            AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
+            paramContainer.setAssetParamsId(flavorParamId);
+            paramContainer.setResource(resource);
+            requestBuilder = MediaService.addContent(entryId, paramContainer);
+        }
+
+        Response<MediaEntry> response = (Response<MediaEntry>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
+        if(response.isSuccess()){
+            log.debug("UploadToken \"{}\" was added to entry \"{}\"", uploadtokenId, entryId);
+            return response.results.getId();
+        }else{
+            log.error("UploadToken \"{}\" was not added to entry \"{}\" because: \"{}\"", uploadtokenId, entryId,
+                    response.error.getMessage());
+            throw response.error;
+        }
+    }
+
     /**
      * Upload a video or audio file to Kaltura.
      * The upload require 4 API calls to Kaltura
@@ -340,8 +445,10 @@ public class DsKalturaClient {
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
      * @throws IOException the io exception
      */
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
-                              String tag) throws IOException{
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
+                                                  String title,
+                                       String description,
+                                                    String tag) throws IOException, InterruptedException, APIException {
         return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null);
     }
 
@@ -371,8 +478,8 @@ public class DsKalturaClient {
      * @throws IOException the io exception
      */
     @SuppressWarnings("unchecked")
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
-                              String tag, Integer flavorParamId) throws IOException{
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
+    String title,String description, String tag, Integer flavorParamId) throws IOException, APIException {
 
         if (referenceId== null) {
             throw new IllegalArgumentException("referenceId must be defined");            
@@ -382,56 +489,19 @@ public class DsKalturaClient {
             throw new IllegalArgumentException("Kaltura mediaType must be defined");            
         }
 
-        Client clientSession = getClientInstance();
+        try{
+            String uploadTokenId = addUploadToken();
 
-        //Get a token that will allow upload        
-        UploadToken uploadToken = new UploadToken();
-        AddUploadTokenBuilder uploadTokenRequestBuilder = UploadTokenService.add(uploadToken);              
-        Response <UploadToken> response = (Response <UploadToken>) APIOkRequestsExecutor.getExecutor().execute(uploadTokenRequestBuilder.build(clientSession));        
-        String tokenId=response.results.getId();
+            uploadFile(uploadTokenId, filePath);
 
-        //Upload the file using the upload token.        
-        File fileData = new File(filePath);
-        boolean resume = false;
-        boolean finalChunk = true;
-        int resumeAt = -1;
+            String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
 
-        UploadUploadTokenBuilder uploadBuilder = UploadTokenService.upload(tokenId, fileData, resume, finalChunk, resumeAt);
-        APIOkRequestsExecutor.getExecutor().execute(uploadBuilder.build(clientSession)); //No need for return object
+            return addContentToEntry(uploadTokenId, entryId, flavorParamId);
 
-        //Create entry with meta data       
-        MediaEntry entry = new MediaEntry();
-        entry.setMediaType(mediaType);
-        entry.setName(title);
-        entry.setDescription(description);
-        entry.setReferenceId(referenceId);
-        if(tag != null) {
-            entry.setTags(tag);
+        }catch (APIException e) {
+            log.error("Failed to uploadMedia filePath \"{}\" with referenceId \"{}\" because: \"{}\"", filePath, referenceId, e.getMessage());
+            throw e;
         }
-
-        AddMediaBuilder addEntryBuilder = MediaService.add(entry);   
-        Response <MediaEntry> response1 = (Response <MediaEntry>)  APIOkRequestsExecutor.getExecutor().execute(addEntryBuilder.build(clientSession)); // No need for return object
-        String entryId= response1.results.getId();
-
-        //Connect uploaded file with meta data entry       
-        UploadedFileTokenResource resource = new UploadedFileTokenResource();
-        resource.setToken(tokenId);
-
-        AddContentMediaBuilder requestBuilder;
-        if( flavorParamId == null){
-            requestBuilder = MediaService.addContent(entryId, resource);
-        }else{
-            AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
-            paramContainer.setAssetParamsId(flavorParamId);
-            paramContainer.setResource(resource);
-            requestBuilder = MediaService.addContent(entryId, paramContainer);
-        }
-        Response<?> res = APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
-        if (!res.isSuccess()) {
-            throw new IOException("Error in kaltura upload connecting meta-data to stream. Entry id:"+entryId);
-        }
-
-        return entryId;
     }
 
     /**
