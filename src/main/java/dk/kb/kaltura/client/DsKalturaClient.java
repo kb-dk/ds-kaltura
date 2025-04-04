@@ -431,6 +431,56 @@ public class DsKalturaClient {
         return entryId;
     }
 
+
+    public List<List<String>> getReportTable(ReportType reportType,  ReportInputFilter reportInputFilter,
+                                             String order) throws IOException, APIException {
+        //TODO: This reportedly only works up until 10000 total count even with paging. Testing indicates that it
+        // gives duplicate rows when total count is above 10000.
+        //TODO: Fix above (10000 limit), by ordering by created at and start new request from last entry. However the
+        // it seems that the query needs to have a lower than 10000 total count.
+        Client client = getClientInstance();
+        FilterPager pager = new FilterPager();
+        pager.setPageSize(BATCH_SIZE);
+
+        StringBuilder rawData = new StringBuilder();
+        int totalCount = BATCH_SIZE;
+        int index = 0;
+
+        ReportService.GetTableReportBuilder requestBuilder;
+        Response<ReportTable> response;
+
+        while(totalCount > BATCH_SIZE*index && 10000 > BATCH_SIZE*index) {
+            index++;
+            pager.setPageIndex(index);
+            requestBuilder = ReportService.getTable(reportType, reportInputFilter,
+                    pager, order); //Build request
+            response =
+                    (Response<ReportTable>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));//Execute request and wait for response
+
+            if(!response.isSuccess()){ //Check if request failed
+                throw response.error;
+            } else if (response.results.getData() == null) {
+                return new ArrayList<>();
+            }
+
+            if(index == 1) { //Append header for first page
+                rawData.append(response.results.getHeader()+";");
+//                log.debug("Total Count: {}",response.results.getTotalCount());
+            }
+            totalCount = response.results.getTotalCount(); //Set total count
+            rawData.append(response.results.getData()); //Append data from page
+        }
+
+        List<List<String>> rows = new ArrayList<>();
+        Arrays.stream(rawData.toString().split(";")).forEach(x -> {
+            List<String> col = Arrays.stream(x.split(",")).collect(Collectors.toList());
+            rows.add(col);
+        });
+
+        return rows;
+    }
+
+
     /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
      * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
