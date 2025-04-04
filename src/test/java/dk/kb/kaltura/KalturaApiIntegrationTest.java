@@ -73,13 +73,8 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void testKalturaSession() throws Exception {
-        DsKalturaClient clientSession = getClient();
-    }
-
-    @Test
-    public void kalturaIDsLookup() throws IOException, APIException {
-        Map<String, String> map = getClient().getKalturaIds(
+    public void kalturaIDsLookup() throws IOException {
+        Map<String, String> map = getClient().getKulturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
         log.debug("kalturaIDsLookup() got {} results from {} IDs", map.size(), KNOWN_PAIRS.size());
 
