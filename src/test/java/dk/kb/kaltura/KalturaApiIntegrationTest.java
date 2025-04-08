@@ -2,9 +2,7 @@ package dk.kb.kaltura;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.*;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.kaltura.client.enums.ReportType;
