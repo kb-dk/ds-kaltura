@@ -2,10 +2,7 @@ package dk.kb.kaltura;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import com.kaltura.client.enums.ReportType;
@@ -193,18 +190,21 @@ public class KalturaApiIntegrationTest {
     @Test
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
-        ReportInputFilter filter = new ReportInputFilter();
-        filter.setFromDay("20250330");
-        filter.setToDay("20250401");
-        List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, filter,"count_download");
+        ReportInputFilter reportInputFilter = new ReportInputFilter();
+        reportInputFilter.setFromDay("20250406");
+        reportInputFilter.setToDay("20250406");
 
-        System.out.println("Total Rows: " + (rows.size()-1));
-        Set rowSet = rows.stream().collect(Collectors.toSet());
-        System.out.println("Set size: " + (rowSet.size()-1));
+
+        List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,"creation");
+
         for (List<String> i:rows){
             System.out.println(i.toString());
         }
-        assertEquals(rows.size(), rowSet.size());
+
+        System.out.println("Total Rows: " + (rows.size()-1));
+        Set rowSet = new HashSet<>(rows);
+        System.out.println("Set size: " + (rowSet.size()-1));
+        assertEquals(rows.size(), rowSet.size()); //Look for duplicates
     }
 
     @Test
@@ -213,7 +213,7 @@ public class KalturaApiIntegrationTest {
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay("20250330");
         reportInputFilter.setToDay("20990101");
-        reportInputFilter.setDomainIn("Unknown");
+
         List<List<String>> rows = client.getReportTable(ReportType.QOE_ERROR_TRACKING_CODES, reportInputFilter,
                 "");
 
@@ -228,14 +228,19 @@ public class KalturaApiIntegrationTest {
         }
 
         for (String errorCode : rowMap.keySet()){
-            if(errorCode.equals("errorcode") || errorCode.equals("Unknown")) {
+            if(errorCode.equals("errorcode")) {
+                continue;
+            }
+            else if (errorCode.equals("Unknown")) {
+                System.out.println((flippedData.get(errorCode) != null ? flippedData.get(errorCode) :
+                        "UNKNOWN") + ":" + errorCode + " | count: " + rowMap.get(errorCode).get(1));
+                System.out.println("\n-------------------------------------\n");
                 continue;
             }
 
             reportInputFilter.errorCodeIn(errorCode.toString());
-            List<List<String>> rows_loop;
 
-            rows_loop = client.getReportTable(ReportType.QOE_ERROR_TRACKING_ENTRY,
+            List<List<String>> rows_loop = client.getReportTable(ReportType.QOE_ERROR_TRACKING_BROWSERS,
                     reportInputFilter, "error");
 
             if (rows_loop.size() != 0) {
