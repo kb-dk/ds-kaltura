@@ -502,10 +502,6 @@ public class DsKalturaClient {
             log.error("Failed to uploadMedia filePath \"{}\" with referenceId \"{}\" because: \"{}\"", filePath, referenceId, e.getMessage());
             throw e;
         }
-
-    }
-
-        return entryId;
     }
 
     /**
@@ -608,11 +604,4 @@ public class DsKalturaClient {
         return response.results.getKs();
     }
 
-
-}
-
-//    for testing purposes
-    public Client getClient() {
-        return client;
-    }
 }
