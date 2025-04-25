@@ -201,9 +201,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void kalturaUrlUpload() throws Exception{
         DsKalturaClient clientSession= getClient();
-//        String url="https://deic-download.kb.dk/radio-tv/b/a/1/3/ba132106-1c91-450f-80c1-f037d24a4f5f.mp4"; //GoodVideo
-        String url="https://deic-download.kb.dk/radio-tv/8/1/7/e/817e9fe3-2f7e-4ddc-b5fd-94ee8ec38639.mp3";//GoodRadio
-//        String url="https://deic-download.kb.dk/radio-tv/4/b/1/5/4b1531aa-51eb-45bd-ace5-6aa81be0f092.mp4"; //ErrorAudio
+        String url="someURL.mp3";
 
         String referenceId="ref_test_1234s";
         MediaType mediaType=MediaType.AUDIO;
