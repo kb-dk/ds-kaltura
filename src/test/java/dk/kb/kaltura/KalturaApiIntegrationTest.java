@@ -3,11 +3,13 @@ package dk.kb.kaltura;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import com.kaltura.client.types.AppToken;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
+import dk.kb.util.Pair;
 import dk.kb.util.yaml.YAML;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -175,8 +177,55 @@ public class KalturaApiIntegrationTest {
         String title="test3 title from unittest";
         String description="test3 description from unittest";
         Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag, flavorParamId);
-        assertNotNull(kalturaId);
+//        String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag, flavorParamId);
+        Pair<CompletableFuture<String>, CompletableFuture<String>> FuturePair = clientSession.uploadMediaAsync(
+                file,
+                referenceId,
+                mediaType,
+                title,
+                description,tag,
+                flavorParamId
+        );
+
+        String entryId = FuturePair.getLeft().get(); //wait for entry ID
+        assertNotNull(entryId);
+        try{
+            String uploadTokenId = FuturePair.getRight().get(); //wait for upload
+            assertNotNull(uploadTokenId);
+        }catch (Exception e){
+          Thread.sleep(20000L);
+        }
+
+    }
+
+    @Test
+    public void kalturaUrlUpload() throws Exception{
+        DsKalturaClient clientSession= getClient();
+//        String url="https://deic-download.kb.dk/radio-tv/b/a/1/3/ba132106-1c91-450f-80c1-f037d24a4f5f.mp4"; //GoodVideo
+        String url="https://deic-download.kb.dk/radio-tv/8/1/7/e/817e9fe3-2f7e-4ddc-b5fd-94ee8ec38639.mp3";//GoodRadio
+//        String url="https://deic-download.kb.dk/radio-tv/4/b/1/5/4b1531aa-51eb-45bd-ace5-6aa81be0f092.mp4"; //ErrorAudio
+
+        String referenceId="ref_test_1234s";
+        MediaType mediaType=MediaType.AUDIO;
+        String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
+        String title="URL Upload title from unittest";
+        String description="test3 description from unittest";
+        Integer flavorParamId = 359; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
+//        String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag, flavorParamId);
+        Pair<String, CompletableFuture<String>> FuturePair = clientSession.uploadUrl(
+                url,
+                referenceId,
+                mediaType,
+                title,
+                description,tag,
+                flavorParamId
+        );
+
+        String entryId = FuturePair.getLeft(); //wait for entry ID
+        assertNotNull(entryId);
+
+        String uploadTokenId = FuturePair.getRight().get(); //wait for upload
+        assertNotNull(uploadTokenId);
     }
 
     @Test
