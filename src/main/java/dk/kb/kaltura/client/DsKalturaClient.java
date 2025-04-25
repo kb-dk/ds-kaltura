@@ -13,10 +13,13 @@ import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
 import com.kaltura.client.types.*;
+import com.kaltura.client.utils.response.OnCompletion;
 import com.kaltura.client.utils.response.base.Response;
 
+import dk.kb.util.Pair;
 import dk.kb.util.webservice.exception.InternalServiceException;
 
+import net.bytebuddy.description.type.TypeDescription;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +33,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 
@@ -317,24 +322,32 @@ public class DsKalturaClient {
         return item;
     }
 
-    private String addUploadToken() throws IOException, APIException {
+    private CompletableFuture<String> addUploadTokenAsync() throws IOException, APIException {
         //Get a token that will allow upload
         Client clientsession = getClientInstance();
         UploadToken uploadToken = new UploadToken();
         AddUploadTokenBuilder uploadTokenRequestBuilder = UploadTokenService.add(uploadToken);
-        Response<UploadToken> response = (Response<UploadToken>)
-                APIOkRequestsExecutor.getExecutor().execute(uploadTokenRequestBuilder.build(clientsession));
 
-        if (response.isSuccess()) {
-            log.debug("UploadToken \"{}\" successfully added.", response.results.getId());
-            return response.results.getId();
-        }else{
-            log.error("Adding uploadToken failed because: \"{}\"", response.error.getMessage());
-            throw response.error;
-        }
+        CompletableFuture<String> completableFuture = new CompletableFuture<>();
+        uploadTokenRequestBuilder.setCompletion(new OnCompletion<Response<UploadToken>>() {
+            @Override
+            public void onComplete(Response<UploadToken> response) {
+                if (response.isSuccess()) {
+                    log.debug("UploadToken \"{}\" successfully added.", response.results.getId());
+                    completableFuture.complete(response.results.getId());
+                }else{
+                    log.error("Adding uploadToken failed because: \"{}\"", response.error.getMessage());
+                    completableFuture.completeExceptionally(response.error);
+                }
+            }
+        });
+
+        APIOkRequestsExecutor.getExecutor().queue(uploadTokenRequestBuilder.build(clientsession));
+        return completableFuture;
     }
 
-    private String uploadFile(String uploadTokenId, String filePath) throws IOException, APIException {
+    private CompletableFuture<String> uploadFileToTokenAsync(String uploadTokenId, String filePath) throws IOException,
+            APIException {
         Client client = getClientInstance();
 
         //Upload the file using the upload token.
@@ -350,24 +363,28 @@ public class DsKalturaClient {
                 throw new RuntimeException(e);
             }
         }
+        CompletableFuture<String> uploadTokenFuture = new CompletableFuture<>();
 
         UploadUploadTokenBuilder uploadBuilder = UploadTokenService.upload(uploadTokenId, fileData, resume, finalChunk,
-                resumeAt);
-        Response<UploadToken> response =
-                (Response<UploadToken> ) APIOkRequestsExecutor.getExecutor().execute(uploadBuilder.build(client));
-        if (response.isSuccess()) {
-            log.debug("File \"{}\" uploaded successfully to upload token \"{}\".", filePath,
-                    response.results.getId());
-            return response.results.getId();
-        } else {
-            log.error("Failed to upload file \"{}\" to upload token \"{}\" because: \"{}\"", filePath,
-                    uploadTokenId, response.error.getMessage());
-            throw response.error;
-        }
-
+                resumeAt).setCompletion(new OnCompletion<Response<UploadToken>>() {
+            @Override
+            public void onComplete(Response<UploadToken> response) {
+                if (response.isSuccess()) {
+                    log.debug("File \"{}\" uploaded successfully to upload token \"{}\".", filePath,
+                            response.results.getId());
+                    uploadTokenFuture.complete(response.results.getId());
+                } else {
+                    log.error("Failed to upload file \"{}\" to upload token \"{}\" because: \"{}\"", filePath,
+                            uploadTokenId, response.error.getMessage());
+                    uploadTokenFuture.completeExceptionally(response.error);
+                }
+            }
+        });
+        APIOkRequestsExecutor.getExecutor().queue(uploadBuilder.build(client));
+        return uploadTokenFuture;
     }
 
-    private String addEmptyEntry(MediaType mediaType, String title, String description, String referenceId, String tag) throws IOException, APIException {
+    private CompletableFuture<String> addEmptyEntryAsync(MediaType mediaType, String title, String description, String referenceId, String tag) throws IOException, APIException {
         Client clientSession = getClientInstance();
 
         //Create entry with meta data
@@ -379,21 +396,26 @@ public class DsKalturaClient {
         if(tag != null) {
             entry.setTags(tag);
         }
-
         AddMediaBuilder addEntryBuilder = MediaService.add(entry);
-        Response <MediaEntry> response = (Response <MediaEntry>)  APIOkRequestsExecutor.getExecutor().execute(addEntryBuilder.build(clientSession)); // No need for return object
 
-        if(response.isSuccess()) {
-            log.debug("Added entry \"{}\" successfully.", response.results.getId());
-            return response.results.getId();
-        }else{
-            log.error("Failed to add entry with reference ID \"{}\" because: \"{}\"", referenceId, response.error.getMessage());
-            throw response.error;
-        }
-
+        CompletableFuture<String> entryId = new CompletableFuture<>();
+        addEntryBuilder.setCompletion(new OnCompletion<Response<MediaEntry>>() {
+            @Override
+            public void onComplete(Response<MediaEntry> response){
+                if(response.isSuccess()) {
+                    log.debug("Added entry \"{}\" successfully.", response.results.getId());
+                    entryId.complete(response.results.getId());
+                }else{
+                    log.error("Failed to add entry with reference ID \"{}\" because: \"{}\"", referenceId, response.error.getMessage());
+                    entryId.completeExceptionally(response.error);
+                }
+            }
+        });
+        APIOkRequestsExecutor.getExecutor().queue(addEntryBuilder.build(clientSession)); // No need for return object
+        return entryId;
     }
 
-    private String addContentToEntry(String uploadtokenId, String entryId, Integer flavorParamId) throws APIException, IOException {
+    private CompletableFuture<String> addUploadTokenToEntryAsync(String uploadtokenId, String entryId, Integer flavorParamId) throws APIException, IOException {
 
         Client clientSession = getClientInstance();
         //Connect uploaded file with meta data entry
@@ -410,15 +432,56 @@ public class DsKalturaClient {
             requestBuilder = MediaService.addContent(entryId, paramContainer);
         }
 
-        Response<MediaEntry> response = (Response<MediaEntry>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
-        if(response.isSuccess()){
-            log.debug("UploadToken \"{}\" was added to entry \"{}\"", uploadtokenId, entryId);
-            return response.results.getId();
+        CompletableFuture<String> result = new CompletableFuture<>();
+        requestBuilder.setCompletion(new OnCompletion<Response<MediaEntry>>() {
+            @Override
+            public void onComplete(Response<MediaEntry> response) {
+                if(response.isSuccess()){
+                    log.debug("UploadToken \"{}\" was added to entry \"{}\"", uploadtokenId, entryId);
+                    result.complete(response.results.getId());
+                }else{
+                    log.error("UploadToken \"{}\" was not added to entry \"{}\" because: \"{}\"", uploadtokenId, entryId,
+                            response.error.getMessage());
+                    result.completeExceptionally(response.error);
+                }
+            }
+        });
+
+        APIOkRequestsExecutor.getExecutor().queue(requestBuilder.build(clientSession));
+        return result;
+    }
+
+    private CompletableFuture<String> addUrlContentToEntryAsync(String url, String entryId, Integer flavorParamId) throws APIException, IOException {
+        UrlResource resource = new UrlResource();
+        resource.setUrl(url);
+        resource.setForceAsyncDownload(false);
+        AddContentMediaBuilder requestBuilder;
+        if( flavorParamId == null){
+            requestBuilder = MediaService.addContent(entryId, resource);
         }else{
-            log.error("UploadToken \"{}\" was not added to entry \"{}\" because: \"{}\"", uploadtokenId, entryId,
-                    response.error.getMessage());
-            throw response.error;
+            AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
+            paramContainer.setAssetParamsId(flavorParamId);
+            paramContainer.setResource(resource);
+            requestBuilder = MediaService.addContent(entryId, paramContainer);
         }
+        CompletableFuture<String> result = new CompletableFuture<>();
+        requestBuilder.setCompletion(new OnCompletion<Response<MediaEntry>>() {
+            @Override
+            public void onComplete(Response<MediaEntry> response) {
+                if(response.isSuccess()){
+                    log.debug("Url \"{}\" was added to entry \"{}\"", url, entryId);
+                    result.complete(response.results.getId());
+                }else {
+                    log.debug("Adding Url \"{}\" to entry \"{}\" failed becuase: {}", url, entryId, response.error.getMessage());
+                    result.completeExceptionally(response.error);
+                }
+            }
+        });
+
+        Client clientSession = getClientInstance();
+        APIOkRequestsExecutor.getExecutor().queue(requestBuilder.build(clientSession));
+
+        return result;
     }
 
     /**
@@ -479,7 +542,7 @@ public class DsKalturaClient {
      */
     @SuppressWarnings("unchecked")
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
-    String title,String description, String tag, Integer flavorParamId) throws IOException, APIException {
+        String title,String description, String tag, Integer flavorParamId) throws IOException, APIException {
 
         if (referenceId== null) {
             throw new IllegalArgumentException("referenceId must be defined");            
@@ -490,19 +553,83 @@ public class DsKalturaClient {
         }
 
         try{
-            String uploadTokenId = addUploadToken();
+            String uploadTokenId = addUploadTokenAsync().get();
 
-            uploadFile(uploadTokenId, filePath);
+            uploadFileToTokenAsync(uploadTokenId, filePath).get();
 
-            String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
+            String entryId = addEmptyEntryAsync(mediaType, title, description, referenceId, tag).get();
 
-            return addContentToEntry(uploadTokenId, entryId, flavorParamId);
+            entryId = addUploadTokenToEntryAsync(uploadTokenId, entryId, flavorParamId).get();
+
+            return entryId;
 
         }catch (APIException e) {
             log.error("Failed to uploadMedia filePath \"{}\" with referenceId \"{}\" because: \"{}\"", filePath, referenceId, e.getMessage());
             throw e;
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
+
+    public Pair<CompletableFuture<String>, CompletableFuture<String>> uploadMediaAsync(String filePath, String referenceId,
+                                                                       MediaType mediaType,
+                 String title, String description, String tag, Integer flavorParamId) throws IOException, APIException {
+
+        if (referenceId == null) {
+            throw new IllegalArgumentException("referenceId must be defined");
+        }
+
+        if (mediaType == null) {
+            throw new IllegalArgumentException("Kaltura mediaType must be defined");
+        }
+
+        try {
+            String uploadTokenId = addUploadTokenAsync().get();
+
+            CompletableFuture<String> uploadFuture = uploadFileToTokenAsync(uploadTokenId, filePath);
+
+            String entryId = addEmptyEntryAsync(mediaType, title, description, referenceId, tag).get();
+
+            CompletableFuture<String> entryIdFuture = addUploadTokenToEntryAsync(uploadTokenId, entryId, flavorParamId);
+
+            return new Pair<>(entryIdFuture, uploadFuture);
+
+        } catch (APIException e) {
+            log.error("Failed to uploadMedia filePath \"{}\" with referenceId \"{}\" because: \"{}\"", filePath, referenceId, e.getMessage());
+            throw e;
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Pair<String, CompletableFuture<String>> uploadUrl(String url, String referenceId,
+                                                                                       MediaType mediaType,
+                                                                                       String title, String description, String tag, Integer flavorParamId) throws IOException, APIException {
+        if (referenceId == null) {
+            throw new IllegalArgumentException("referenceId must be defined");
+        }
+
+        if (mediaType == null) {
+            throw new IllegalArgumentException("Kaltura mediaType must be defined");
+        }
+
+        try {
+            String entryId = addEmptyEntryAsync(mediaType, title, description, referenceId, tag).get();
+
+            CompletableFuture<String> entryIdFuture = addUrlContentToEntryAsync(url, entryId, flavorParamId);
+
+            return new Pair<>(entryId, entryIdFuture);
+
+        } catch (APIException e) {
+            log.error("Failed to uploadMedia url \"{}\" with referenceId \"{}\" because: \"{}\"", url, referenceId
+                    , e.getMessage());
+            throw e;
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
 
     /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
