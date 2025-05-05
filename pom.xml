@@ -2,15 +2,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>dk.statsbiblioteket.sbprojects</groupId>
-    <artifactId>sbprojects-parent</artifactId>
-    <version>80</version>
-  </parent>
+    <parent>
+        <groupId>dk.kb.dsparent</groupId>
+        <artifactId>ds-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
     
   <groupId>dk.kb.kaltura</groupId>
   <artifactId>ds-kaltura</artifactId>
-  <version>1.2.7-SNAPSHOT</version>
+  <version>${project.parent.version}</version>
 
    <scm>
      <url>https://github.com/kb-dk/ds-kaltura</url>
@@ -18,19 +18,6 @@
      <developerConnection>scm:git:git@github.com:kb-dk/ds-kaltura.git</developerConnection>
      <tag>ds-kaltura-1.2.2</tag>
     </scm>
-
-  <repositories>
-    <repository>
-      <id>sbforge-nexus</id>
-      <url>https://sbforge.org/nexus/content/groups/public</url>
-      <releases>
-        <enabled>true</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-    </repository>
-  </repositories>
 
   <properties>
     <!-- Specify java version here, to support forbiddenapis plugin -->
@@ -62,7 +49,7 @@
       <version>19.3.0</version>
     
     <!-- These are exluded to prevent too much debug log from kaltura client using log4j. -->
-    <exclusions>        
+    <exclusions>
         <exclusion>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
@@ -71,35 +58,29 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
         </exclusion>
-    </exclusions>    
+    </exclusions>
     </dependency>
         
     <dependency>
       <groupId>dk.kb.util</groupId>
       <artifactId>kb-util</artifactId>
-      <version>1.6.8</version>
     </dependency>
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.36</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.10</version>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-inline</artifactId>
-      <version>4.6.1</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <version>5.6.2</version>
-      <scope>test</scope>
-    </dependency> 
+    </dependency>
   </dependencies>
 
   <build>
