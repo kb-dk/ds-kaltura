@@ -191,9 +191,8 @@ public class KalturaApiIntegrationTest {
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20250406");
+        reportInputFilter.setFromDay("20240406");
         reportInputFilter.setToDay("20250406");
-
 
         List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,"creation");
 
@@ -208,11 +207,20 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void createErrorReport() throws Exception{
+    public void getmultiTest2() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay("20250330");
-        reportInputFilter.setToDay("20990101");
+        reportInputFilter.setToDay("20250401");
+        client.multiRequestReport(ReportType.TOP_CONTENT, reportInputFilter);
+    }
+
+    @Test
+    public void createErrorReport() throws Exception{
+        DsKalturaClient client = getClient();
+        ReportInputFilter reportInputFilter = new ReportInputFilter();
+        reportInputFilter.setFromDay("20250101");
+        reportInputFilter.setToDay("20250110");
 
         List<List<String>> rows = client.getReportTable(ReportType.QOE_ERROR_TRACKING_CODES, reportInputFilter,
                 "");

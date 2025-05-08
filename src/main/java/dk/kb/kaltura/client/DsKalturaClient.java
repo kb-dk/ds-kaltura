@@ -13,6 +13,7 @@ import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
 import com.kaltura.client.types.*;
+import com.kaltura.client.utils.request.MultiRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
 
 import dk.kb.util.webservice.exception.InternalServiceException;
@@ -42,7 +43,7 @@ import java.util.stream.Collectors;
 public class DsKalturaClient {
 
     // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
-    public static final int BATCH_SIZE = 100;
+    public static final int BATCH_SIZE = 500;
 
     static {
         // Kaltura library uses log4j2 and will remove this error message on start up: Log4j2 could not find a logging implementation
@@ -591,6 +592,37 @@ public class DsKalturaClient {
         return rows;
     }
 
+
+    public void multiRequestReport(ReportType reportType, ReportInputFilter reportInputFilter) throws IOException {
+
+        Client client = getClientInstance();
+
+        MultiRequestBuilder multiRequestBuilder = new MultiRequestBuilder();
+
+        int index = 1;
+        while(index < 30){
+            FilterPager pager = new FilterPager();
+            pager.setPageSize(BATCH_SIZE);
+            pager.setPageIndex(index);
+            multiRequestBuilder.add(new ReportService.GetTableReportBuilder(reportType,reportInputFilter,
+                    pager,"","",null));
+            index++;
+        }
+
+        Response<ArrayList<ReportTable>> response =
+                (Response<ArrayList<ReportTable>>) APIOkRequestsExecutor.getExecutor().execute(multiRequestBuilder.build(client));
+
+        if (!response.isSuccess()) {
+            log.error(response.error.getMessage(), response.error);
+        }
+
+        response.results.stream().forEach(x -> {
+            String[] entryList = x.getData().split(";");
+//            Arrays.stream(entryList).forEach(e -> System.out.println(e));
+            System.out.println(entryList.length);
+        });
+
+    }
 
     /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
