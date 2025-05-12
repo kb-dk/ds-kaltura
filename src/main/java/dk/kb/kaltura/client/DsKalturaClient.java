@@ -522,12 +522,15 @@ public class DsKalturaClient {
         return "";
     }
 
-    private String startAppTokenSession(String hash, Client client, String tokenId) {
+    private String startAppTokenSession(String hash, Client client, String tokenId) throws APIException {
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
-                AppTokenService.startSession(tokenId, hash);
-        sessionBuilder.type(SessionType.ADMIN.name());
+                AppTokenService.startSession(tokenId, hash,null,SessionType.ADMIN);
         Response<SessionInfo> response = (Response<SessionInfo>)
                 APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
+        if(!response.isSuccess()){
+            log.debug(response.error.getMessage());
+            throw response.error;
+        }
         return response.results.getKs();
     }
 
