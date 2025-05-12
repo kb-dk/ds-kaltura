@@ -210,9 +210,28 @@ public class KalturaApiIntegrationTest {
     public void getmultiTest2() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20250330");
-        reportInputFilter.setToDay("20250401");
+        reportInputFilter.setFromDay("20230330");
+        reportInputFilter.setToDay("20250530");
+        //1722386606
+        //1722401689
+//        reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(1722386606L);
+//        reportInputFilter.setEntryCreatedAtLessThanOrEqual(1731624965L);
         client.multiRequestReport(ReportType.TOP_CONTENT, reportInputFilter);
+    }
+
+    @Test
+    public void exportCSV() throws Exception{
+        DsKalturaClient client = getClient();
+
+        MediaEntryFilter filter = new MediaEntryFilter();
+        filter.setStatusNotIn("not_a_status");
+        filter.setModerationStatusNotIn("not_a_status");
+
+        List<String> fields =
+                List.of("referenceId","createdAt","updatedAt","moderationStatus","status", "plays","duration");
+        //Exports CSV to mail user connected to current kaltura session.
+        //To create this kind of session, the an apptoken with userId connected needs to be used.
+        client.exportEntryListToUserMail(fields, filter);
     }
 
     @Test

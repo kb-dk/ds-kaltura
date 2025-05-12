@@ -592,15 +592,66 @@ public class DsKalturaClient {
         return rows;
     }
 
+    private KeyValue createKeyVal(String key, String val) {
+        KeyValue keyVal = new KeyValue();
+        keyVal.setKey(key);
+        keyVal.setValue(val);
+        return keyVal;
+    }
 
-    public void multiRequestReport(ReportType reportType, ReportInputFilter reportInputFilter) throws IOException {
+    private List<KeyValue> createKeyValueList(List<String> fields) {
+        return  fields.stream().map((str)
+                -> createKeyVal(str, str)).collect(Collectors.toList());
+    }
+
+    private List<KeyValue> createKeyValueList(Map<String, String> map) {
+        return  map.entrySet().stream().map((entry)
+                -> createKeyVal(entry.getKey(), entry.getValue())).collect(Collectors.toList());
+    }
+
+
+    //This sends an email to a Kaltura users connected to the Kaltura Session. This user is specified by userID in
+    // the conf file.
+    public void exportEntryListToUserMail(List<String> mappedFields, MediaEntryFilter filter) throws IOException {
+        Client client = getClientInstance();
+
+        BaseEntryService.ExportToCsvBaseEntryBuilder requestBuilder =
+                BaseEntryService.exportToCsv(filter, 0, null, createKeyValueList(mappedFields));
+
+        Response response = APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
+
+        if (!response.isSuccess()) {
+            log.error("Error exporting entry list to user mail: {}", response.error.getMessage());
+            throw new IOException("Error exporting entry list to user mail: " + response.error.getMessage());
+        }
+        log.debug("Successfully exported entry list to user mail");
+    }
+
+    public void multiRequestReport(ReportType reportType, ReportInputFilter reportInputFilter) throws IOException, APIException {
 
         Client client = getClientInstance();
+        FilterPager initPager = new FilterPager();
+        initPager.setPageSize(BATCH_SIZE);
+        initPager.setPageIndex(1);
+        ReportService.GetTableReportBuilder requestBuilder = ReportService.getTable(reportType,reportInputFilter,
+                initPager, "createdAt");
+        Response<ReportTable> initialReportTable =
+                (Response<ReportTable> ) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
+
+        if (!initialReportTable.isSuccess()) {
+            throw new IOException(initialReportTable.error);
+        }
+        int totalCount = initialReportTable.results.getTotalCount();
+
+        if(totalCount > BATCH_SIZE){
+            log.debug("Total count is greater than BATCH_SIZE");
+            return;
+        }
 
         MultiRequestBuilder multiRequestBuilder = new MultiRequestBuilder();
 
-        int index = 1;
-        while(index < 30){
+        int index = 2;
+        while(index*BATCH_SIZE < totalCount && index*BATCH_SIZE < 10000 ){
             FilterPager pager = new FilterPager();
             pager.setPageSize(BATCH_SIZE);
             pager.setPageIndex(index);
@@ -614,13 +665,28 @@ public class DsKalturaClient {
 
         if (!response.isSuccess()) {
             log.error(response.error.getMessage(), response.error);
+            throw response.error;
         }
+        response.results.add(initialReportTable.results);
+        if(response.results.isEmpty()){
+            log.warn("No reports found");
+            return;
+        }
+        List<String> listCSV  =
+                response.results.stream()
+                        .map((reportTable)->
+                                Arrays.asList(reportTable
+                                        .getData()
+                                        .split(";")))
+                        .flatMap(List::stream)
+                        .collect(Collectors.toList());
+        String header = response.results.get(0).getHeader();
 
-        response.results.stream().forEach(x -> {
-            String[] entryList = x.getData().split(";");
-//            Arrays.stream(entryList).forEach(e -> System.out.println(e));
-            System.out.println(entryList.length);
-        });
+        System.out.println(listCSV.size());
+        System.out.println(header);
+        System.out.println(listCSV.get(0));
+        System.out.println(listCSV.get(1));
+
 
     }
 
