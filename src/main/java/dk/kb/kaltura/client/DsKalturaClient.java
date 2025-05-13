@@ -426,7 +426,10 @@ public class DsKalturaClient {
             paramContainer.setResource(resource);
             requestBuilder = MediaService.addContent(entryId, paramContainer);
         }
-        APIOkRequestsExecutor.getExecutor().queue(requestBuilder.build(clientSession));
+        Response<?> res = APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
+        if (!res.isSuccess()) {
+            throw new IOException("Error in kaltura upload connecting meta-data to stream. Entry id:"+entryId);
+        }
 
         return entryId;
     }

@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - Kaltura AppToken Client changed to use enum types (values) to start session. This was required since Kaltura was changed.
+- Kaltura upload will validate stream was connected to meta-data and throw IOException if last call (#4 out of 4) is not a success
 
 ### Added
 - Method to reject a stream in Kaltura. The stream can not be played with rejected status. A KMC moderator can
