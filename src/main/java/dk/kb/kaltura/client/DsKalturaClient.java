@@ -329,7 +329,7 @@ public class DsKalturaClient {
             log.debug("UploadToken \"{}\" successfully added.", response.results.getId());
             return response.results.getId();
         }else{
-            log.error("Adding uploadToken failed because: \"{}\"", response.error.getMessage());
+            log.debug("Adding uploadToken failed because: \"{}\"", response.error.getMessage());
             throw response.error;
         }
     }
@@ -360,7 +360,7 @@ public class DsKalturaClient {
                     response.results.getId());
             return response.results.getId();
         } else {
-            log.error("Failed to upload file \"{}\" to upload token \"{}\" because: \"{}\"", filePath,
+            log.debug("Failed to upload file \"{}\" to upload token \"{}\" because: \"{}\"", filePath,
                     uploadTokenId, response.error.getMessage());
             throw response.error;
         }
@@ -387,7 +387,8 @@ public class DsKalturaClient {
             log.debug("Added entry \"{}\" successfully.", response.results.getId());
             return response.results.getId();
         }else{
-            log.error("Failed to add entry with reference ID \"{}\" because: \"{}\"", referenceId, response.error.getMessage());
+            log.debug("Failed to add entry with reference ID \"{}\" because: \"{}\"", referenceId,
+                    response.error.getMessage());
             throw response.error;
         }
 
@@ -415,7 +416,7 @@ public class DsKalturaClient {
             log.debug("UploadToken \"{}\" was added to entry \"{}\"", uploadtokenId, entryId);
             return response.results.getId();
         }else{
-            log.error("UploadToken \"{}\" was not added to entry \"{}\" because: \"{}\"", uploadtokenId, entryId,
+            log.debug("UploadToken \"{}\" was not added to entry \"{}\" because: \"{}\"", uploadtokenId, entryId,
                     response.error.getMessage());
             throw response.error;
         }
@@ -477,7 +478,6 @@ public class DsKalturaClient {
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
      * @throws IOException the io exception
      */
-    @SuppressWarnings("unchecked")
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
     String title,String description, String tag, Integer flavorParamId) throws IOException, APIException {
 
@@ -489,19 +489,15 @@ public class DsKalturaClient {
             throw new IllegalArgumentException("Kaltura mediaType must be defined");            
         }
 
-        try{
-            String uploadTokenId = addUploadToken();
+        String uploadTokenId = addUploadToken();
 
-            uploadFile(uploadTokenId, filePath);
+        uploadFile(uploadTokenId, filePath);
 
-            String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
+        String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
 
-            return addContentToEntry(uploadTokenId, entryId, flavorParamId);
+        addContentToEntry(uploadTokenId, entryId, flavorParamId);
 
-        }catch (APIException e) {
-            log.error("Failed to uploadMedia filePath \"{}\" with referenceId \"{}\" because: \"{}\"", filePath, referenceId, e.getMessage());
-            throw e;
-        }
+        return entryId;
     }
 
     /**
