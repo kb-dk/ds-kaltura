@@ -539,13 +539,11 @@ public class DsKalturaClient {
      * Sets client session to a privileged session using appToken.
      */
     private void startClientSession(Client client, String token, String tokenId) throws Exception {
-        String widgetSession = generateWidgetSession(client);
-        client.setKs(widgetSession);
-        String hash = computeHash(client, token, widgetSession);
+
         String ks = null;
         if (StringUtils.isEmpty(this.adminSecret)) {
             log.info("Starting KalturaSession from appToken");
-            ks = startAppTokenSession(hash, client, tokenId);
+            ks = generateAppTokenSession(client, tokenId, token);
         } else {
             log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you generating appTokens.");
             ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId);
@@ -554,7 +552,7 @@ public class DsKalturaClient {
         client.setKs(ks);
     }
 
-    private String generateWidgetSession(Client client) {
+    private String startWidgetSession(Client client) {
         log.debug("Generating Widget Session...");
         String widgetId = "_" + client.getPartnerId();
         int expiry = Client.EXPIRY;
@@ -573,8 +571,8 @@ public class DsKalturaClient {
      * @param ks    Unprivileged Kaltura Widget Session for computing hash
      * @return A string representing a tokenHash package or an empty string if Error Occurs.
      */
-    private String computeHash(Client client, String token, String ks){
-        client.setSessionId(ks);
+    private String computeHash(String token, String ks){
+
         try{
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update((ks + token).getBytes("UTF-8"));
@@ -595,7 +593,16 @@ public class DsKalturaClient {
         return "";
     }
 
-    private String startAppTokenSession(String hash, Client client, String tokenId) throws APIException {
+    private String generateAppTokenSession(Client client, String tokenId, String token) throws APIException {
+        String widgetSession = startWidgetSession(client);
+        client.setKs(widgetSession);
+        client.setSessionId(widgetSession);
+        String hash = computeHash(token, widgetSession);
+        return startAppTokenSession(client, tokenId, hash);
+    }
+
+    private String startAppTokenSession(Client client, String tokenId, String hash) throws APIException {
+
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
                 AppTokenService.startSession(tokenId, hash,null,SessionType.ADMIN);
         Response<SessionInfo> response = (Response<SessionInfo>)
