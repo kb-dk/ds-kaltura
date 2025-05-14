@@ -513,7 +513,7 @@ public class DsKalturaClient {
         try {
 
 
-            if (client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
+            if (this.client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:"+(System.currentTimeMillis()-lastSessionStart));
                 //Create the client
                 //KalturaConfiguration config = new KalturaConfiguration();
@@ -525,9 +525,9 @@ public class DsKalturaClient {
                 this.client=client;
                 lastSessionStart=System.currentTimeMillis(); //Reset timer
                 log.info("Refreshed Kaltura client session");
-                return client;
+                return this.client;
             }
-            return client; //Reuse existing connection.
+            return this.client; //Reuse existing connection.
         }
         catch (Exception e) {
             log.warn("Connecting to Kaltura failed. KalturaUrl={},error={}",kalturaUrl,e.getMessage());
@@ -596,7 +596,7 @@ public class DsKalturaClient {
     private String generateAppTokenSession(Client client, String tokenId, String token) throws APIException {
         String widgetSession = startWidgetSession(client);
         client.setKs(widgetSession);
-        client.setSessionId(widgetSession);
+//        client.setSessionId(widgetSession);
         String hash = computeHash(token, widgetSession);
         return startAppTokenSession(client, tokenId, hash);
     }
