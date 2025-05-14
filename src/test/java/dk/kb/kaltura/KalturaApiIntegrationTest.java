@@ -91,7 +91,7 @@ public class KalturaApiIntegrationTest {
 
     // We have no scenario where this lookup is used
     @Test
-    public void referenceIDsLookup() throws IOException {
+    public void referenceIDsLookup() throws IOException, APIException {
         Map<String, String> map = getClient().getReferenceIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(1)).collect(Collectors.toList()));
         log.debug("referenceIDsLookup() got {} hits for {} kalturaIDs", map.size(), KNOWN_PAIRS.size());

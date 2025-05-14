@@ -218,7 +218,7 @@ public class DsKalturaClient {
      *         Unresolvable {@code kalturaIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
-    public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws IOException{
+    public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws IOException, APIException {
         if (kalturaIDs.isEmpty()) {
             log.info("getReferenceIds(kalturaIDs) called with empty list of IDs");
             return Collections.emptyMap();
