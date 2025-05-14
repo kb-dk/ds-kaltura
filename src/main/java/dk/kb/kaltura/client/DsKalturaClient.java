@@ -140,7 +140,7 @@ public class DsKalturaClient {
      * @throws IOException if Kaltura called failed, or more than 1 entry was found with the referenceId.
      */
     @SuppressWarnings("unchecked")
-    public String getKulturaInternalId(String referenceId) throws IOException{
+    public String getKalturaInternalId(String referenceId) throws IOException{
 
         Client clientSession = getClientInstance();
 
@@ -446,10 +446,8 @@ public class DsKalturaClient {
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
      * @throws IOException the io exception
      */
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
-                                                  String title,
-                                       String description,
-                                                    String tag) throws IOException, InterruptedException, APIException {
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
+                              String tag) throws IOException, APIException {
         return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null);
     }
 

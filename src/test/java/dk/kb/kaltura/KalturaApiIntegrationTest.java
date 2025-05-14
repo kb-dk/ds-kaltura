@@ -132,7 +132,7 @@ public class KalturaApiIntegrationTest {
 
         int success=0;
         for (int i = 0;i<10;i++) {
-            String kalturaId = clientSession.getKulturaInternalId(referenceId);
+            String kalturaId = clientSession.getKalturaInternalId(referenceId);
             assertEquals(kalturaInternallId, kalturaId,"API error was reproduced after "+success+" number of calls");
             log.debug("API returned internal Kaltura id:"+kalturaId);
             success++;
