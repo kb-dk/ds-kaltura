@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.AppToken;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
@@ -75,7 +76,7 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void kalturaIDsLookup() throws IOException {
+    public void kalturaIDsLookup() throws IOException, APIException {
         Map<String, String> map = getClient().getKalturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
         log.debug("kalturaIDsLookup() got {} results from {} IDs", map.size(), KNOWN_PAIRS.size());
@@ -104,7 +105,7 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void simpleSearch() throws IOException {
+    public void simpleSearch() throws IOException, APIException {
         List<String> ids = getClient().searchTerm("dr");
         assertFalse(ids.isEmpty(), "Search result should not be empty");
         System.out.println(ids);

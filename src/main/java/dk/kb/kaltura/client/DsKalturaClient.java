@@ -187,7 +187,7 @@ public class DsKalturaClient {
      *         Unresolvable {@code referenceIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
-    public Map<String, String> getKalturaIds(List<String> referenceIds) throws IOException{
+    public Map<String, String> getKalturaIds(List<String> referenceIds) throws IOException, APIException {
         if (referenceIds.isEmpty()) {
             log.info("getKulturaInternalIds(referenceIDs) called with empty list of IDs");
             return Collections.emptyMap();
@@ -240,7 +240,7 @@ public class DsKalturaClient {
      * @return a list of Kaltura IDs for matching records, empty if no hits. Max result size is {@link #BATCH_SIZE}.
      * @throws IOException if the remote request failed.
      */
-    public List<String> searchTerm(String term) throws IOException{
+    public List<String> searchTerm(String term) throws IOException, APIException {
         // Adapted from Java samples at https://developer.kaltura.com
         // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
         // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
@@ -264,7 +264,7 @@ public class DsKalturaClient {
      * @throws IOException if the remote request failed.
      */
     @SuppressWarnings("unchecked")
-    private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws IOException{
+    private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws IOException, APIException {
         // Adapted from Java samples at https://developer.kaltura.com
         // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
         // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
@@ -287,8 +287,14 @@ public class DsKalturaClient {
 
         // Issue search
         ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
-        return (Response<ESearchEntryResponse>)
+        Response<ESearchEntryResponse> response = (Response<ESearchEntryResponse>)
                 APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(getClientInstance()));
+
+        if(!response.isSuccess()){
+            log.debug(response.error.getMessage());
+            throw response.error;
+        }
+        return response;
     }
 
     /**
