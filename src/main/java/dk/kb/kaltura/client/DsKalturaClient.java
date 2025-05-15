@@ -555,7 +555,6 @@ public class DsKalturaClient {
             if (this.client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:"+(System.currentTimeMillis()-lastSessionStart));
                 //Create the client
-                //KalturaConfiguration config = new KalturaConfiguration();
                 Configuration config = new Configuration();
                 config.setEndpoint(kalturaUrl);
                 Client client = new Client(config);
