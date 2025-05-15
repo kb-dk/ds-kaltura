@@ -323,6 +323,13 @@ public class DsKalturaClient {
         return item;
     }
 
+    /**
+     * Create empty upload token to be filled later.
+     *
+     * @return uploadTokenId of empty uploadToken
+     * @throws IOException
+     * @throws APIException
+     */
     private String addUploadToken() throws IOException, APIException {
         //Get a token that will allow upload
         Client clientsession = getClientInstance();
@@ -340,6 +347,15 @@ public class DsKalturaClient {
         }
     }
 
+    /**
+     * Uploads file to Kaltura uploadToken.
+     *
+     * @param uploadTokenId The uploadToken created beforehand
+     * @param filePath The path of file to be uploaded
+     * @return The UploadTokenId when upload is complete
+     * @throws IOException
+     * @throws APIException
+     */
     private String uploadFile(String uploadTokenId, String filePath) throws IOException, APIException {
         Client client = getClientInstance();
 
@@ -373,6 +389,18 @@ public class DsKalturaClient {
 
     }
 
+    /**
+     * Adds en Entry to Kaltura containing only metadata.
+     *
+     * @param mediaType Intended type of media. Either MediaType.AUDIO or MediaType.VIDEO
+     * @param title Title of video/audio
+     * @param description description
+     * @param referenceId Id external from Kaltura
+     * @param tag Tags on Entry. Used for ease of searching and grouping of entries within KMC.
+     * @return EntryId
+     * @throws IOException
+     * @throws APIException
+     */
     private String addEmptyEntry(MediaType mediaType, String title, String description, String referenceId, String tag) throws IOException, APIException {
         Client clientSession = getClientInstance();
 
@@ -400,6 +428,19 @@ public class DsKalturaClient {
 
     }
 
+
+    /**
+     * Adds content from an uploadToken to an Entry and return flavorID's of that flavor. If FlavorParamID is not null,
+     * content is added to specified flavor within the Entry. If FlavorParamID is null content is added as source
+     * flavor.
+     *
+     * @param uploadtokenId Upload token with content
+     * @param entryId Entry to receive content
+     * @param flavorParamId Id of the flavorParam where the content needs to be added within the Entry.
+     * @return FlavorID's at given Entry
+     * @throws APIException
+     * @throws IOException
+     */
     private String addContentToEntry(String uploadtokenId, String entryId, Integer flavorParamId) throws APIException, IOException {
 
         Client clientSession = getClientInstance();
@@ -511,8 +552,6 @@ public class DsKalturaClient {
      */
     private synchronized Client getClientInstance() throws IOException{
         try {
-
-
             if (this.client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:"+(System.currentTimeMillis()-lastSessionStart));
                 //Create the client
@@ -535,23 +574,34 @@ public class DsKalturaClient {
         }
     }
 
-    /*
-     * Sets client session to a privileged session using appToken.
+    /**
+     * Start a creates a new Kaltura session and add it to client. If secret is available in conf, it will take
+     * precedent over appTokens.
+     *
+     * @param client The Kaltura client. Needs to be initialized with config, endpoint and partner ID
+     * @param token The token of with admin privileges and SHA-256 hashType
+     * @param tokenId The tokenId of token
+     * @throws Exception
      */
     private void startClientSession(Client client, String token, String tokenId) throws Exception {
 
         String ks = null;
         if (StringUtils.isEmpty(this.adminSecret)) {
             log.info("Starting KalturaSession from appToken");
-            ks = generateAppTokenSession(client, tokenId, token);
+            ks = startAppTokenSession(client, tokenId, token, SessionType.ADMIN);
         } else {
             log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you generating appTokens.");
-            ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId);
+            ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, this.partnerId);
         }
 
         client.setKs(ks);
     }
 
+    /**
+     * Starts widgetSession with using a client.
+     * @param client The Kaltura client. Needs to be initialized with config, endpoint and partner ID
+     * @return Kaltura Session
+     */
     private String startWidgetSession(Client client) {
         log.debug("Generating Widget Session...");
         String widgetId = "_" + client.getPartnerId();
@@ -567,9 +617,11 @@ public class DsKalturaClient {
 
 
     /**
+     * Computes a SHA-256 hash of token and Kaltura Session
+     *
      * @param token AppToken String for computing hash
-     * @param ks    Unprivileged Kaltura Widget Session for computing hash
-     * @return A string representing a tokenHash package or an empty string if Error Occurs.
+     * @param ks Kaltura Widget Session for computing hash
+     * @return A string representing a SHA-256 tokenHash package or an empty string if Error Occurs.
      */
     private String computeHash(String token, String ks){
 
@@ -593,18 +645,33 @@ public class DsKalturaClient {
         return "";
     }
 
-    private String generateAppTokenSession(Client client, String tokenId, String token) throws APIException {
+    /**
+     * Initiates a session for an application token using the provided parameters.
+     *
+     * This method starts a widget session for the specified client, computes a hash
+     * based on the provided token and the widget session, and then builds a session
+     * request using the AppTokenService. The request is executed, and if successful,
+     * the method returns the kaltura session (ks).
+     *
+     * @param client  The client for which the session is being started. This client
+     *                is used to set session-related attributes and to execute the
+     *                session request.
+     * @param tokenId The ID of the token for which the session is being created.
+     * @param token   The token used to compute the hash for session initiation.
+     * @param type    The type of session being created, represented by a
+     *                {@link SessionType} enumeration.
+     * @return Kaltura Session with privileges inherited from token
+     * @throws APIException
+     */
+    private String startAppTokenSession(Client client, String tokenId, String token, SessionType type) throws APIException {
+
         String widgetSession = startWidgetSession(client);
         client.setKs(widgetSession);
-//        client.setSessionId(widgetSession);
+        client.setSessionId(widgetSession);
         String hash = computeHash(token, widgetSession);
-        return startAppTokenSession(client, tokenId, hash);
-    }
-
-    private String startAppTokenSession(Client client, String tokenId, String hash) throws APIException {
 
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
-                AppTokenService.startSession(tokenId, hash,null,SessionType.ADMIN);
+                AppTokenService.startSession(tokenId, hash,null,type);
         Response<SessionInfo> response = (Response<SessionInfo>)
                 APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
         if(!response.isSuccess()){
