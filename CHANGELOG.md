@@ -16,6 +16,12 @@ to maintain.
 ### Changed
 - Kaltura AppToken Client changed to use enum types (values) to start session. This was required since Kaltura was changed.
 - Kaltura upload will validate stream was connected to meta-data and throw IOException if last call (#4 out of 4) is not a success
+- Extracted methods from uploadMedia to make individual steps/api calls in the uploadprocess more visible and easier
+    to maintain.
+- startClientSession have been refactored and now only starts a widget session appTokens is used.
+- computeHash method no longer set attributes in the kaltura client and only computes the hash value.
+- Added API exceptions to upload and other methods using API calls.
+- Corrected spelling error in method name getKulturaInternalId to getKalturaInternalId.
 
 ### Added
 - Method to reject a stream in Kaltura. The stream can not be played with rejected status. A KMC moderator can
