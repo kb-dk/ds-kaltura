@@ -140,7 +140,7 @@ public class DsKalturaClient {
      * @throws IOException if Kaltura called failed, or more than 1 entry was found with the referenceId.
      */
     @SuppressWarnings("unchecked")
-    public String getKulturaInternalId(String referenceId) throws IOException{
+    public String getKalturaInternalId(String referenceId) throws IOException{
 
         Client clientSession = getClientInstance();
 
@@ -148,7 +148,8 @@ public class DsKalturaClient {
         filter.setReferenceIdEqual(referenceId);
 
         FilterPager pager = new FilterPager();
-        pager.setPageIndex(10);
+        pager.setPageIndex(1);
+        pager.setPageSize(BATCH_SIZE);
 
         ListMediaBuilder request =  MediaService.list(filter);               
 
@@ -186,7 +187,7 @@ public class DsKalturaClient {
      *         Unresolvable {@code referenceIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
-    public Map<String, String> getKulturaIds(List<String> referenceIds) throws IOException{
+    public Map<String, String> getKalturaIds(List<String> referenceIds) throws IOException, APIException {
         if (referenceIds.isEmpty()) {
             log.info("getKulturaInternalIds(referenceIDs) called with empty list of IDs");
             return Collections.emptyMap();
@@ -204,7 +205,7 @@ public class DsKalturaClient {
                 .forEach(entry -> {
                     String previousID;
                     if ((previousID = pairs.put(entry.getReferenceId(), entry.getId())) != null) {
-                        log.warn("Warning: referenceID '{}' resolved to multiple kalturaIDs [\"{}\", \"{}\"]",
+                        log.warn("Warning: referenceID '{}' resolved to multiple kalturaIDs ['{}', '{}']",
                                 entry.getReferenceId(), previousID, entry.getId());
                     }});
         return pairs;
@@ -217,7 +218,7 @@ public class DsKalturaClient {
      *         Unresolvable {@code kalturaIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
-    public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws IOException{
+    public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws IOException, APIException {
         if (kalturaIDs.isEmpty()) {
             log.info("getReferenceIds(kalturaIDs) called with empty list of IDs");
             return Collections.emptyMap();
@@ -239,7 +240,7 @@ public class DsKalturaClient {
      * @return a list of Kaltura IDs for matching records, empty if no hits. Max result size is {@link #BATCH_SIZE}.
      * @throws IOException if the remote request failed.
      */
-    public List<String> searchTerm(String term) throws IOException{
+    public List<String> searchTerm(String term) throws IOException, APIException {
         // Adapted from Java samples at https://developer.kaltura.com
         // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
         // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
@@ -263,7 +264,7 @@ public class DsKalturaClient {
      * @throws IOException if the remote request failed.
      */
     @SuppressWarnings("unchecked")
-    private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws IOException{
+    private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws IOException, APIException {
         // Adapted from Java samples at https://developer.kaltura.com
         // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
         // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
@@ -286,8 +287,14 @@ public class DsKalturaClient {
 
         // Issue search
         ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
-        return (Response<ESearchEntryResponse>)
+        Response<ESearchEntryResponse> response = (Response<ESearchEntryResponse>)
                 APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(getClientInstance()));
+
+        if(!response.isSuccess()){
+            log.debug(response.error.getMessage());
+            throw response.error;
+        }
+        return response;
     }
 
     /**
@@ -317,6 +324,152 @@ public class DsKalturaClient {
     }
 
     /**
+     * Create empty upload token to be filled later.
+     *
+     * @return uploadTokenId of empty uploadToken
+     * @throws IOException
+     * @throws APIException
+     */
+    private String addUploadToken() throws IOException, APIException {
+        //Get a token that will allow upload
+        Client clientsession = getClientInstance();
+        UploadToken uploadToken = new UploadToken();
+        AddUploadTokenBuilder uploadTokenRequestBuilder = UploadTokenService.add(uploadToken);
+        Response<UploadToken> response = (Response<UploadToken>)
+                APIOkRequestsExecutor.getExecutor().execute(uploadTokenRequestBuilder.build(clientsession));
+
+        if (response.isSuccess()) {
+            log.debug("UploadToken '{}' successfully added.", response.results.getId());
+            return response.results.getId();
+        }else{
+            log.debug("Adding uploadToken failed because: '{}'", response.error.getMessage());
+            throw response.error;
+        }
+    }
+
+    /**
+     * Uploads file to Kaltura uploadToken.
+     *
+     * @param uploadTokenId The uploadToken created beforehand
+     * @param filePath The path of file to be uploaded
+     * @return The UploadTokenId when upload is complete
+     * @throws IOException
+     * @throws APIException
+     */
+    private String uploadFile(String uploadTokenId, String filePath) throws IOException, APIException {
+        Client client = getClientInstance();
+
+        //Upload the file using the upload token.
+        File fileData = new File(filePath);
+        boolean resume = false;
+        boolean finalChunk = true;
+        int resumeAt = -1;
+
+        if (!fileData.exists() & !fileData.canRead()) {
+            try {
+                throw new IOException(filePath + " not accessible");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        UploadUploadTokenBuilder uploadBuilder = UploadTokenService.upload(uploadTokenId, fileData, resume, finalChunk,
+                resumeAt);
+        Response<UploadToken> response =
+                (Response<UploadToken> ) APIOkRequestsExecutor.getExecutor().execute(uploadBuilder.build(client));
+        if (response.isSuccess()) {
+            log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
+                    response.results.getId());
+            return response.results.getId();
+        } else {
+            log.debug("Failed to upload file '{}' to upload token '{}' because: '{}'", filePath,
+                    uploadTokenId, response.error.getMessage());
+            throw response.error;
+        }
+
+    }
+
+    /**
+     * Adds en Entry to Kaltura containing only metadata.
+     *
+     * @param mediaType Intended type of media. Either MediaType.AUDIO or MediaType.VIDEO
+     * @param title Title of video/audio
+     * @param description description
+     * @param referenceId Id external from Kaltura
+     * @param tag Tags on Entry. Used for ease of searching and grouping of entries within KMC.
+     * @return EntryId
+     * @throws IOException
+     * @throws APIException
+     */
+    private String addEmptyEntry(MediaType mediaType, String title, String description, String referenceId, String tag) throws IOException, APIException {
+        Client clientSession = getClientInstance();
+
+        //Create entry with meta data
+        MediaEntry entry = new MediaEntry();
+        entry.setMediaType(mediaType);
+        entry.setName(title);
+        entry.setDescription(description);
+        entry.setReferenceId(referenceId);
+        if(tag != null) {
+            entry.setTags(tag);
+        }
+
+        AddMediaBuilder addEntryBuilder = MediaService.add(entry);
+        Response <MediaEntry> response = (Response <MediaEntry>)  APIOkRequestsExecutor.getExecutor().execute(addEntryBuilder.build(clientSession)); // No need for return object
+
+        if(response.isSuccess()) {
+            log.debug("Added entry '{}' successfully.", response.results.getId());
+            return response.results.getId();
+        }else{
+            log.debug("Failed to add entry with reference ID '{}' because: '{}'", referenceId,
+                    response.error.getMessage());
+            throw response.error;
+        }
+
+    }
+
+
+    /**
+     * Adds content from an uploadToken to an Entry and return flavorID's of that flavor. If FlavorParamID is not null,
+     * content is added to specified flavor within the Entry. If FlavorParamID is null content is added as source
+     * flavor.
+     *
+     * @param uploadtokenId Upload token with content
+     * @param entryId Entry to receive content
+     * @param flavorParamId Id of the flavorParam where the content needs to be added within the Entry.
+     * @return EntryId of updated entry
+     * @throws APIException
+     * @throws IOException
+     */
+    private String addContentToEntry(String uploadtokenId, String entryId, Integer flavorParamId) throws APIException, IOException {
+
+        Client clientSession = getClientInstance();
+        //Connect uploaded file with meta data entry
+        UploadedFileTokenResource resource = new UploadedFileTokenResource();
+        resource.setToken(uploadtokenId);
+        AddContentMediaBuilder requestBuilder;
+
+        if( flavorParamId == null){
+            requestBuilder = MediaService.addContent(entryId, resource);
+        }else{
+            AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
+            paramContainer.setAssetParamsId(flavorParamId);
+            paramContainer.setResource(resource);
+            requestBuilder = MediaService.addContent(entryId, paramContainer);
+        }
+
+        Response<MediaEntry> response = (Response<MediaEntry>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
+        if(response.isSuccess()){
+            log.debug("UploadToken '{}' was added to entry '{}'", uploadtokenId, entryId);
+            return response.results.getId();
+        }else{
+            log.debug("UploadToken '{}' was not added to entry '{}' because: '{}'", uploadtokenId, entryId,
+                    response.error.getMessage());
+            throw response.error;
+        }
+    }
+
+    /**
      * Upload a video or audio file to Kaltura.
      * The upload require 4 API calls to Kaltura
      * <p><ul>
@@ -341,7 +494,7 @@ public class DsKalturaClient {
      * @throws IOException the io exception
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
-                              String tag) throws IOException{
+                              String tag) throws IOException, APIException {
         return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null);
     }
 
@@ -370,9 +523,8 @@ public class DsKalturaClient {
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
      * @throws IOException the io exception
      */
-    @SuppressWarnings("unchecked")
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
-                              String tag, Integer flavorParamId) throws IOException{
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
+    String title,String description, String tag, Integer flavorParamId) throws IOException, APIException {
 
         if (referenceId== null) {
             throw new IllegalArgumentException("referenceId must be defined");            
@@ -382,54 +534,13 @@ public class DsKalturaClient {
             throw new IllegalArgumentException("Kaltura mediaType must be defined");            
         }
 
-        Client clientSession = getClientInstance();
+        String uploadTokenId = addUploadToken();
 
-        //Get a token that will allow upload        
-        UploadToken uploadToken = new UploadToken();
-        AddUploadTokenBuilder uploadTokenRequestBuilder = UploadTokenService.add(uploadToken);              
-        Response <UploadToken> response = (Response <UploadToken>) APIOkRequestsExecutor.getExecutor().execute(uploadTokenRequestBuilder.build(clientSession));        
-        String tokenId=response.results.getId();
+        uploadFile(uploadTokenId, filePath);
 
-        //Upload the file using the upload token.        
-        File fileData = new File(filePath);
-        boolean resume = false;
-        boolean finalChunk = true;
-        int resumeAt = -1;
+        String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
 
-        UploadUploadTokenBuilder uploadBuilder = UploadTokenService.upload(tokenId, fileData, resume, finalChunk, resumeAt);
-        APIOkRequestsExecutor.getExecutor().execute(uploadBuilder.build(clientSession)); //No need for return object
-
-        //Create entry with meta data       
-        MediaEntry entry = new MediaEntry();
-        entry.setMediaType(mediaType);
-        entry.setName(title);
-        entry.setDescription(description);
-        entry.setReferenceId(referenceId);
-        if(tag != null) {
-            entry.setTags(tag);
-        }
-
-        AddMediaBuilder addEntryBuilder = MediaService.add(entry);   
-        Response <MediaEntry> response1 = (Response <MediaEntry>)  APIOkRequestsExecutor.getExecutor().execute(addEntryBuilder.build(clientSession)); // No need for return object
-        String entryId= response1.results.getId();
-
-        //Connect uploaded file with meta data entry       
-        UploadedFileTokenResource resource = new UploadedFileTokenResource();
-        resource.setToken(tokenId);
-
-        AddContentMediaBuilder requestBuilder;
-        if( flavorParamId == null){
-            requestBuilder = MediaService.addContent(entryId, resource);
-        }else{
-            AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
-            paramContainer.setAssetParamsId(flavorParamId);
-            paramContainer.setResource(resource);
-            requestBuilder = MediaService.addContent(entryId, paramContainer);
-        }
-        Response<?> res = APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
-        if (!res.isSuccess()) {
-            throw new IOException("Error in kaltura upload connecting meta-data to stream. Entry id:"+entryId);
-        }
+        addContentToEntry(uploadTokenId, entryId, flavorParamId);
 
         return entryId;
     }
@@ -441,12 +552,9 @@ public class DsKalturaClient {
      */
     private synchronized Client getClientInstance() throws IOException{
         try {
-
-
-            if (client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
+            if (this.client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:"+(System.currentTimeMillis()-lastSessionStart));
                 //Create the client
-                //KalturaConfiguration config = new KalturaConfiguration();
                 Configuration config = new Configuration();
                 config.setEndpoint(kalturaUrl);
                 Client client = new Client(config);
@@ -455,9 +563,9 @@ public class DsKalturaClient {
                 this.client=client;
                 lastSessionStart=System.currentTimeMillis(); //Reset timer
                 log.info("Refreshed Kaltura client session");
-                return client;
+                return this.client;
             }
-            return client; //Reuse existing connection.
+            return this.client; //Reuse existing connection.
         }
         catch (Exception e) {
             log.warn("Connecting to Kaltura failed. KalturaUrl={},error={}",kalturaUrl,e.getMessage());
@@ -465,26 +573,35 @@ public class DsKalturaClient {
         }
     }
 
-    /*
-     * Sets client session to a privileged session using appToken.
+    /**
+     * Start a creates a new Kaltura session and add it to client. If secret is available in conf, it will take
+     * precedent over appTokens.
+     *
+     * @param client The Kaltura client. Needs to be initialized with config, endpoint and partner ID
+     * @param token The token of with admin privileges and SHA-256 hashType
+     * @param tokenId The tokenId of token
+     * @throws Exception
      */
     private void startClientSession(Client client, String token, String tokenId) throws Exception {
-        String widgetSession = generateWidgetSession(client);
-        client.setKs(widgetSession);
-        String hash = computeHash(client, token, widgetSession);
+
         String ks = null;
         if (StringUtils.isEmpty(this.adminSecret)) {
             log.info("Starting KalturaSession from appToken");
-            ks = startAppTokenSession(hash, client, tokenId);
+            ks = startAppTokenSession(client, tokenId, token, SessionType.ADMIN);
         } else {
             log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you generating appTokens.");
-            ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId);
+            ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, this.partnerId);
         }
 
         client.setKs(ks);
     }
 
-    private String generateWidgetSession(Client client) {
+    /**
+     * Starts widgetSession with using a client.
+     * @param client The Kaltura client. Needs to be initialized with config, endpoint and partner ID
+     * @return Kaltura Session
+     */
+    private String startWidgetSession(Client client) {
         log.debug("Generating Widget Session...");
         String widgetId = "_" + client.getPartnerId();
         int expiry = Client.EXPIRY;
@@ -499,12 +616,16 @@ public class DsKalturaClient {
 
 
     /**
+     * Computes a SHA-256 hash of token and Kaltura Session
+     *
      * @param token AppToken String for computing hash
-     * @param ks    Unprivileged Kaltura Widget Session for computing hash
-     * @return A string representing a tokenHash package or an empty string if Error Occurs.
+     * @param ks Kaltura Widget Session for computing hash
+     * @return A string representing a SHA-256 tokenHash package.
+     * @throws UnsupportedEncodingException
+     * @throws NoSuchAlgorithmException
      */
-    private String computeHash(Client client, String token, String ks){
-        client.setSessionId(ks);
+    private String computeHash(String token, String ks) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+
         try{
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update((ks + token).getBytes("UTF-8"));
@@ -521,13 +642,37 @@ public class DsKalturaClient {
             return hashString.toString();
         }catch (NoSuchAlgorithmException | UnsupportedEncodingException e){
             log.warn("SHA-256 algorithm not available");
+            throw e;
         }
-        return "";
     }
 
-    private String startAppTokenSession(String hash, Client client, String tokenId) throws APIException {
+    /**
+     * Initiates a session for an application token using the provided parameters.
+     *
+     * This method starts a widget session for the specified client, computes a hash
+     * based on the provided token and the widget session, and then builds a session
+     * request using the AppTokenService. The request is executed, and if successful,
+     * the method returns the kaltura session (ks).
+     *
+     * @param client  The client for which the session is being started. This client
+     *                is used to set session-related attributes and to execute the
+     *                session request.
+     * @param tokenId The ID of the token for which the session is being created.
+     * @param token   The token used to compute the hash for session initiation.
+     * @param type    The type of session being created, represented by a
+     *                {@link SessionType} enumeration.
+     * @return Kaltura Session with privileges inherited from token
+     * @throws APIException
+     */
+    private String startAppTokenSession(Client client, String tokenId, String token, SessionType type) throws APIException {
+
+        String widgetSession = startWidgetSession(client);
+        client.setKs(widgetSession);
+        client.setSessionId(widgetSession);
+        String hash = computeHash(token, widgetSession);
+
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
-                AppTokenService.startSession(tokenId, hash,null,SessionType.ADMIN);
+                AppTokenService.startSession(tokenId, hash,null,type);
         Response<SessionInfo> response = (Response<SessionInfo>)
                 APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
         if(!response.isSuccess()){

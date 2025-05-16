@@ -36,7 +36,7 @@ public class IdLookup extends JobsBase implements Callable<Integer>{
     public Integer call() throws Exception {        
 
        DsKalturaClient kalturaClient = getKalturaClient();
-       String kalturaId=kalturaClient.getKulturaInternalId(referenceId); 
+       String kalturaId=kalturaClient.getKalturaInternalId(referenceId);
        String message="ReferenceId:"+referenceId +" -> kalturaId:"+kalturaId;
        log.info(message);
        System.out.println(message);

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.AppToken;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
@@ -75,8 +76,8 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void kalturaIDsLookup() throws IOException {
-        Map<String, String> map = getClient().getKulturaIds(
+    public void kalturaIDsLookup() throws IOException, APIException {
+        Map<String, String> map = getClient().getKalturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
         log.debug("kalturaIDsLookup() got {} results from {} IDs", map.size(), KNOWN_PAIRS.size());
 
@@ -90,7 +91,7 @@ public class KalturaApiIntegrationTest {
 
     // We have no scenario where this lookup is used
     @Test
-    public void referenceIDsLookup() throws IOException {
+    public void referenceIDsLookup() throws IOException, APIException {
         Map<String, String> map = getClient().getReferenceIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(1)).collect(Collectors.toList()));
         log.debug("referenceIDsLookup() got {} hits for {} kalturaIDs", map.size(), KNOWN_PAIRS.size());
@@ -104,7 +105,7 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void simpleSearch() throws IOException {
+    public void simpleSearch() throws IOException, APIException {
         List<String> ids = getClient().searchTerm("dr");
         assertFalse(ids.isEmpty(), "Search result should not be empty");
         System.out.println(ids);
@@ -132,7 +133,7 @@ public class KalturaApiIntegrationTest {
 
         int success=0;
         for (int i = 0;i<10;i++) {
-            String kalturaId = clientSession.getKulturaInternalId(referenceId);
+            String kalturaId = clientSession.getKalturaInternalId(referenceId);
             assertEquals(kalturaInternallId, kalturaId,"API error was reproduced after "+success+" number of calls");
             log.debug("API returned internal Kaltura id:"+kalturaId);
             success++;
