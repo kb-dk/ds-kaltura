@@ -663,8 +663,10 @@ public class DsKalturaClient {
      *                {@link SessionType} enumeration.
      * @return Kaltura Session with privileges inherited from token
      * @throws APIException
+     * @throws UnsupportedEncodingException
+     * @throws NoSuchAlgorithmException
      */
-    private String startAppTokenSession(Client client, String tokenId, String token, SessionType type) throws APIException {
+    private String startAppTokenSession(Client client, String tokenId, String token, SessionType type) throws APIException, UnsupportedEncodingException, NoSuchAlgorithmException {
 
         String widgetSession = startWidgetSession(client);
         client.setKs(widgetSession);
