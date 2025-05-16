@@ -620,9 +620,11 @@ public class DsKalturaClient {
      *
      * @param token AppToken String for computing hash
      * @param ks Kaltura Widget Session for computing hash
-     * @return A string representing a SHA-256 tokenHash package or an empty string if Error Occurs.
+     * @return A string representing a SHA-256 tokenHash package.
+     * @throws UnsupportedEncodingException
+     * @throws NoSuchAlgorithmException
      */
-    private String computeHash(String token, String ks){
+    private String computeHash(String token, String ks) throws UnsupportedEncodingException, NoSuchAlgorithmException {
 
         try{
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -640,8 +642,8 @@ public class DsKalturaClient {
             return hashString.toString();
         }catch (NoSuchAlgorithmException | UnsupportedEncodingException e){
             log.warn("SHA-256 algorithm not available");
+            throw e;
         }
-        return "";
     }
 
     /**
