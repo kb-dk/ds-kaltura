@@ -437,7 +437,7 @@ public class DsKalturaClient {
      * @param uploadtokenId Upload token with content
      * @param entryId Entry to receive content
      * @param flavorParamId Id of the flavorParam where the content needs to be added within the Entry.
-     * @return FlavorID's at given Entry
+     * @return EntryId of updated entry
      * @throws APIException
      * @throws IOException
      */
