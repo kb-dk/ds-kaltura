@@ -205,7 +205,7 @@ public class DsKalturaClient {
                 .forEach(entry -> {
                     String previousID;
                     if ((previousID = pairs.put(entry.getReferenceId(), entry.getId())) != null) {
-                        log.warn("Warning: referenceID '{}' resolved to multiple kalturaIDs [\"{}\", \"{}\"]",
+                        log.warn("Warning: referenceID '{}' resolved to multiple kalturaIDs ['{}', '{}']",
                                 entry.getReferenceId(), previousID, entry.getId());
                     }});
         return pairs;
@@ -339,10 +339,10 @@ public class DsKalturaClient {
                 APIOkRequestsExecutor.getExecutor().execute(uploadTokenRequestBuilder.build(clientsession));
 
         if (response.isSuccess()) {
-            log.debug("UploadToken \"{}\" successfully added.", response.results.getId());
+            log.debug("UploadToken '{}' successfully added.", response.results.getId());
             return response.results.getId();
         }else{
-            log.debug("Adding uploadToken failed because: \"{}\"", response.error.getMessage());
+            log.debug("Adding uploadToken failed because: '{}'", response.error.getMessage());
             throw response.error;
         }
     }
@@ -378,11 +378,11 @@ public class DsKalturaClient {
         Response<UploadToken> response =
                 (Response<UploadToken> ) APIOkRequestsExecutor.getExecutor().execute(uploadBuilder.build(client));
         if (response.isSuccess()) {
-            log.debug("File \"{}\" uploaded successfully to upload token \"{}\".", filePath,
+            log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
                     response.results.getId());
             return response.results.getId();
         } else {
-            log.debug("Failed to upload file \"{}\" to upload token \"{}\" because: \"{}\"", filePath,
+            log.debug("Failed to upload file '{}' to upload token '{}' because: '{}'", filePath,
                     uploadTokenId, response.error.getMessage());
             throw response.error;
         }
@@ -418,10 +418,10 @@ public class DsKalturaClient {
         Response <MediaEntry> response = (Response <MediaEntry>)  APIOkRequestsExecutor.getExecutor().execute(addEntryBuilder.build(clientSession)); // No need for return object
 
         if(response.isSuccess()) {
-            log.debug("Added entry \"{}\" successfully.", response.results.getId());
+            log.debug("Added entry '{}' successfully.", response.results.getId());
             return response.results.getId();
         }else{
-            log.debug("Failed to add entry with reference ID \"{}\" because: \"{}\"", referenceId,
+            log.debug("Failed to add entry with reference ID '{}' because: '{}'", referenceId,
                     response.error.getMessage());
             throw response.error;
         }
@@ -460,10 +460,10 @@ public class DsKalturaClient {
 
         Response<MediaEntry> response = (Response<MediaEntry>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
         if(response.isSuccess()){
-            log.debug("UploadToken \"{}\" was added to entry \"{}\"", uploadtokenId, entryId);
+            log.debug("UploadToken '{}' was added to entry '{}'", uploadtokenId, entryId);
             return response.results.getId();
         }else{
-            log.debug("UploadToken \"{}\" was not added to entry \"{}\" because: \"{}\"", uploadtokenId, entryId,
+            log.debug("UploadToken '{}' was not added to entry '{}' because: '{}'", uploadtokenId, entryId,
                     response.error.getMessage());
             throw response.error;
         }
