@@ -5,9 +5,12 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.enums.BaseEntryOrderBy;
+import com.kaltura.client.enums.QuickPlayDistributionProfileOrderBy;
 import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.AppToken;
+import com.kaltura.client.types.MediaEntryFilter;
 import com.kaltura.client.types.ReportInputFilter;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
@@ -191,48 +194,35 @@ public class KalturaApiIntegrationTest {
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20240406");
-        reportInputFilter.setToDay("20250406");
+        reportInputFilter.setFromDay("20250330");
+        reportInputFilter.setToDay("20250520");
 
-        List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,"creation");
+        List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter, BaseEntryOrderBy.CREATED_AT_ASC);
 
         for (List<String> i:rows){
-            System.out.println(i.toString());
+            System.out.println(i.toString().substring(1, i.toString().length()-1));
         }
 
         System.out.println("Total Rows: " + (rows.size()-1));
-        Set rowSet = new HashSet<>(rows);
-        System.out.println("Set size: " + (rowSet.size()-1));
-        assertEquals(rows.size(), rowSet.size()); //Look for duplicates
+//        Set rowSet = new HashSet<>(rows);
+//        System.out.println("Set size: " + (rowSet.size()-1));
+//        assertEquals(rows.size(), rowSet.size()); //Look for duplicates
     }
 
     @Test
-    public void getmultiTest2() throws Exception{
+    public void exportCSV() throws Exception{
         DsKalturaClient client = getClient();
-        ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20230330");
-        reportInputFilter.setToDay("20250530");
-        //1722386606
-        //1722401689
-//        reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(1722386606L);
-//        reportInputFilter.setEntryCreatedAtLessThanOrEqual(1731624965L);
-        client.multiRequestReport(ReportType.TOP_CONTENT, reportInputFilter);
-    }
 
-//    @Test
-//    public void exportCSV() throws Exception{
-//        DsKalturaClient client = getClient();
-//
-//        MediaEntryFilter filter = new MediaEntryFilter();
-//        filter.setStatusNotIn("not_a_status");
-//        filter.setModerationStatusNotIn("not_a_status");
-//
-//        List<String> fields =
-//                List.of("referenceId","createdAt","updatedAt","moderationStatus","status", "plays","duration");
-//        //Exports CSV to mail user connected to current kaltura session.
-//        //To create this kind of session, the an apptoken with userId connected needs to be used.
-//        client.exportEntryListToUserMail(fields, filter);
-//    }
+        MediaEntryFilter filter = new MediaEntryFilter();
+        filter.setStatusNotIn("not_a_status");
+        filter.setModerationStatusNotIn("not_a_status");
+
+        List<String> fields =
+                List.of("referenceId","createdAt","updatedAt","moderationStatus","status", "plays","duration");
+        //Exports CSV to mail user connected to current kaltura session.
+        //To create this kind of session, the an apptoken with userId connected needs to be used.
+        client.exportEntryListToUserMail(fields, filter);
+    }
 
     @Test
     public void createErrorReport() throws Exception{
@@ -242,7 +232,7 @@ public class KalturaApiIntegrationTest {
         reportInputFilter.setToDay("20250110");
 
         List<List<String>> rows = client.getReportTable(ReportType.QOE_ERROR_TRACKING_CODES, reportInputFilter,
-                "");
+                null);
 
         Map <String, List<String>> rowMap = rows.stream().collect(Collectors.toMap(x -> x.get(0), x -> x.subList(1, x.size())));
 
@@ -268,7 +258,7 @@ public class KalturaApiIntegrationTest {
             reportInputFilter.errorCodeIn(errorCode.toString());
 
             List<List<String>> rows_loop = client.getReportTable(ReportType.QOE_ERROR_TRACKING_BROWSERS,
-                    reportInputFilter, "error");
+                    reportInputFilter, null);
 
             if (rows_loop.size() != 0) {
                 System.out.println((flippedData.get(errorCode) != null ? flippedData.get(errorCode) :

@@ -13,6 +13,9 @@ import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
 import com.kaltura.client.types.*;
+import com.kaltura.client.utils.request.MultiRequestBuilder;
+import com.kaltura.client.utils.request.RequestBuilder;
+import com.kaltura.client.utils.response.OnCompletion;
 import com.kaltura.client.utils.response.base.Response;
 
 import dk.kb.util.webservice.exception.InternalServiceException;
@@ -27,6 +30,8 @@ import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 
@@ -544,7 +549,7 @@ public class DsKalturaClient {
 
 
     public List<List<String>> getReportTable(ReportType reportType,  ReportInputFilter reportInputFilter,
-                                             String order) throws IOException, APIException {
+                                             BaseEntryOrderBy orderBy) throws IOException, APIException {
         //TODO: This reportedly only works up until 10000 total count even with paging. Testing indicates that it
         // gives duplicate rows when total count is above 10000.
         //TODO: Fix above (10000 limit), by ordering by created at and start new request from last entry. However the
@@ -564,7 +569,7 @@ public class DsKalturaClient {
             index++;
             pager.setPageIndex(index);
             requestBuilder = ReportService.getTable(reportType, reportInputFilter,
-                    pager, order); //Build request
+                    pager, orderBy.getValue()); //Build request
             response =
                     (Response<ReportTable>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));//Execute request and wait for response
 
@@ -624,69 +629,6 @@ public class DsKalturaClient {
             throw new IOException("Error exporting entry list to user mail: " + response.error.getMessage());
         }
         log.debug("Successfully exported entry list to user mail");
-    }
-
-    public void multiRequestReport(ReportType reportType, ReportInputFilter reportInputFilter) throws IOException, APIException {
-
-        Client client = getClientInstance();
-        FilterPager initPager = new FilterPager();
-        initPager.setPageSize(BATCH_SIZE);
-        initPager.setPageIndex(1);
-        ReportService.GetTableReportBuilder requestBuilder = ReportService.getTable(reportType,reportInputFilter,
-                initPager, "createdAt");
-        Response<ReportTable> initialReportTable =
-                (Response<ReportTable> ) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
-
-        if (!initialReportTable.isSuccess()) {
-            throw new IOException(initialReportTable.error);
-        }
-        int totalCount = initialReportTable.results.getTotalCount();
-
-        if(totalCount > BATCH_SIZE){
-            log.debug("Total count is greater than BATCH_SIZE");
-            return;
-        }
-
-        MultiRequestBuilder multiRequestBuilder = new MultiRequestBuilder();
-
-        int index = 2;
-        while(index*BATCH_SIZE < totalCount && index*BATCH_SIZE < 10000 ){
-            FilterPager pager = new FilterPager();
-            pager.setPageSize(BATCH_SIZE);
-            pager.setPageIndex(index);
-            multiRequestBuilder.add(new ReportService.GetTableReportBuilder(reportType,reportInputFilter,
-                    pager,"","",null));
-            index++;
-        }
-
-        Response<ArrayList<ReportTable>> response =
-                (Response<ArrayList<ReportTable>>) APIOkRequestsExecutor.getExecutor().execute(multiRequestBuilder.build(client));
-
-        if (!response.isSuccess()) {
-            log.error(response.error.getMessage(), response.error);
-            throw response.error;
-        }
-        response.results.add(initialReportTable.results);
-        if(response.results.isEmpty()){
-            log.warn("No reports found");
-            return;
-        }
-        List<String> listCSV  =
-                response.results.stream()
-                        .map((reportTable)->
-                                Arrays.asList(reportTable
-                                        .getData()
-                                        .split(";")))
-                        .flatMap(List::stream)
-                        .collect(Collectors.toList());
-        String header = response.results.get(0).getHeader();
-
-        System.out.println(listCSV.size());
-        System.out.println(header);
-        System.out.println(listCSV.get(0));
-        System.out.println(listCSV.get(1));
-
-
     }
 
     /**
@@ -808,7 +750,7 @@ public class DsKalturaClient {
      * @return Kaltura Session with privileges inherited from token
      * @throws APIException
      */
-    private String startAppTokenSession(Client client, String tokenId, String token, SessionType type) throws APIException {
+    private String startAppTokenSession(Client client, String tokenId, String token, SessionType type) throws APIException, UnsupportedEncodingException, NoSuchAlgorithmException {
 
         String widgetSession = startWidgetSession(client);
         client.setKs(widgetSession);
