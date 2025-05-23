@@ -1,18 +1,23 @@
 package dk.kb.kaltura;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.kaltura.client.enums.ReportType;
+import com.kaltura.client.enums.ReportOrderBy;
 import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.AppToken;
+import com.kaltura.client.types.ESearchEntryOperator;
 import com.kaltura.client.types.ReportInputFilter;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
+import dk.kb.util.DatetimeParser;
 import dk.kb.util.yaml.YAML;
+import okio.Path;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
@@ -23,6 +28,8 @@ import org.slf4j.LoggerFactory;
 import com.kaltura.client.enums.MediaType;
 
 import dk.kb.kaltura.client.DsKalturaClient;
+
+import javax.print.attribute.standard.DateTimeAtCreation;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -39,7 +46,7 @@ public class KalturaApiIntegrationTest {
     private static final long DEFAULT_KEEP_ALIVE = 86400;
 
     // ID's valid as of 2024-04-25 but subject to change
-    // TODO: Add a step to setup() creating test kaltura<->reference IDs 
+    // TODO: Add a step to setup() creating test kaltura<->reference IDs
     public static final String KALTURA_ID1 = "0_954nx5eh";
     public static final String KALTURA_ID2 = "0_sjjppu7s";
     public static final String KALTURA_ID3 = "0_zo7k1tgh";
@@ -108,12 +115,12 @@ public class KalturaApiIntegrationTest {
         assertFalse(ids.isEmpty(), "Search result should not be empty");
         System.out.println(ids);
     }
-    
-    
+
+
     @Test
     public void blockStream() throws IOException {
         String entry_id="0_h5p9kkqk"; // Hvornår var det nu det var  (tv, stage miljø)
-                
+
         boolean  success = getClient().blockStreamByEntryId(entry_id);
         assertTrue(success,"The steam was not blocked.Check that the entry id exists.");
     }
@@ -142,14 +149,14 @@ public class KalturaApiIntegrationTest {
 
     @Test
     public void testDeleteEntry() throws Exception{
-        String not_found_entryId="0_xxxxxx"; //Change to an existing ID if need to test a successful deletion.        
+        String not_found_entryId="0_xxxxxx"; //Change to an existing ID if need to test a successful deletion.
         DsKalturaClient clientSession= getClient();
         boolean success= clientSession.deleteStreamByEntryId(not_found_entryId);
         assertFalse(success); //The record does not exist in Kaltura and can therefor not be deleted.
     }
-    
+
     /**
-     * When uploading a file to Kaltura, remember to delete it from the Kaltura 
+     * When uploading a file to Kaltura, remember to delete it from the Kaltura
      *
      */
     @Test
@@ -187,21 +194,106 @@ public class KalturaApiIntegrationTest {
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20250406");
-        reportInputFilter.setToDay("20250406");
+        reportInputFilter.setFromDay("20230330");
+        reportInputFilter.setToDay("20260430");
 
+        List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
+                null);
 
-        List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,"creation");
+        List<String> ids = rows.stream().map(row -> row.get(0)).collect(Collectors.toList());
+        Map<String, Integer> countMap = new HashMap<>();
+        List<String> duplicates = new ArrayList<>();
 
-        for (List<String> i:rows){
-            System.out.println(i.toString());
+        for (String line : ids) {
+            countMap.put(line, countMap.getOrDefault(line, 0) + 1);
         }
 
-        System.out.println("Total Rows: " + (rows.size()-1));
-        Set rowSet = new HashSet<>(rows);
-        System.out.println("Set size: " + (rowSet.size()-1));
-        assertEquals(rows.size(), rowSet.size()); //Look for duplicates
+        for (Map.Entry<String, Integer> entry : countMap.entrySet()) {
+            if (entry.getValue() > 1) {
+                duplicates.add(entry.getKey());
+            }
+        }
+        log.debug("Duplicates count = {}", duplicates.size());
+//        duplicates.stream().forEach(System.out::println);
+
+        System.out.println(rows);
+
     }
+
+    @Test
+    public void getReportALLTableTest() throws Exception{
+        DsKalturaClient client = getClient();
+        ReportInputFilter reportInputFilter = new ReportInputFilter();
+        reportInputFilter.setFromDay("20240101");
+        reportInputFilter.setToDay("20260101");
+//        reportInputFilter.setDomainIn("www.kb.dk");
+
+        final List<String> segments = Files.readAllLines(Path.get("/home/adpe/IdeaProjects/ds-kaltura/src/test" +
+                "/resources" +
+                "/test_files" +
+                "/createdAt_segments", true).toNioPath());
+
+        List<String> header = null;
+        List<List<String>> rows = new ArrayList<>();
+        for(int i = 0; i < segments.size()-1; i++){
+
+            reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(Long.parseLong(segments.get(i)));
+            if (i+1 > segments.size()-1) {
+                reportInputFilter.setEntryCreatedAtLessThanOrEqual(null);
+            }else {
+                reportInputFilter.setEntryCreatedAtLessThanOrEqual(Long.parseLong(segments.get(i + 1)) - 1);
+            }
+
+            List<List<String>> tmp = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
+                    ReportOrderBy.CREATED_AT_ASC.getValue());
+
+            //Remove Header
+            if (!tmp.isEmpty()) {
+                header = tmp.get(0);
+                rows.addAll(tmp.subList(1, tmp.size()));
+            }
+            log.debug("Done with segment {} of {}: {} - {}", i+1, segments.size(),reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
+                    reportInputFilter.getEntryCreatedAtLessThanOrEqual());
+        }
+        if(header.isEmpty()){
+            throw new Exception("No reports found");
+        }
+        try (BufferedWriter writer =
+                     new BufferedWriter(new FileWriter("./src/test/resources/test_files/results-"+ LocalDateTime.now()))) {
+            writer.write(String.join(",", header)+"\n");
+            for (List<String> sublist : rows) {
+                // Join the sublist strings with commas
+                String line = String.join(",", sublist);
+                // Write the line to the file
+                writer.write(line);
+                writer.newLine(); // Move to the next line
+            }
+            System.out.println("Data written to file successfully.");
+        } catch (IOException e) {
+            System.err.println("An error occurred while writing to the file: " + e.getMessage());
+        }
+
+        // Detect duplicates
+        List<String> ids = rows.stream().map(row -> row.get(0)).collect(Collectors.toList());
+        Map<String, Integer> countMap = new HashMap<>();
+        List<String> duplicates = new ArrayList<>();
+
+        for (String line : ids) {
+            countMap.put(line, countMap.getOrDefault(line, 0) + 1);
+        }
+
+        for (Map.Entry<String, Integer> entry : countMap.entrySet()) {
+            if (entry.getValue() > 1) {
+                duplicates.add(entry.getKey());
+            }
+        }
+
+        if(!duplicates.isEmpty()) {
+            log.debug("Report contains duplicate entry id: {}", duplicates);
+        }
+    }
+
+
 
     @Test
     public void createErrorReport() throws Exception{

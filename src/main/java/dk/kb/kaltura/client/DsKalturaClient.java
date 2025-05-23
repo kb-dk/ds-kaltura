@@ -561,8 +561,13 @@ public class DsKalturaClient {
         Response<ReportTable> response;
 
         while(totalCount > BATCH_SIZE*index && 10000 > BATCH_SIZE*index) {
-            index++;
+            if (BATCH_SIZE > totalCount - BATCH_SIZE * index){
+                pager.setPageSize(totalCount - BATCH_SIZE * index);
+                log.debug("Changed last page size to {}.", totalCount - BATCH_SIZE * index);
+            }
+            index +=1;
             pager.setPageIndex(index);
+
             requestBuilder = ReportService.getTable(reportType, reportInputFilter,
                     pager, order); //Build request
             response =
@@ -580,6 +585,7 @@ public class DsKalturaClient {
             }
             totalCount = response.results.getTotalCount(); //Set total count
             rawData.append(response.results.getData()); //Append data from page
+            log.debug("Page {} of getTable done with {} of {}", index, index*BATCH_SIZE,totalCount);
         }
 
         List<List<String>> rows = new ArrayList<>();
@@ -587,6 +593,7 @@ public class DsKalturaClient {
             List<String> col = Arrays.stream(x.split(",")).collect(Collectors.toList());
             rows.add(col);
         });
+
 
         return rows;
     }
