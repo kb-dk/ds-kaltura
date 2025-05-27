@@ -17,6 +17,7 @@ import com.kaltura.client.utils.response.base.Response;
 
 import dk.kb.util.webservice.exception.InternalServiceException;
 
+import okio.Path;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -42,7 +44,7 @@ import java.util.stream.Collectors;
 public class DsKalturaClient {
 
     // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
-    public static final int BATCH_SIZE = 100;
+    public static final int BATCH_SIZE = 500;
 
     static {
         // Kaltura library uses log4j2 and will remove this error message on start up: Log4j2 could not find a logging implementation
@@ -542,6 +544,35 @@ public class DsKalturaClient {
         return entryId;
     }
 
+    public List<List<String>> getReportTableFromSegments(List<String> segments, ReportInputFilter reportInputFilter) throws APIException, IOException {
+
+        List<List<String>> rows = new ArrayList<>();
+        for(int i = 0; i < segments.size()-1; i++){
+
+            reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(Long.parseLong(segments.get(i)));
+            if (i+1 > segments.size()-1) {
+                reportInputFilter.setEntryCreatedAtLessThanOrEqual(null);
+            }else {
+                reportInputFilter.setEntryCreatedAtLessThanOrEqual(Long.parseLong(segments.get(i + 1)) - 1);
+            }
+
+            List<List<String>> tmp = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
+                    ReportOrderBy.CREATED_AT_ASC.getValue());
+
+            if (!tmp.isEmpty()) {
+                if (rows.isEmpty()) { //add all content if first non-empty response
+                    rows.addAll(tmp);
+                }else{ //add all content but header
+                    rows.addAll(tmp.subList(1, tmp.size()));
+                }
+            }
+            log.debug("Done with segment {} of {}: {} - {}", i+1, segments.size(),reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
+                    reportInputFilter.getEntryCreatedAtLessThanOrEqual());
+        }
+
+        return rows;
+    }
+
 
     public List<List<String>> getReportTable(ReportType reportType,  ReportInputFilter reportInputFilter,
                                              String order) throws IOException, APIException {
@@ -563,7 +594,6 @@ public class DsKalturaClient {
         while(totalCount > BATCH_SIZE*index && 10000 > BATCH_SIZE*index) {
             if (BATCH_SIZE > totalCount - BATCH_SIZE * index){
                 pager.setPageSize(totalCount - BATCH_SIZE * index);
-                log.debug("Changed last page size to {}.", totalCount - BATCH_SIZE * index);
             }
             index +=1;
             pager.setPageIndex(index);
@@ -585,7 +615,7 @@ public class DsKalturaClient {
             }
             totalCount = response.results.getTotalCount(); //Set total count
             rawData.append(response.results.getData()); //Append data from page
-            log.debug("Page {} of getTable done with {} of {}", index, index*BATCH_SIZE,totalCount);
+            log.debug("Page {} of getTable done with {} of {}", index, index-1*BATCH_SIZE+pager.getPageSize(),totalCount);
         }
 
         List<List<String>> rows = new ArrayList<>();

@@ -81,6 +81,11 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
+    public void testKalturaSession() throws Exception {
+        DsKalturaClient clientSession = getClient();
+    }
+
+    @Test
     public void kalturaIDsLookup() throws IOException, APIException {
         Map<String, String> map = getClient().getKalturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
@@ -224,43 +229,28 @@ public class KalturaApiIntegrationTest {
     public void getReportALLTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20240101");
+        reportInputFilter.setFromDay("20240330");
         reportInputFilter.setToDay("20260101");
-//        reportInputFilter.setDomainIn("www.kb.dk");
+        reportInputFilter.setDomainIn("www.kb.dk");
 
-        final List<String> segments = Files.readAllLines(Path.get("/home/adpe/IdeaProjects/ds-kaltura/src/test" +
+        List<String> segments = new ArrayList<>();
+        try(BufferedReader br = new BufferedReader(new FileReader("/home/adpe/IdeaProjects/ds-kaltura/src/test" +
                 "/resources" +
                 "/test_files" +
-                "/createdAt_segments", true).toNioPath());
+                "/createdAt_segments"))) {
 
-        List<String> header = null;
-        List<List<String>> rows = new ArrayList<>();
-        for(int i = 0; i < segments.size()-1; i++){
+            String line = br.readLine();
 
-            reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(Long.parseLong(segments.get(i)));
-            if (i+1 > segments.size()-1) {
-                reportInputFilter.setEntryCreatedAtLessThanOrEqual(null);
-            }else {
-                reportInputFilter.setEntryCreatedAtLessThanOrEqual(Long.parseLong(segments.get(i + 1)) - 1);
+            while (line != null) {
+                segments.add(line);
+                line = br.readLine();
             }
-
-            List<List<String>> tmp = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
-                    ReportOrderBy.CREATED_AT_ASC.getValue());
-
-            //Remove Header
-            if (!tmp.isEmpty()) {
-                header = tmp.get(0);
-                rows.addAll(tmp.subList(1, tmp.size()));
-            }
-            log.debug("Done with segment {} of {}: {} - {}", i+1, segments.size(),reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
-                    reportInputFilter.getEntryCreatedAtLessThanOrEqual());
         }
-        if(header.isEmpty()){
-            throw new Exception("No reports found");
-        }
+
+        List<List<String>> rows = client.getReportTableFromSegments(segments, reportInputFilter);
+
         try (BufferedWriter writer =
                      new BufferedWriter(new FileWriter("./src/test/resources/test_files/results-"+ LocalDateTime.now()))) {
-            writer.write(String.join(",", header)+"\n");
             for (List<String> sublist : rows) {
                 // Join the sublist strings with commas
                 String line = String.join(",", sublist);
