@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.enums.ReportInterval;
 import com.kaltura.client.enums.ReportOrderBy;
 import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.types.APIException;
@@ -83,6 +84,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void testKalturaSession() throws Exception {
         DsKalturaClient clientSession = getClient();
+        log.debug("Done");
     }
 
     @Test
@@ -196,11 +198,40 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
+    public void getCsvTest() throws Exception{
+        ReportInputFilter reportInputFilter = new ReportInputFilter();
+        reportInputFilter.setFromDay("20250505");
+        reportInputFilter.setToDay("20250510");
+
+        long start = 1720569600L;
+        long end = 1720569600L;
+
+        reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(start);
+        reportInputFilter.setEntryCreatedAtLessThanOrEqual(end);
+        log.debug("{} - {}", reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
+                reportInputFilter.getEntryCreatedAtLessThanOrEqual());
+
+        String url = getClient().getCsvUrl(reportInputFilter);
+        System.out.println(url);
+
+    }
+
+    @Test
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20230330");
-        reportInputFilter.setToDay("20260430");
+        reportInputFilter.setFromDay("20250505");
+        reportInputFilter.setToDay("20250510");
+        reportInputFilter.setInterval(ReportInterval.TEN_SECONDS);
+//        reportInputFilter.setTimeZoneOffset(-120);
+//        1720565330 - 1720574664
+        long start = 1720569600L;
+        long end = 1720569600L;
+
+        reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(start);
+        reportInputFilter.setEntryCreatedAtLessThanOrEqual(end);
+        log.debug("{} - {}", reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
+                reportInputFilter.getEntryCreatedAtLessThanOrEqual());
 
         List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 null);
@@ -219,9 +250,10 @@ public class KalturaApiIntegrationTest {
             }
         }
         log.debug("Duplicates count = {}", duplicates.size());
+        log.debug("{}", ids.size());
 //        duplicates.stream().forEach(System.out::println);
 
-        System.out.println(rows);
+//        System.out.println(rows);
 
     }
 
@@ -229,9 +261,11 @@ public class KalturaApiIntegrationTest {
     public void getReportALLTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20240330");
+        reportInputFilter.setFromDay("20250330");
         reportInputFilter.setToDay("20260101");
         reportInputFilter.setDomainIn("www.kb.dk");
+
+        reportInputFilter.setInterval(ReportInterval.MINUTES);
 
         List<String> segments = new ArrayList<>();
         try(BufferedReader br = new BufferedReader(new FileReader("/home/adpe/IdeaProjects/ds-kaltura/src/test" +
@@ -247,40 +281,44 @@ public class KalturaApiIntegrationTest {
             }
         }
 
-        List<List<String>> rows = client.getReportTableFromSegments(segments, reportInputFilter);
+        Map<String, List<List<String>>> segmentsMap = client.getReportTableFromSegments(segments, reportInputFilter);
 
-        try (BufferedWriter writer =
-                     new BufferedWriter(new FileWriter("./src/test/resources/test_files/results-"+ LocalDateTime.now()))) {
-            for (List<String> sublist : rows) {
-                // Join the sublist strings with commas
-                String line = String.join(",", sublist);
-                // Write the line to the file
-                writer.write(line);
-                writer.newLine(); // Move to the next line
+        for(String key : segmentsMap.keySet()){
+            List<List<String>> rows = segmentsMap.get(key);
+            try (BufferedWriter writer =
+                         new BufferedWriter(new FileWriter("./src/test/resources/test_files/SegmentedData/"+ key))) {
+                for (List<String> sublist : segmentsMap.get(key)) {
+                    // Join the sublist strings with commas
+                    String line = String.join(",", sublist);
+                    // Write the line to the file
+                    writer.write(line);
+                    writer.newLine(); // Move to the next line
+                }
+                // Detect duplicates
+                List<String> ids = rows.stream().map(row -> row.get(0)).collect(Collectors.toList());
+                Map<String, Integer> countMap = new HashMap<>();
+                List<String> duplicates = new ArrayList<>();
+
+                for (String line : ids) {
+                    countMap.put(line, countMap.getOrDefault(line, 0) + 1);
+                }
+
+                for (Map.Entry<String, Integer> entry : countMap.entrySet()) {
+                    if (entry.getValue() > 1) {
+                        duplicates.add(entry.getKey());
+                    }
+                }
+
+                if(!duplicates.isEmpty()) {
+                    log.debug("{} contains duplicate entry ids: {}",key,
+                            countMap.entrySet().stream().filter( entry -> entry.getValue() > 1).collect(Collectors.toList()));
+                }
+                System.out.println("Data written to file successfully.");
+            } catch (IOException e) {
+                System.err.println("An error occurred while writing to the file: " + e.getMessage());
             }
-            System.out.println("Data written to file successfully.");
-        } catch (IOException e) {
-            System.err.println("An error occurred while writing to the file: " + e.getMessage());
         }
 
-        // Detect duplicates
-        List<String> ids = rows.stream().map(row -> row.get(0)).collect(Collectors.toList());
-        Map<String, Integer> countMap = new HashMap<>();
-        List<String> duplicates = new ArrayList<>();
-
-        for (String line : ids) {
-            countMap.put(line, countMap.getOrDefault(line, 0) + 1);
-        }
-
-        for (Map.Entry<String, Integer> entry : countMap.entrySet()) {
-            if (entry.getValue() > 1) {
-                duplicates.add(entry.getKey());
-            }
-        }
-
-        if(!duplicates.isEmpty()) {
-            log.debug("Report contains duplicate entry id: {}", duplicates);
-        }
     }
 
 

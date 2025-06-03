@@ -12,6 +12,7 @@ import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
+import com.kaltura.client.services.ReportService.*;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.response.base.Response;
 
@@ -544,33 +545,48 @@ public class DsKalturaClient {
         return entryId;
     }
 
-    public List<List<String>> getReportTableFromSegments(List<String> segments, ReportInputFilter reportInputFilter) throws APIException, IOException {
+    public Map<String,List<List<String>>> getReportTableFromSegments(List<String> segments,
+                                                           ReportInputFilter reportInputFilter) throws APIException, IOException {
 
-        List<List<String>> rows = new ArrayList<>();
+//        List<List<String>> rows = new ArrayList<>();
+
+        if (reportInputFilter.getEntryCreatedAtGreaterThanOrEqual() != null){
+            log.warn("Filter option EntryCreatedAtGreaterThanOrEqual will be overwritten with segments");
+        }
+        if (reportInputFilter.getEntryCreatedAtLessThanOrEqual() != null){
+            log.warn("Filter option EntryCreatedAtLessThanOrEqual will be overwritten with segments");
+        }
+
+
+        Map<String, List<List<String>>> segmentMap = new HashMap<>();
         for(int i = 0; i < segments.size()-1; i++){
-
-            reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(Long.parseLong(segments.get(i)));
+            long start = Long.parseLong(segments.get(i));
+            long end ;
+            reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(start);
             if (i+1 > segments.size()-1) {
-                reportInputFilter.setEntryCreatedAtLessThanOrEqual(null);
+                end = Long.MAX_VALUE;
+                reportInputFilter.setEntryCreatedAtLessThanOrEqual(end);
             }else {
-                reportInputFilter.setEntryCreatedAtLessThanOrEqual(Long.parseLong(segments.get(i + 1)) - 1);
+                end = Long.parseLong(segments.get(i + 1))-1;
+                reportInputFilter.setEntryCreatedAtLessThanOrEqual(end);
             }
 
             List<List<String>> tmp = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                     ReportOrderBy.CREATED_AT_ASC.getValue());
 
-            if (!tmp.isEmpty()) {
-                if (rows.isEmpty()) { //add all content if first non-empty response
-                    rows.addAll(tmp);
-                }else{ //add all content but header
-                    rows.addAll(tmp.subList(1, tmp.size()));
-                }
-            }
+//            if (!tmp.isEmpty()) {
+//                if (rows.isEmpty()) { //add all content if first non-empty response
+//                    rows.addAll(tmp);
+//                }else{ //add all content but header
+//                    rows.addAll(tmp.subList(1, tmp.size()));
+//                }
+//            }
+            segmentMap.put(start+"-"+end, tmp);
             log.debug("Done with segment {} of {}: {} - {}", i+1, segments.size(),reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
                     reportInputFilter.getEntryCreatedAtLessThanOrEqual());
         }
 
-        return rows;
+        return segmentMap;
     }
 
 
@@ -601,7 +617,8 @@ public class DsKalturaClient {
             requestBuilder = ReportService.getTable(reportType, reportInputFilter,
                     pager, order); //Build request
             response =
-                    (Response<ReportTable>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));//Execute request and wait for response
+                    (Response<ReportTable>) APIOkRequestsExecutor.getExecutor()
+                            .execute(requestBuilder.build(client));//Execute request and wait for response
 
             if(!response.isSuccess()){ //Check if request failed
                 throw response.error;
@@ -615,7 +632,8 @@ public class DsKalturaClient {
             }
             totalCount = response.results.getTotalCount(); //Set total count
             rawData.append(response.results.getData()); //Append data from page
-            log.debug("Page {} of getTable done with {} of {}", index, index-1*BATCH_SIZE+pager.getPageSize(),totalCount);
+            log.debug("Page {} of getTable done with {} of {}", index, (index-1)*BATCH_SIZE+pager.getPageSize() ,
+                    totalCount);
         }
 
         List<List<String>> rows = new ArrayList<>();
@@ -624,8 +642,41 @@ public class DsKalturaClient {
             rows.add(col);
         });
 
-
         return rows;
+    }
+
+    public String getCsvUrl(ReportInputFilter reportInputFilter) throws APIException, IOException {
+
+        Client client = getClientInstance();
+
+
+//        reportTitle – The title of the report to display at top of CSV
+//        reportText – The text of the filter of the report
+//        headers – The headers of the columns - a map between the enumerations on the server side and the their display text
+//        reportType
+//        reportInputFilter
+//        dimension
+//        pager
+//                order
+//        objectIds – - one ID or more (separated by ',') of specific objects to query
+//                responseOptions
+
+        ReportResponseOptions reportResponseOptions = new ReportResponseOptions();
+        reportResponseOptions.delimiter(",");
+        reportResponseOptions.setSkipEmptyDates(false);
+
+        GetUrlForReportAsCsvReportBuilder requestBuilder = ReportService.getUrlForReportAsCsv("TOP_CONTENT",
+                reportInputFilter.toParams().toQueryString(),"object_id,entry_name,count_plays,sum_time_viewed,avg_time_viewed,count_loads,load_play_ratio,avg_view_drop_off,unique_known_users",
+                ReportType.QOE_ENGAGEMENT_ENTRY,reportInputFilter, null, null, null, null, reportResponseOptions);
+
+        Response<String> response =
+                (Response<String>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
+        if(!response.isSuccess()){
+            throw response.error;
+        }
+
+        return response.results;
+
     }
 
 
