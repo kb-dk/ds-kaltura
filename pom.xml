@@ -5,7 +5,7 @@
     <parent>
         <groupId>dk.kb.dsparent</groupId>
         <artifactId>ds-parent</artifactId>
-        <version>3.0.0-RELEASE</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
     
   <groupId>dk.kb.kaltura</groupId>
