@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Changed
+
+### Added
+
+### Changed
+
+## [3.0.0] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.0) - 2025-06-12
 ### Changed
 - Kaltura AppToken Client changed to use enum types (values) to start session. This was required since Kaltura was changed.
 - Kaltura upload will validate stream was connected to meta-data and throw IOException if last call (#4 out of 4) is not a success
