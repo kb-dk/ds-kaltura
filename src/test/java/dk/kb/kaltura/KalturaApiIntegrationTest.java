@@ -7,13 +7,9 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.kaltura.client.enums.ReportInterval;
-import com.kaltura.client.enums.ReportOrderBy;
-import com.kaltura.client.enums.ReportType;
-import com.kaltura.client.types.APIException;
-import com.kaltura.client.types.AppToken;
-import com.kaltura.client.types.ESearchEntryOperator;
-import com.kaltura.client.types.ReportInputFilter;
+import com.kaltura.client.enums.*;
+import com.kaltura.client.services.ReportService;
+import com.kaltura.client.types.*;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.DatetimeParser;
@@ -25,8 +21,6 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.kaltura.client.enums.MediaType;
 
 import dk.kb.kaltura.client.DsKalturaClient;
 
@@ -198,25 +192,6 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void getCsvTest() throws Exception{
-        ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20250505");
-        reportInputFilter.setToDay("20250510");
-
-        long start = 1720569600L;
-        long end = 1720569600L;
-
-        reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(start);
-        reportInputFilter.setEntryCreatedAtLessThanOrEqual(end);
-        log.debug("{} - {}", reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
-                reportInputFilter.getEntryCreatedAtLessThanOrEqual());
-
-        String url = getClient().getCsvUrl(reportInputFilter);
-        System.out.println(url);
-
-    }
-
-    @Test
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
@@ -225,13 +200,13 @@ public class KalturaApiIntegrationTest {
         reportInputFilter.setInterval(ReportInterval.TEN_SECONDS);
 //        reportInputFilter.setTimeZoneOffset(-120);
 //        1720565330 - 1720574664
-        long start = 1720569600L;
-        long end = 1720569600L;
-
-        reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(start);
-        reportInputFilter.setEntryCreatedAtLessThanOrEqual(end);
-        log.debug("{} - {}", reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
-                reportInputFilter.getEntryCreatedAtLessThanOrEqual());
+//        long start = 1720569600L;
+//        long end = 1720569600L;
+//
+//        reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(start);
+//        reportInputFilter.setEntryCreatedAtLessThanOrEqual(end);
+//        log.debug("{} - {}", reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
+//                reportInputFilter.getEntryCreatedAtLessThanOrEqual());
 
         List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 null);
@@ -261,11 +236,10 @@ public class KalturaApiIntegrationTest {
     public void getReportALLTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20250330");
+        reportInputFilter.setFromDay("20250101");
         reportInputFilter.setToDay("20260101");
         reportInputFilter.setDomainIn("www.kb.dk");
-
-        reportInputFilter.setInterval(ReportInterval.MINUTES);
+        reportInputFilter.setInterval(ReportInterval.TEN_SECONDS);
 
         List<String> segments = new ArrayList<>();
         try(BufferedReader br = new BufferedReader(new FileReader("/home/adpe/IdeaProjects/ds-kaltura/src/test" +
@@ -318,7 +292,6 @@ public class KalturaApiIntegrationTest {
                 System.err.println("An error occurred while writing to the file: " + e.getMessage());
             }
         }
-
     }
 
 
@@ -329,6 +302,7 @@ public class KalturaApiIntegrationTest {
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay("20250330");
         reportInputFilter.setToDay("20990101");
+        reportInputFilter.setDomainIn("www.kb.dk");
 
         List<List<String>> rows = client.getReportTable(ReportType.QOE_ERROR_TRACKING_CODES, reportInputFilter,
                 "");
@@ -368,6 +342,41 @@ public class KalturaApiIntegrationTest {
                 System.out.println("\n-------------------------------------\n");
             }
         }
+    }
+
+    @Test
+    public void getCsvUrl() throws APIException, IOException {
+
+        DsKalturaClient clientSesison = getClient();
+        ReportInputFilter filter = new ReportInputFilter();
+        filter.setFromDay("20250501");
+        filter.setToDay("20250601");
+        ReportResponseOptions  responseOptions = new ReportResponseOptions();
+        responseOptions.delimiter(",");
+        responseOptions.setSkipEmptyDates(true);
+
+        String url = clientSesison.getUrlForReportAsCsv(
+                "Top vidoes",
+                "Some text here",
+                "1,2,3,4,5,6,7,8,9;1,2,3,4,5,6,7,8,9",
+                ReportType.TOP_CONTENT,
+                filter,
+                "500x500",null,null,null, responseOptions);
+
+        System.out.println("URL: " + url);
+
+    }
+
+    @Test
+    public void exportCsv() throws APIException, IOException {
+        DsKalturaClient client = getClient();
+
+        ReportInputFilter filter = new ReportInputFilter();
+        filter.setFromDay("20250101");
+        filter.setToDay("20260101");
+        filter.setDomainIn("www.kb.dk");
+
+        client.exportTopContent(filter, "adpe@kb.dk");
     }
 
 

@@ -12,13 +12,11 @@ import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
-import com.kaltura.client.services.ReportService.*;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.response.base.Response;
 
 import dk.kb.util.webservice.exception.InternalServiceException;
 
-import okio.Path;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
@@ -588,7 +585,74 @@ public class DsKalturaClient {
 
         return segmentMap;
     }
+    public String getUrlForReportAsCsv(String title, String reportText, String headers,
+                                       ReportType reportType,
+                                       ReportInputFilter reportInputFilter, String dimension, FilterPager pager,
+                                             String order, String objectIds, ReportResponseOptions responseOptions)
+            throws IOException, APIException {
 
+        Client client = getClientInstance();
+
+        ReportService.GetUrlForReportAsCsvReportBuilder requestBuilder = ReportService.getUrlForReportAsCsv(title, reportText, headers, reportType,
+                reportInputFilter, dimension, pager, order, objectIds,  responseOptions);
+
+        Response<?> response = APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
+
+        if(!response.isSuccess()){
+            throw response.error;
+        }
+        if(!(response.results instanceof String)){
+            throw new RuntimeException("Not a String");
+        }
+
+        return (String) response.results;
+    }
+
+
+    public void exportTopContent(ReportInputFilter filter, String email) throws APIException, IOException {
+
+        ReportExportItem reportExportItem = createExportItem(ReportExportItemType.TABLE, ReportType.TOP_CONTENT,
+               filter);
+        List<ReportExportItem> exportItems = new ArrayList<>();
+        exportItems.add(reportExportItem);
+
+        exportReportCSV(null, email, exportItems);
+        log.debug("Done with export TOP_CONTENT request!");
+    }
+
+    private ReportExportItem createExportItem(ReportExportItemType action,
+                                              ReportType type, ReportInputFilter filter){
+        ReportExportItem exportItem = new ReportExportItem();
+        exportItem.setAction(action);
+        exportItem.setFilter(filter);
+        exportItem.setReportType(type);
+        exportItem.setReportTitle(exportItem.getReportType().name());
+        return exportItem;
+    }
+
+    public ReportExportResponse exportReportCSV(String baseUrl, String email, List<ReportExportItem> reportExportItems) throws APIException, IOException {
+        Client client = getClientInstance();
+
+        ReportExportParams exportParams = new ReportExportParams();
+        exportParams.setRecipientEmail(email);
+        exportParams.setBaseUrl(baseUrl);
+        exportParams.setReportItems(reportExportItems);
+        exportParams.setTimeZoneOffset(-120);
+
+        var requestBuilder = ReportService.exportToCsv(exportParams);
+
+        Response<?> response = APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
+
+        if(!response.isSuccess()){
+            throw response.error;
+        }
+        if(!(response.results instanceof ReportExportResponse)){
+            throw new RuntimeException("Not a String");
+        }
+
+        return (ReportExportResponse) response.results;
+
+    }
 
     public List<List<String>> getReportTable(ReportType reportType,  ReportInputFilter reportInputFilter,
                                              String order) throws IOException, APIException {
@@ -644,41 +708,6 @@ public class DsKalturaClient {
 
         return rows;
     }
-
-    public String getCsvUrl(ReportInputFilter reportInputFilter) throws APIException, IOException {
-
-        Client client = getClientInstance();
-
-
-//        reportTitle – The title of the report to display at top of CSV
-//        reportText – The text of the filter of the report
-//        headers – The headers of the columns - a map between the enumerations on the server side and the their display text
-//        reportType
-//        reportInputFilter
-//        dimension
-//        pager
-//                order
-//        objectIds – - one ID or more (separated by ',') of specific objects to query
-//                responseOptions
-
-        ReportResponseOptions reportResponseOptions = new ReportResponseOptions();
-        reportResponseOptions.delimiter(",");
-        reportResponseOptions.setSkipEmptyDates(false);
-
-        GetUrlForReportAsCsvReportBuilder requestBuilder = ReportService.getUrlForReportAsCsv("TOP_CONTENT",
-                reportInputFilter.toParams().toQueryString(),"object_id,entry_name,count_plays,sum_time_viewed,avg_time_viewed,count_loads,load_play_ratio,avg_view_drop_off,unique_known_users",
-                ReportType.QOE_ENGAGEMENT_ENTRY,reportInputFilter, null, null, null, null, reportResponseOptions);
-
-        Response<String> response =
-                (Response<String>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
-        if(!response.isSuccess()){
-            throw response.error;
-        }
-
-        return response.results;
-
-    }
-
 
     /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
