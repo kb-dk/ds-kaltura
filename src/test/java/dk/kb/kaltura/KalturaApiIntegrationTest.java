@@ -214,8 +214,8 @@ public class KalturaApiIntegrationTest {
         DsKalturaClient client = getClient();
 
         MediaEntryFilter filter = new MediaEntryFilter();
-        filter.setStatusNotIn("not_a_status");
-        filter.setModerationStatusNotIn("not_a_status");
+//        filter.setStatusNotIn("not_a_status");
+//        filter.setModerationStatusNotIn("not_a_status");
 
         List<String> fields =
                 List.of("referenceId","createdAt","updatedAt","moderationStatus","status", "plays","duration");
