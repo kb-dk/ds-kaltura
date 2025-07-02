@@ -20,7 +20,7 @@ public abstract class JobsBase {
         String token=ServiceConfig.getConfig().getString("kaltura.token");
         String tokenId=ServiceConfig.getConfig().getString("kaltura.tokenId");
         String adminSecret=ServiceConfig.getConfig().getString("kaltura.adminSecret");
-        long keepAliveSeconds=ServiceConfig.getConfig().getLong("kaltura.sessionKeepAliveSeconds");
+        int keepAliveSeconds=ServiceConfig.getConfig().getInteger("kaltura.sessionKeepAliveSeconds");
 
         DsKalturaClient client = new DsKalturaClient(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, keepAliveSeconds);
         return client;        
