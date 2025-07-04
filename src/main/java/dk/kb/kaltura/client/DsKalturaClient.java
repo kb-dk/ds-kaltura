@@ -21,15 +21,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -60,8 +62,10 @@ public class DsKalturaClient {
     private String token;
     private String tokenId;
     private String adminSecret;
-    private long sessionKeepAliveSeconds;
+    private int sessionKeepAliveSeconds;
     private long lastSessionStart=0;
+    private int sessionRefreshThreshold;
+    private int sessionDurationSeconds;
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -72,28 +76,35 @@ public class DsKalturaClient {
      * @param token The application token used for generating client sessions
      * @param tokenId The id of the application token
      * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
-     * @param sessionKeepAliveSeconds Reuse the Kaltura Session for performance. Sessions will be refreshed at the given interval. Recommended value 86400 (1 day)
+     * @param sessionDurationSeconds The duration of Kaltura Session in seconds. Beware that when using AppTokens
+     *                               this might have an upper bound tied to the AppToken.
+     * @param sessionRefreshThreshold The threshold in seconds for session renewal.
      *
      * Either a token/tokenId a adminSecret must be provided for authentication.
      *
      * @throws IOException  If session could not be created at Kaltura
      */
-    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, long sessionKeepAliveSeconds) throws IOException {
-        if (sessionKeepAliveSeconds <600) { //Enforce some kind of reuse of session since authenticating sessions will accumulate at Kaltura.
-            throw new IllegalArgumentException("SessionKeepAliveSeconds must be at least 600 seconds (10 minutes) ");
-        }               
-        this.kalturaUrl=kalturaUrl;
-        this.userId=userId;
-        this.token=token;
-        this.tokenId=tokenId;
+    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
+                           String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
+        this.sessionDurationSeconds = sessionDurationSeconds;
+        this.sessionRefreshThreshold = sessionRefreshThreshold;
+        this.sessionKeepAliveSeconds = sessionDurationSeconds-sessionRefreshThreshold;
+        this.kalturaUrl = kalturaUrl;
+        this.userId = userId;
+        this.token = token;
+        this.tokenId = tokenId;
         this.adminSecret = adminSecret;
-        this.partnerId=partnerId;
-        this.sessionKeepAliveSeconds=sessionKeepAliveSeconds;
+        this.partnerId = partnerId;
+
+        if (sessionKeepAliveSeconds < 600) { //Enforce some kind of reuse of session since authenticating sessions
+            // will accumulate at Kaltura.
+            throw new IllegalArgumentException("The difference between the configured sessionDurationSeconds and sessionRefreshThreshold (SessionKeepAliveSession) must be at least 600 seconds (10 minutes) ");
+        }
+
         getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
     }
 
-
-    /** 
+    /**
      * <p>
      * Delete a stream and all meta-data for the record in Kaltura.
      * It can not be restored in Kaltura and must be uploaded again if deleted by mistake.       
@@ -590,7 +601,8 @@ public class DsKalturaClient {
             ks = startAppTokenSession(client, tokenId, token, SessionType.ADMIN);
         } else {
             log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you generating appTokens.");
-            ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, this.partnerId);
+            ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, this.partnerId,
+                    sessionDurationSeconds);
         }
 
         client.setKs(ks);
@@ -599,21 +611,71 @@ public class DsKalturaClient {
     /**
      * Starts widgetSession with using a client.
      * @param client The Kaltura client. Needs to be initialized with config, endpoint and partner ID
+     * @param expiry The session duration in seconds. Should not be under 600 due to caching of response on Kaltura
+     *               server.
      * @return Kaltura Session
      */
-    private String startWidgetSession(Client client) {
+    private String startWidgetSession(Client client, @Nullable Integer expiry) throws APIException {
         log.debug("Generating Widget Session...");
+        client.setKs(null);
         String widgetId = "_" + client.getPartnerId();
-        int expiry = Client.EXPIRY;
-        SessionService.StartWidgetSessionSessionBuilder requestBuilder =
-                SessionService.startWidgetSession(widgetId,
-                        expiry);
-        var request = requestBuilder.build(client);
+        SessionService.StartWidgetSessionSessionBuilder requestBuilder;
+        if (expiry == null) {
+            requestBuilder = SessionService.startWidgetSession(widgetId);
+        } else {
+            requestBuilder = SessionService.startWidgetSession(widgetId, expiry);
+        }
+        log.debug(requestBuilder.toString());
         Response<StartWidgetSessionResponse> response =
-                (Response<StartWidgetSessionResponse>) APIOkRequestsExecutor.getExecutor().execute(request);
+                (Response<StartWidgetSessionResponse>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client, true));
+
+        if (!response.isSuccess()) {
+            throw response.error;
+        }
+
         return response.results.getKs();
     }
 
+    /**
+     * logs SessionInfo response from SessionService.get(ks).
+     *
+     * @param ks Kaltura session to log
+     * @throws APIException
+     * @throws IOException
+     */
+    public void logSessionInfo(String ks) throws APIException, IOException {
+
+        SessionService.GetSessionBuilder requestBuilder = SessionService.get(ks);
+
+        Response<SessionInfo> response =
+                (Response<SessionInfo>)APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
+
+        if(!response.isSuccess()){
+            log.error(response.error.getMessage());
+            return;
+        }
+
+        // Convert Unix time to LocalDateTime
+        LocalDateTime localDateTime = Instant.ofEpochSecond(response.results.getExpiry())
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+        // Format the LocalDateTime to a readable format
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        String formattedDateTime = localDateTime.format(formatter);
+
+        log.info("Session expiry: {}, Session type: {}, Privileges: {}", formattedDateTime,
+                response.results.getSessionType(), response.results.getPrivileges());
+    }
+
+    /**
+     * logs SessionInfo response from SessionService.get(client.getKs()).
+     *
+     * @throws APIException
+     * @throws IOException
+     */
+    public void logSessionInfo() throws APIException, IOException {
+        logSessionInfo(client.getKs());
+    }
 
     /**
      * Computes a SHA-256 hash of token and Kaltura Session
@@ -666,15 +728,14 @@ public class DsKalturaClient {
      * @throws UnsupportedEncodingException
      * @throws NoSuchAlgorithmException
      */
-    private String startAppTokenSession(Client client, String tokenId, String token, SessionType type) throws APIException, UnsupportedEncodingException, NoSuchAlgorithmException {
-
-        String widgetSession = startWidgetSession(client);
+    private String startAppTokenSession(Client client, String tokenId, String token, SessionType type) throws APIException,
+            IOException, NoSuchAlgorithmException {
+        String widgetSession = startWidgetSession(client, sessionDurationSeconds);
         client.setKs(widgetSession);
-        client.setSessionId(widgetSession);
         String hash = computeHash(token, widgetSession);
 
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
-                AppTokenService.startSession(tokenId, hash,null,type);
+                AppTokenService.startSession(tokenId, hash,null, type, sessionDurationSeconds);
         Response<SessionInfo> response = (Response<SessionInfo>)
                 APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
         if(!response.isSuccess()){
