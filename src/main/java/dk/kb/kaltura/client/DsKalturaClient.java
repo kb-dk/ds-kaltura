@@ -633,7 +633,7 @@ public class DsKalturaClient {
         if(!response.isSuccess()){
             throw response.error;
         }
-        log.debug("widget session: {}", response.results.getKs());
+
         return response.results.getKs();
     }
 
