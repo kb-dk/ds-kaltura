@@ -572,7 +572,7 @@ public class DsKalturaClient {
      * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
      *
      */
-    public synchronized Client getClientInstance() throws IOException{
+    private synchronized Client getClientInstance() throws IOException{
         try {
             if (this.client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:"+(System.currentTimeMillis()-lastSessionStart));
@@ -649,7 +649,15 @@ public class DsKalturaClient {
         return startWidgetSession(client, null);
     }
 
-    public String getSessionInfo(String ks) throws APIException, IOException {
+
+    /**
+     * logs SessionInfo response from SessionService.get(ks).
+     *
+     * @param ks Kaltura session to log
+     * @throws APIException
+     * @throws IOException
+     */
+    public void getSessionInfo(String ks) throws APIException, IOException {
 
         SessionService.GetSessionBuilder requestBuilder = SessionService.get(ks);
 
@@ -657,23 +665,30 @@ public class DsKalturaClient {
                 (Response<SessionInfo>)APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
 
         if(!response.isSuccess()){
-            log.debug(response.error.getMessage());
-            return null;
+            log.error(response.error.getMessage());
+            return;
         }
 
         // Convert Unix time to LocalDateTime
         LocalDateTime localDateTime = Instant.ofEpochSecond(response.results.getExpiry())
                 .atZone(ZoneId.systemDefault())
                 .toLocalDateTime();
-        log.debug("Session expiry: {}, Privileges: {}, Session type: {}", localDateTime,
-                response.results.getPrivileges(), response.results.getSessionType());
         // Format the LocalDateTime to a readable format
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         String formattedDateTime = localDateTime.format(formatter);
 
-        return formattedDateTime;
+        log.info("Session expiry: {}, Session type: {}, Privileges: {}", formattedDateTime,
+                response.results.getSessionType(), response.results.getPrivileges());
+    }
 
-
+    /**
+     * logs SessionInfo response from SessionService.get(client.getKs()).
+     *
+     * @throws APIException
+     * @throws IOException
+     */
+    public void getSessionInfo() throws APIException, IOException {
+        getSessionInfo(client.getKs());
     }
 
     /**
