@@ -614,9 +614,11 @@ public class DsKalturaClient {
     /**
      * Starts widgetSession with using a client.
      * @param client The Kaltura client. Needs to be initialized with config, endpoint and partner ID
+     * @param expiry The session duration in seconds. Should not be under 600 due to caching of response on Kaltura
+     *               server.
      * @return Kaltura Session
      */
-    public String startWidgetSession(Client client, @Nullable Integer expiry ) throws APIException, IOException {
+    public String startWidgetSession(Client client, @Nullable Integer expiry ) throws APIException {
         log.debug("Generating Widget Session...");
         client.setKs(null);
         String widgetId = "_" + client.getPartnerId();
