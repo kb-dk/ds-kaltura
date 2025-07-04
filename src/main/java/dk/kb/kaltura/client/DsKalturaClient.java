@@ -31,10 +31,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -667,7 +664,7 @@ public class DsKalturaClient {
                 .atZone(ZoneId.systemDefault())
                 .toLocalDateTime();
         // Format the LocalDateTime to a readable format
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         String formattedDateTime = localDateTime.format(formatter);
 
         log.info("Session expiry: {}, Session type: {}, Privileges: {}", formattedDateTime,
