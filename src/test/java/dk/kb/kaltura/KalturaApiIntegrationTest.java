@@ -10,7 +10,10 @@ import com.kaltura.client.types.AppToken;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,7 +34,7 @@ public class KalturaApiIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(KalturaApiIntegrationTest.class);
 
     private static final int DEFAULT_SESSION_DURATION_SECONDS = 86400;
-    private static final int DEFAULT_REFRESH_THRESHOLD = 1800;
+    private static final int DEFAULT_REFRESH_THRESHOLD = 3600;
 
     // ID's valid as of 2024-04-25 but subject to change
     // TODO: Add a step to setup() creating test kaltura<->reference IDs 
