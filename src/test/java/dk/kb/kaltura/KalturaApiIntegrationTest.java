@@ -191,22 +191,14 @@ public class KalturaApiIntegrationTest {
         assertNotNull(kalturaId);
     }
 
+    // Find if paging duplicates
     @Test
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay("20250505");
         reportInputFilter.setToDay("20250510");
-        reportInputFilter.setInterval(ReportInterval.TEN_SECONDS);
-//        reportInputFilter.setTimeZoneOffset(-120);
-//        1720565330 - 1720574664
-//        long start = 1720569600L;
-//        long end = 1720569600L;
-//
-//        reportInputFilter.setEntryCreatedAtGreaterThanOrEqual(start);
-//        reportInputFilter.setEntryCreatedAtLessThanOrEqual(end);
-//        log.debug("{} - {}", reportInputFilter.getEntryCreatedAtGreaterThanOrEqual(),
-//                reportInputFilter.getEntryCreatedAtLessThanOrEqual());
+        reportInputFilter.setTimeZoneOffset(-120);
 
         List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 null);
@@ -226,12 +218,12 @@ public class KalturaApiIntegrationTest {
         }
         log.debug("Duplicates count = {}", duplicates.size());
         log.debug("{}", ids.size());
-//        duplicates.stream().forEach(System.out::println);
 
-//        System.out.println(rows);
 
     }
 
+    //Tries to use createdAt to segment data. However this does not work as intended since more than 10000 entires
+    // exists on some days and the createdAt is truncated to days in analytics.
     @Test
     public void getReportALLTableTest() throws Exception{
         DsKalturaClient client = getClient();
@@ -239,7 +231,6 @@ public class KalturaApiIntegrationTest {
         reportInputFilter.setFromDay("20250101");
         reportInputFilter.setToDay("20260101");
         reportInputFilter.setDomainIn("www.kb.dk");
-        reportInputFilter.setInterval(ReportInterval.TEN_SECONDS);
 
         List<String> segments = new ArrayList<>();
         try(BufferedReader br = new BufferedReader(new FileReader("/home/adpe/IdeaProjects/ds-kaltura/src/test" +
@@ -295,7 +286,7 @@ public class KalturaApiIntegrationTest {
     }
 
 
-
+    // Error reports is deemed surplus to requirements
     @Test
     public void createErrorReport() throws Exception{
         DsKalturaClient client = getClient();
@@ -344,6 +335,8 @@ public class KalturaApiIntegrationTest {
         }
     }
 
+
+    //Only return the top xx results, NOT a full report
     @Test
     public void getCsvUrl() throws APIException, IOException {
 
@@ -367,6 +360,7 @@ public class KalturaApiIntegrationTest {
 
     }
 
+    // Uses the same export method as KMC, an therefore fails with larger data sets
     @Test
     public void exportCsv() throws APIException, IOException {
         DsKalturaClient client = getClient();
