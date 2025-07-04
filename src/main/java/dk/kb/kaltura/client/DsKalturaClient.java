@@ -655,7 +655,7 @@ public class DsKalturaClient {
     }
 
     public List<List<String>> getReportTable(ReportType reportType,  ReportInputFilter reportInputFilter,
-                                             String order) throws IOException, APIException {
+                                             String order, String objectIds) throws IOException, APIException {
         //TODO: This reportedly only works up until 10000 total count even with paging. Testing indicates that it
         // gives duplicate rows when total count is above 10000.
         //TODO: Fix above (10000 limit), by ordering by created at and start new request from last entry. However the
@@ -679,7 +679,7 @@ public class DsKalturaClient {
             pager.setPageIndex(index);
 
             requestBuilder = ReportService.getTable(reportType, reportInputFilter,
-                    pager, order); //Build request
+                    pager, order, objectIds); //Build request
             response =
                     (Response<ReportTable>) APIOkRequestsExecutor.getExecutor()
                             .execute(requestBuilder.build(client));//Execute request and wait for response
@@ -707,6 +707,11 @@ public class DsKalturaClient {
         });
 
         return rows;
+    }
+
+    public List<List<String>> getReportTable(ReportType reportType,  ReportInputFilter reportInputFilter,
+                                             String order) throws APIException, IOException {
+        return getReportTable(reportType, reportInputFilter, order, null);
     }
 
     /**

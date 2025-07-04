@@ -191,33 +191,45 @@ public class KalturaApiIntegrationTest {
         assertNotNull(kalturaId);
     }
 
-    // Find if paging duplicates
     @Test
     public void getReportTableTest() throws Exception{
         DsKalturaClient client = getClient();
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20250505");
-        reportInputFilter.setToDay("20250510");
+        reportInputFilter.setFromDay("20250101");
+        reportInputFilter.setToDay("20260101");
         reportInputFilter.setTimeZoneOffset(-120);
 
+        StringBuilder objectIdsStringBuilder =  new StringBuilder();
+
+        //prod ids
+        objectIdsStringBuilder.append("0_21qh7wl7").append(",");
+        objectIdsStringBuilder.append("0_b5mfqj2l").append(",");
+        objectIdsStringBuilder.append("0_8tfuroko").append(",");
+        objectIdsStringBuilder.append("0_htitlo23").append(",");
+
+
         List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
-                null);
+                null, String.valueOf(objectIdsStringBuilder));
 
-        List<String> ids = rows.stream().map(row -> row.get(0)).collect(Collectors.toList());
-        Map<String, Integer> countMap = new HashMap<>();
-        List<String> duplicates = new ArrayList<>();
-
-        for (String line : ids) {
-            countMap.put(line, countMap.getOrDefault(line, 0) + 1);
+        for(List<String> row :rows){
+            System.out.println(row);
         }
 
-        for (Map.Entry<String, Integer> entry : countMap.entrySet()) {
-            if (entry.getValue() > 1) {
-                duplicates.add(entry.getKey());
-            }
-        }
-        log.debug("Duplicates count = {}", duplicates.size());
-        log.debug("{}", ids.size());
+//        List<String> ids = rows.stream().map(row -> row.get(0)).collect(Collectors.toList());
+//        Map<String, Integer> countMap = new HashMap<>();
+//        List<String> duplicates = new ArrayList<>();
+//
+//        for (String line : ids) {
+//            countMap.put(line, countMap.getOrDefault(line, 0) + 1);
+//        }
+//
+//        for (Map.Entry<String, Integer> entry : countMap.entrySet()) {
+//            if (entry.getValue() > 1) {
+//                duplicates.add(entry.getKey());
+//            }
+//        }
+//        log.debug("Duplicates count = {}", duplicates.size());
+//        log.debug("{}", ids.size());
 
 
     }
