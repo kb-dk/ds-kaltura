@@ -198,10 +198,13 @@ public class KalturaApiIntegrationTest {
 //        filter.setStatusNotIn("not_a_status");
 //        filter.setModerationStatusNotIn("not_a_status");
 
+        //These are the fields from BaseEntry that you want to have in the report. EntryId and Name are included be
+        // default.
         List<String> fields =
                 List.of("referenceId","createdAt","updatedAt","moderationStatus","status", "plays","duration");
+
         //Exports CSV to mail user connected to current kaltura session.
-        //To create this kind of session, the an apptoken with userId connected needs to be used.
+        //To create this kind of session, the apptoken with userId connected needs to be used.
         client.exportEntryListToUserMail(fields, filter);
     }
 
