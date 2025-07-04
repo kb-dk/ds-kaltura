@@ -20,9 +20,11 @@ public abstract class JobsBase {
         String token=ServiceConfig.getConfig().getString("kaltura.token");
         String tokenId=ServiceConfig.getConfig().getString("kaltura.tokenId");
         String adminSecret=ServiceConfig.getConfig().getString("kaltura.adminSecret");
-        int keepAliveSeconds=ServiceConfig.getConfig().getInteger("kaltura.sessionKeepAliveSeconds");
+        int sessionDurationSeconds = ServiceConfig.getConfig().getInteger("sessionDurationSeconds");
+        int sessionRefreshThreshold = ServiceConfig.getConfig().getInteger("sessionRefreshThreshold");
 
-        DsKalturaClient client = new DsKalturaClient(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, keepAliveSeconds);
+        DsKalturaClient client = new DsKalturaClient(kalturaUrl, userId, partnerId, token, tokenId, adminSecret,
+                sessionDurationSeconds, sessionRefreshThreshold);
         return client;        
     }
 }
