@@ -79,7 +79,9 @@ public class DsKalturaClient {
      * @param token The application token used for generating client sessions
      * @param tokenId The id of the application token
      * @param adminSecret The adminsecret used as password for authenticating. Must not be shared.
-     * @param sessionDurationSeconds Reuse the Kaltura Session for performance. Sessions will be refreshed at the given interval. Recommended value 86400 (1 day)
+     * @param sessionDurationSeconds The duration of Kaltura Session in seconds. Beware that when using AppTokens
+     *                               this might have an upper bound tied to the AppToken.
+     * @param sessionRefreshThreshold The threshold in seconds for session renewal.
      *
      * Either a token/tokenId a adminSecret must be provided for authentication.
      *
@@ -102,16 +104,6 @@ public class DsKalturaClient {
         }
 
         getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
-    }
-
-    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
-                           String adminSecret, int sessionDurationSeconds) throws IOException {
-       this(kalturaUrl, userId, partnerId, token, tokenId,
-                adminSecret, sessionDurationSeconds, 0);
-    }
-
-    public Client getKalturaClient() {
-        return client;
     }
 
     /**
