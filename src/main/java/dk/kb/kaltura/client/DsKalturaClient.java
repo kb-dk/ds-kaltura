@@ -86,18 +86,19 @@ public class DsKalturaClient {
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
                            String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
-        this.sessionDurationSeconds=sessionDurationSeconds;
-        this.sessionRefreshThreshold=sessionRefreshThreshold;
-        this.sessionKeepAliveSeconds=sessionDurationSeconds-sessionRefreshThreshold;
-        this.kalturaUrl=kalturaUrl;
-        this.userId=userId;
-        this.token=token;
-        this.tokenId=tokenId;
-        this.adminSecret=adminSecret;
-        this.partnerId=partnerId;
+        this.sessionDurationSeconds = sessionDurationSeconds;
+        this.sessionRefreshThreshold = sessionRefreshThreshold;
+        this.sessionKeepAliveSeconds = sessionDurationSeconds-sessionRefreshThreshold;
+        this.kalturaUrl = kalturaUrl;
+        this.userId = userId;
+        this.token = token;
+        this.tokenId = tokenId;
+        this.adminSecret = adminSecret;
+        this.partnerId = partnerId;
 
-        if (sessionKeepAliveSeconds <600) { //Enforce some kind of reuse of session since authenticating sessions will accumulate at Kaltura.
-            throw new IllegalArgumentException("SessionKeepAliveSeconds must be at least 600 seconds (10 minutes) ");
+        if (sessionKeepAliveSeconds < 600) { //Enforce some kind of reuse of session since authenticating sessions
+            // will accumulate at Kaltura.
+            throw new IllegalArgumentException("The difference between the configured sessionDurationSeconds and sessionRefreshThreshold (SessionKeepAliveSession) must be at least 600 seconds (10 minutes) ");
         }
 
         getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
@@ -614,31 +615,26 @@ public class DsKalturaClient {
      *               server.
      * @return Kaltura Session
      */
-    public String startWidgetSession(Client client, @Nullable Integer expiry ) throws APIException {
+    private String startWidgetSession(Client client, @Nullable Integer expiry) throws APIException {
         log.debug("Generating Widget Session...");
         client.setKs(null);
         String widgetId = "_" + client.getPartnerId();
         SessionService.StartWidgetSessionSessionBuilder requestBuilder;
-        if(expiry == null) {
+        if (expiry == null) {
             requestBuilder = SessionService.startWidgetSession(widgetId);
-        }else{
+        } else {
             requestBuilder = SessionService.startWidgetSession(widgetId, expiry);
         }
         log.debug(requestBuilder.toString());
         Response<StartWidgetSessionResponse> response =
                 (Response<StartWidgetSessionResponse>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client, true));
 
-        if(!response.isSuccess()){
+        if (!response.isSuccess()) {
             throw response.error;
         }
 
         return response.results.getKs();
     }
-
-    public String startWidgetSession(Client client) throws APIException, IOException {
-        return startWidgetSession(client, null);
-    }
-
 
     /**
      * logs SessionInfo response from SessionService.get(ks).
@@ -647,7 +643,7 @@ public class DsKalturaClient {
      * @throws APIException
      * @throws IOException
      */
-    public void getSessionInfo(String ks) throws APIException, IOException {
+    public void logSessionInfo(String ks) throws APIException, IOException {
 
         SessionService.GetSessionBuilder requestBuilder = SessionService.get(ks);
 
@@ -677,8 +673,8 @@ public class DsKalturaClient {
      * @throws APIException
      * @throws IOException
      */
-    public void getSessionInfo() throws APIException, IOException {
-        getSessionInfo(client.getKs());
+    public void logSessionInfo() throws APIException, IOException {
+        logSessionInfo(client.getKs());
     }
 
     /**

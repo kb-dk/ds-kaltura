@@ -74,7 +74,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void testKalturaSession() throws Exception {
         DsKalturaClient clientSession = getClient();
-        clientSession.getSessionInfo();
+        clientSession.logSessionInfo();
     }
 
     @Test
