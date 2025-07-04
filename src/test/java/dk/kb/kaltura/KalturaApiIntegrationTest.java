@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.kaltura.client.Client;
-import com.kaltura.client.Configuration;
-import com.kaltura.client.services.SessionService;
 import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.AppToken;
 import dk.kb.kaltura.client.AppTokenClient;
@@ -21,7 +18,6 @@ import com.kaltura.client.enums.MediaType;
 
 import dk.kb.kaltura.client.DsKalturaClient;
 
-import static com.kaltura.client.APIOkRequestsExecutor.getExecutor;
 import static org.junit.jupiter.api.Assertions.*;
 
 
