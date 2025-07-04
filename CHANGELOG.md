@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Config to use sessionDurationSeconds and sessionRefreshThreshold instead of keepAliveSeconds. 
   KeepAliveSeconds is now calculated from these two parameters and sessionDurationSeconds is used when starting a 
   session.
+- Changed KeepAliveSession from long to int.
 
 ### Added
 - Added getSessionInfo that logs sessionInfo. Only used for testing.
