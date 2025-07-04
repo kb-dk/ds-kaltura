@@ -201,7 +201,6 @@ public class DsKalturaClient {
      * @throws IOException if the remote request failed.
      */
     public Map<String, String> getKalturaIds(List<String> referenceIds) throws IOException, APIException {
-        getClientInstance();
         if (referenceIds.isEmpty()) {
             log.info("getKulturaInternalIds(referenceIDs) called with empty list of IDs");
             return Collections.emptyMap();
@@ -752,4 +751,6 @@ public class DsKalturaClient {
         }
         return response.results.getKs();
     }
+
+
 }
