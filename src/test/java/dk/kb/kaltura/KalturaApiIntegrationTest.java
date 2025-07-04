@@ -191,25 +191,6 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void getReportTableTest() throws Exception{
-        DsKalturaClient client = getClient();
-        ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20250330");
-        reportInputFilter.setToDay("20250520");
-
-        List<List<String>> rows = client.getReportTable(ReportType.TOP_CONTENT, reportInputFilter, BaseEntryOrderBy.CREATED_AT_ASC);
-
-        for (List<String> i:rows){
-            System.out.println(i.toString().substring(1, i.toString().length()-1));
-        }
-
-        System.out.println("Total Rows: " + (rows.size()-1));
-//        Set rowSet = new HashSet<>(rows);
-//        System.out.println("Set size: " + (rowSet.size()-1));
-//        assertEquals(rows.size(), rowSet.size()); //Look for duplicates
-    }
-
-    @Test
     public void exportCSV() throws Exception{
         DsKalturaClient client = getClient();
 
@@ -222,53 +203,6 @@ public class KalturaApiIntegrationTest {
         //Exports CSV to mail user connected to current kaltura session.
         //To create this kind of session, the an apptoken with userId connected needs to be used.
         client.exportEntryListToUserMail(fields, filter);
-    }
-
-    @Test
-    public void createErrorReport() throws Exception{
-        DsKalturaClient client = getClient();
-        ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay("20250101");
-        reportInputFilter.setToDay("20250110");
-
-        List<List<String>> rows = client.getReportTable(ReportType.QOE_ERROR_TRACKING_CODES, reportInputFilter,
-                null);
-
-        Map <String, List<String>> rowMap = rows.stream().collect(Collectors.toMap(x -> x.get(0), x -> x.subList(1, x.size())));
-
-        File error_f = new File("src/test/resources/kaltura-playkit-error-codes");
-        final YAML error_yaml =  YAML.parse(error_f).getSubMap("ERRORTYPES");
-        // Flip keys and values
-        Map<String, String> flippedData = new HashMap<>();
-        for (Map.Entry<String, Object> entry : error_yaml.entrySet()) {
-            flippedData.put(entry.getValue().toString(), entry.getKey());
-        }
-
-        for (String errorCode : rowMap.keySet()){
-            if(errorCode.equals("errorcode")) {
-                continue;
-            }
-            else if (errorCode.equals("Unknown")) {
-                System.out.println((flippedData.get(errorCode) != null ? flippedData.get(errorCode) :
-                        "UNKNOWN") + ":" + errorCode + " | count: " + rowMap.get(errorCode).get(1));
-                System.out.println("\n-------------------------------------\n");
-                continue;
-            }
-
-            reportInputFilter.errorCodeIn(errorCode.toString());
-
-            List<List<String>> rows_loop = client.getReportTable(ReportType.QOE_ERROR_TRACKING_BROWSERS,
-                    reportInputFilter, null);
-
-            if (rows_loop.size() != 0) {
-                System.out.println((flippedData.get(errorCode) != null ? flippedData.get(errorCode) :
-                    "UNKNOWN") + ":" + errorCode + " | count: " + rowMap.get(errorCode).get(1));
-                for (List<String> i : rows_loop) {
-                    System.out.println(i.toString());
-                }
-                System.out.println("\n-------------------------------------\n");
-            }
-        }
     }
 
 
