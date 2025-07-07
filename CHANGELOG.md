@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+
+### Added
+
+### Changed
+
+## [3.0.1] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.1) - 2025-07-07
+### Changed
 - Config to use sessionDurationSeconds and sessionRefreshThreshold instead of keepAliveSeconds. 
   KeepAliveSeconds is now calculated from these two parameters and sessionDurationSeconds is used when starting a 
   session.
@@ -17,7 +24,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added getSessionInfo that logs sessionInfo. Only used for testing.
 
-### Changed
 
 ## [3.0.0] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.0) - 2025-06-12
 ### Changed
