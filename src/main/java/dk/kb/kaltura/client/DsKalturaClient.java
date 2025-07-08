@@ -179,7 +179,7 @@ public class DsKalturaClient {
 
         int numberResults = mediaEntries.size();
 
-        if ( numberResults == 0) {
+        if (numberResults == 0) {
             log.warn("No entry found at Kaltura for referenceId:"+referenceId);// warn since method it should not happen if given a valid referenceId 
             return null;
         }
@@ -301,7 +301,7 @@ public class DsKalturaClient {
         Response<ESearchEntryResponse> response = (Response<ESearchEntryResponse>)
                 APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(getClientInstance()));
 
-        if(!response.isSuccess()){
+        if (!response.isSuccess()){
             log.debug(response.error.getMessage());
             throw response.error;
         }
@@ -352,7 +352,7 @@ public class DsKalturaClient {
         if (response.isSuccess()) {
             log.debug("UploadToken '{}' successfully added.", response.results.getId());
             return response.results.getId();
-        }else{
+        } else {
             log.debug("Adding uploadToken failed because: '{}'", response.error.getMessage());
             throw response.error;
         }
@@ -397,7 +397,6 @@ public class DsKalturaClient {
                     uploadTokenId, response.error.getMessage());
             throw response.error;
         }
-
     }
 
     /**
@@ -421,14 +420,14 @@ public class DsKalturaClient {
         entry.setName(title);
         entry.setDescription(description);
         entry.setReferenceId(referenceId);
-        if(tag != null) {
+        if (tag != null) {
             entry.setTags(tag);
         }
 
         AddMediaBuilder addEntryBuilder = MediaService.add(entry);
         Response <MediaEntry> response = (Response <MediaEntry>)  APIOkRequestsExecutor.getExecutor().execute(addEntryBuilder.build(clientSession)); // No need for return object
 
-        if(response.isSuccess()) {
+        if (response.isSuccess()) {
             log.debug("Added entry '{}' successfully.", response.results.getId());
             return response.results.getId();
         }else{
@@ -436,7 +435,6 @@ public class DsKalturaClient {
                     response.error.getMessage());
             throw response.error;
         }
-
     }
 
 
@@ -460,9 +458,9 @@ public class DsKalturaClient {
         resource.setToken(uploadtokenId);
         AddContentMediaBuilder requestBuilder;
 
-        if( flavorParamId == null){
+        if (flavorParamId == null) {
             requestBuilder = MediaService.addContent(entryId, resource);
-        }else{
+        } else {
             AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
             paramContainer.setAssetParamsId(flavorParamId);
             paramContainer.setResource(resource);
@@ -470,10 +468,10 @@ public class DsKalturaClient {
         }
 
         Response<MediaEntry> response = (Response<MediaEntry>) APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(clientSession));
-        if(response.isSuccess()){
+        if (response.isSuccess()){
             log.debug("UploadToken '{}' was added to entry '{}'", uploadtokenId, entryId);
             return response.results.getId();
-        }else{
+        } else {
             log.debug("UploadToken '{}' was not added to entry '{}' because: '{}'", uploadtokenId, entryId,
                     response.error.getMessage());
             throw response.error;
@@ -541,7 +539,7 @@ public class DsKalturaClient {
             throw new IllegalArgumentException("referenceId must be defined");            
         }
 
-        if ( mediaType == null) {
+        if (mediaType == null) {
             throw new IllegalArgumentException("Kaltura mediaType must be defined");            
         }
 
@@ -561,7 +559,7 @@ public class DsKalturaClient {
      * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
      *
      */
-    private synchronized Client getClientInstance() throws IOException{
+    private synchronized Client getClientInstance() throws IOException {
         try {
             if (this.client == null || System.currentTimeMillis()-lastSessionStart >= sessionKeepAliveSeconds*1000) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:"+(System.currentTimeMillis()-lastSessionStart));
@@ -643,14 +641,14 @@ public class DsKalturaClient {
      * @throws APIException
      * @throws IOException
      */
-    public void logSessionInfo(String ks) throws APIException, IOException {
+    public void logSessionInfo(String ks) {
 
         SessionService.GetSessionBuilder requestBuilder = SessionService.get(ks);
 
         Response<SessionInfo> response =
                 (Response<SessionInfo>)APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
 
-        if(!response.isSuccess()){
+        if (!response.isSuccess()) {
             log.error(response.error.getMessage());
             return;
         }
@@ -668,7 +666,7 @@ public class DsKalturaClient {
      * @throws APIException
      * @throws IOException
      */
-    public void logSessionInfo() throws APIException, IOException {
+    public void logSessionInfo() {
         logSessionInfo(client.getKs());
     }
 
@@ -730,15 +728,13 @@ public class DsKalturaClient {
         String hash = computeHash(token, widgetSession);
 
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
-                AppTokenService.startSession(tokenId, hash,null, type, sessionDurationSeconds);
+                AppTokenService.startSession(tokenId, hash, null, type, sessionDurationSeconds);
         Response<SessionInfo> response = (Response<SessionInfo>)
                 APIOkRequestsExecutor.getExecutor().execute(sessionBuilder.build(client));
-        if(!response.isSuccess()){
+        if (!response.isSuccess()){
             log.debug(response.error.getMessage());
             throw response.error;
         }
         return response.results.getKs();
     }
-
-
 }
