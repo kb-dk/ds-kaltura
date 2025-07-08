@@ -655,15 +655,10 @@ public class DsKalturaClient {
             return;
         }
 
-        // Convert Unix time to LocalDateTime
-        LocalDateTime localDateTime = Instant.ofEpochSecond(response.results.getExpiry())
-                .atZone(ZoneId.systemDefault())
-                .toLocalDateTime();
-        // Format the LocalDateTime to a readable format
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-        String formattedDateTime = localDateTime.format(formatter);
+        // Convert Unix time to Instant
+        Instant expiry = Instant.ofEpochSecond(response.results.getExpiry());
 
-        log.info("Session expiry: {}, Session type: {}, Privileges: {}", formattedDateTime,
+        log.info("Session expiry: {}, Session type: {}, Privileges: {}", expiry,
                 response.results.getSessionType(), response.results.getPrivileges());
     }
 
