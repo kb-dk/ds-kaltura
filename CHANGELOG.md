@@ -5,6 +5,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Changed
+
+### Added
+
+### Changed
+
+## [3.0.1] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.1) - 2025-07-07
+### Changed
+- Config to use sessionDurationSeconds and sessionRefreshThreshold instead of keepAliveSeconds. 
+  KeepAliveSeconds is now calculated from these two parameters and sessionDurationSeconds is used when starting a 
+  session.
+- Changed KeepAliveSession from long to int.
+- Changed startWidgetSession to take a nullable Integer to set specific Expiry. This should not be lower than 600 
+  due to Kaltura caching of responses.  
+
+### Added
+- Added getSessionInfo that logs sessionInfo. Only used for testing.
+
+
+## [3.0.0] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.0) - 2025-06-12
 ### Changed
 - Kaltura AppToken Client changed to use enum types (values) to start session. This was required since Kaltura was changed.
 - Kaltura upload will validate stream was connected to meta-data and throw IOException if last call (#4 out of 4) is not a success

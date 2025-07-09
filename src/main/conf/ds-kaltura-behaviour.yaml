@@ -16,7 +16,8 @@ kaltura:
   userId:  'XXX@kb.dk'
   token: 'yyyyy'
   tokenId: 'yyyyy'
-  sessionKeepAliveSeconds: 86400
+  sessionDurationSeconds: 86400
+  sessionRefreshThreshold: 3600
 
 # The configuration can auto-update at set intervals. See ServiceConfig for details
 autoupdate:

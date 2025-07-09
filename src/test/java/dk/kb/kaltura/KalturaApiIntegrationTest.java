@@ -33,7 +33,8 @@ import static org.junit.jupiter.api.Assertions.*;
 public class KalturaApiIntegrationTest {
     private static final Logger log = LoggerFactory.getLogger(KalturaApiIntegrationTest.class);
 
-    private static final long DEFAULT_KEEP_ALIVE = 86400;
+    private static final int DEFAULT_SESSION_DURATION_SECONDS = 86400;
+    private static final int DEFAULT_REFRESH_THRESHOLD = 3600;
 
     // ID's valid as of 2024-04-25 but subject to change
     // TODO: Add a step to setup() creating test kaltura<->reference IDs 
@@ -73,6 +74,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void testKalturaSession() throws Exception {
         DsKalturaClient clientSession = getClient();
+        clientSession.logSessionInfo();
     }
 
     @Test
@@ -204,7 +206,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void deleteAppToken() throws Exception {
         AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
-        client.deleteAppToken("0_zjli5ev2");
+        client.deleteAppToken("");
     }
 
     private DsKalturaClient getClient() throws IOException {
@@ -216,7 +218,8 @@ public class KalturaApiIntegrationTest {
                 conf.getString("token"),
                 conf.getString("tokenId"),
                 conf.getString("adminSecret",null),
-                conf.getLong("sessionKeepAliveSeconds", DEFAULT_KEEP_ALIVE));
+                conf.getInteger("sessionDurationSeconds", DEFAULT_SESSION_DURATION_SECONDS),
+                conf.getInteger("sessionRefreshThreshold", DEFAULT_REFRESH_THRESHOLD));
     }
 
 }
