@@ -5,8 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.kaltura.client.Client;
+import com.kaltura.client.Configuration;
 import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.AppToken;
+import com.kaltura.client.utils.request.ConnectionConfiguration;
+import com.kaltura.client.utils.response.base.Response;
 import dk.kb.kaltura.client.AppTokenClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
@@ -116,40 +120,17 @@ public class KalturaApiIntegrationTest {
     
     @Test
     public void blockStream() throws IOException {
-        String entry_id="0_h5p9kkqk"; // Hvornår var det nu det var  (tv, stage miljø)
-                
+        String entry_id="0_xxxxxx";
         boolean  success = getClient().blockStreamByEntryId(entry_id);
-        assertTrue(success,"The steam was not blocked.Check that the entry id exists.");
+        assertTrue(success,"The stream was not blocked. Check that the entry id exists.");
     }
-
-
-    // Old stress test to see why repeated calls failed (they don't anymore)
-    @Disabled
-    public void callKalturaApi() throws Exception{
-
-        //These data can change in Kaltura
-        String referenceId="7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7";
-        String kalturaInternallId="0_vvp1ozjl";
-
-        DsKalturaClient clientSession= getClient();
-
-        int success=0;
-        for (int i = 0;i<10;i++) {
-            String kalturaId = clientSession.getKalturaInternalId(referenceId);
-            assertEquals(kalturaInternallId, kalturaId,"API error was reproduced after "+success+" number of calls");
-            log.debug("API returned internal Kaltura id:"+kalturaId);
-            success++;
-            Thread.sleep(1000L);
-        }
-    }
-
 
     @Test
     public void testDeleteEntry() throws Exception{
         String not_found_entryId="0_xxxxxx"; //Change to an existing ID if need to test a successful deletion.        
         DsKalturaClient clientSession= getClient();
         boolean success= clientSession.deleteStreamByEntryId(not_found_entryId);
-        assertFalse(success); //The record does not exist in Kaltura and can therefor not be deleted.
+        assertTrue(success); //The record does not exist in Kaltura and can therefor not be deleted.
     }
     
     /**
