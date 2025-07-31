@@ -10,6 +10,7 @@ import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
 import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
+import com.kaltura.client.utils.request.RequestElement;
 import com.kaltura.client.utils.response.base.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -99,32 +100,46 @@ public class DsKalturaClient {
         getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
     }
 
-    private Response<?> executeRequest(BaseRequestBuilder<?, ?> requestBuilder, boolean refreshSession) throws
+    private <T> Response<?> buildAndExecute(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession) throws
             IOException {
         if (refreshSession) {
             getClientInstance();
         }
-        return APIOkRequestsExecutor.getExecutor().execute(requestBuilder.build(client));
+        RequestElement<T> request = requestBuilder.build(client);
+        return APIOkRequestsExecutor.getExecutor().execute(request);
+    }
+
+    private <T> T unpackResponse(Response<?> response, Class<T> expectedResponseType) throws IOException, APIException {
+        if (!response.isSuccess()) {
+            throw response.error;
+        } else if (!expectedResponseType.isInstance(response.results)) {
+            throw new RuntimeException("Unexpected response type. Expected " + expectedResponseType.getName() +
+                    " but response contained results of type " + response.results.getClass().getName());
+        }
+        return expectedResponseType.cast(response.results);
     }
 
 
-    private <T> T executeAndUnpackRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException {
-        return executeAndUnpackRequest(requestBuilder, true);
+    private <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException {
+        return handleRequest(requestBuilder, true);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T executeAndUnpackRequest(BaseRequestBuilder<T, ?> requestBuilder, Boolean refreshSession)
+    private <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession)
             throws IOException, APIException {
 
-        Response<?> response = executeRequest(requestBuilder, refreshSession);
+        Response<?> response = buildAndExecute(requestBuilder, refreshSession);
 
-        if (!response.isSuccess()) {
-            throw response.error;
-        } else if (!requestBuilder.getType().isInstance(response.results)) {
-            throw new RuntimeException("Unexpected response type. Expected " + requestBuilder.getType().getName() +
-                    " but response contained results of type " + response.results.getClass().getName());
+        if(requestBuilder.getType() == null){
+            throw new IllegalStateException("RequestBuilder type is ndull");
         }
-        return ((Class<T>) requestBuilder.getType()).cast(response.results);
+
+        return unpackResponse(response, (Class<T>) requestBuilder.getType());
+    }
+
+
+    public BaseEntry getEntry(String entryId) throws APIException, IOException {
+        return handleRequest(BaseEntryService.get(entryId));
     }
 
     /**
@@ -139,7 +154,7 @@ public class DsKalturaClient {
      */
     public boolean deleteStreamByEntryId(String entryId) throws IOException, APIException {
         DeleteMediaBuilder request = MediaService.delete(entryId);
-        return executeRequest(request, true).isSuccess(); // no object in response. Only status
+        return buildAndExecute(request, true).isSuccess(); // no object in response. Only status
     }
 
 
@@ -156,7 +171,7 @@ public class DsKalturaClient {
      */
     public boolean blockStreamByEntryId(String entryId) throws IOException {
         RejectMediaBuilder request = MediaService.reject(entryId);
-        return executeRequest(request, true).isSuccess();
+        return buildAndExecute(request, true).isSuccess();
     }
 
     /**
@@ -180,7 +195,7 @@ public class DsKalturaClient {
         pager.setPageSize(BATCH_SIZE);
 
         ListMediaBuilder request = MediaService.list(filter);
-        ListResponse<MediaEntry> results = executeAndUnpackRequest(request);
+        ListResponse<MediaEntry> results = handleRequest(request);
 
         List<MediaEntry> mediaEntries = results.getObjects();
 
@@ -298,7 +313,7 @@ public class DsKalturaClient {
 
         // Issue search
         ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
-        return (Response<ESearchEntryResponse>) executeRequest(requestBuilder, true);
+        return (Response<ESearchEntryResponse>) buildAndExecute(requestBuilder, true);
     }
 
     /**
@@ -462,7 +477,7 @@ public class DsKalturaClient {
             requestBuilder = MediaService.addContent(entryId, paramContainer);
         }
 
-        return executeAndUnpackRequest(requestBuilder).getId();
+        return handleRequest(requestBuilder).getId();
     }
 
     /**
@@ -603,7 +618,7 @@ public class DsKalturaClient {
         } else {
             requestBuilder = SessionService.startWidgetSession(widgetId, expiry);
         }
-        StartWidgetSessionResponse results = executeAndUnpackRequest(requestBuilder, false);
+        StartWidgetSessionResponse results = handleRequest(requestBuilder, false);
         log.debug("Widget Session started successfully");
 
         return results.getKs();
@@ -619,7 +634,7 @@ public class DsKalturaClient {
     public void logSessionInfo(String ks) throws APIException, IOException {
 
         SessionService.GetSessionBuilder requestBuilder = SessionService.get(ks);
-        SessionInfo result = executeAndUnpackRequest(requestBuilder, false);
+        SessionInfo result = handleRequest(requestBuilder, false);
 
         // Convert Unix time to Instant
         ZonedDateTime expiry = Instant.ofEpochSecond(result.getExpiry()).atZone(ZoneId.systemDefault());
@@ -692,6 +707,6 @@ public class DsKalturaClient {
 
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
                 AppTokenService.startSession(tokenId, hash, null, type, sessionDurationSeconds);
-        return executeAndUnpackRequest(sessionBuilder, false).getKs();
+        return handleRequest(sessionBuilder, false).getKs();
     }
 }
