@@ -262,11 +262,6 @@ public class DsKalturaClient {
      * @throws IOException if the remote request failed.
      */
     public List<String> searchTerm(String term) throws IOException, APIException {
-        // Adapted from Java samples at https://developer.kaltura.com
-        // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
-        // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
-        // TODO: This retrieves the full item representation. How to reduce to only [id, referenceId] fields?
-
         ESearchUnifiedItem item = new ESearchUnifiedItem();
         item.setItemType(ESearchItemType.EXACT_MATCH);
         item.searchTerm(term);
@@ -287,13 +282,7 @@ public class DsKalturaClient {
      */
     @SuppressWarnings("unchecked")
     private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws IOException, APIException {
-        // Adapted from Java samples at https://developer.kaltura.com
-        // https://developer.kaltura.com/console/service/eSearch/action/searchEntry?query=search
-        // https://developer.kaltura.com/api-docs/Search--Discover-and-Personalize/esearch.html
-        // TODO: This retrieves the full item representation. How to reduce to only [id, referenceId] fields?
-
         if (items.size() > BATCH_SIZE) {
-            // TODO: Change this to multiple batch requests
             throw new IllegalArgumentException(
                     "Request for " + items.size() + " items exceeds current limit of " + BATCH_SIZE);
         }
