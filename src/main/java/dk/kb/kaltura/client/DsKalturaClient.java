@@ -106,19 +106,9 @@ public class DsKalturaClient {
             getClientInstance();
         }
         RequestElement<T> request = requestBuilder.build(client);
+
         return APIOkRequestsExecutor.getExecutor().execute(request);
     }
-
-    private <T> T unpackResponse(Response<?> response, Class<T> expectedResponseType) throws IOException, APIException {
-        if (!response.isSuccess()) {
-            throw response.error;
-        } else if (!expectedResponseType.isInstance(response.results)) {
-            throw new RuntimeException("Unexpected response type. Expected " + expectedResponseType.getName() +
-                    " but response contained results of type " + response.results.getClass().getName());
-        }
-        return expectedResponseType.cast(response.results);
-    }
-
 
     private <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException {
         return handleRequest(requestBuilder, true);
@@ -127,14 +117,22 @@ public class DsKalturaClient {
     @SuppressWarnings("unchecked")
     private <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession)
             throws IOException, APIException {
+        try {
+            Response<?> response = buildAndExecute(requestBuilder, refreshSession);
 
-        Response<?> response = buildAndExecute(requestBuilder, refreshSession);
+            if (requestBuilder.getType() == null) {
+                throw new IllegalStateException("RequestBuilder type is null");
+            }
+            if (!response.isSuccess()) {
+                throw response.error;
+            }
+            return (T) response.results;
 
-        if(requestBuilder.getType() == null){
-            throw new IllegalStateException("RequestBuilder type is ndull");
+        }catch (APIException e) {
+            e.setMessage(String.format("Request %s with body: %s, Reason: %s", requestBuilder.getTag(),
+                    requestBuilder.getBody(), e.getMessage()));
+            throw e;
         }
-
-        return unpackResponse(response, (Class<T>) requestBuilder.getType());
     }
 
 
@@ -353,18 +351,14 @@ public class DsKalturaClient {
      */
     private String addUploadToken() throws IOException, APIException {
         //Get a token that will allow upload
-        Client clientsession = getClientInstance();
         UploadToken uploadToken = new UploadToken();
-        AddUploadTokenBuilder uploadTokenRequestBuilder = UploadTokenService.add(uploadToken);
-        Response<UploadToken> response = (Response<UploadToken>)
-                APIOkRequestsExecutor.getExecutor().execute(uploadTokenRequestBuilder.build(clientsession));
-
-        if (response.isSuccess()) {
-            log.debug("UploadToken '{}' successfully added.", response.results.getId());
-            return response.results.getId();
-        } else {
-            log.debug("Adding uploadToken failed because: '{}'", response.error.getMessage());
-            throw response.error;
+        try{
+            UploadToken results = handleRequest(UploadTokenService.add(uploadToken));
+            log.debug("UploadToken '{}' successfully added.", results.getId());
+            return results.getId();
+        } catch (Exception e){
+            log.debug("Adding uploadToken failed because: '{}'", e.getMessage());
+            throw e;
         }
     }
 
@@ -378,8 +372,6 @@ public class DsKalturaClient {
      * @throws APIException
      */
     private String uploadFile(String uploadTokenId, String filePath) throws IOException, APIException {
-        Client client = getClientInstance();
-
         //Upload the file using the upload token.
         File fileData = new File(filePath);
         boolean resume = false;
@@ -394,18 +386,16 @@ public class DsKalturaClient {
             }
         }
 
-        UploadUploadTokenBuilder uploadBuilder = UploadTokenService.upload(uploadTokenId, fileData, resume, finalChunk,
-                resumeAt);
-        Response<UploadToken> response =
-                (Response<UploadToken>) APIOkRequestsExecutor.getExecutor().execute(uploadBuilder.build(client));
-        if (response.isSuccess()) {
+        try {
+            UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileData, resume, finalChunk,
+                resumeAt));
             log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
-                    response.results.getId());
-            return response.results.getId();
-        } else {
+                    results.getId());
+            return results.getId();
+        } catch (APIException | IOException e) {
             log.debug("Failed to upload file '{}' to upload token '{}' because: '{}'", filePath,
-                    uploadTokenId, response.error.getMessage());
-            throw response.error;
+                    uploadTokenId, e.getMessage());
+            throw e;
         }
     }
 
@@ -434,16 +424,14 @@ public class DsKalturaClient {
             entry.setTags(tag);
         }
 
-        AddMediaBuilder addEntryBuilder = MediaService.add(entry);
-        Response<MediaEntry> response = (Response<MediaEntry>) APIOkRequestsExecutor.getExecutor().execute(addEntryBuilder.build(clientSession)); // No need for return object
-
-        if (response.isSuccess()) {
-            log.debug("Added entry '{}' successfully.", response.results.getId());
-            return response.results.getId();
-        } else {
+        try {
+            MediaEntry results = handleRequest(MediaService.add(entry));
+            log.debug("Added entry '{}' successfully.", results.getId());
+            return results.getId();
+        } catch (APIException | IOException e){
             log.debug("Failed to add entry with reference ID '{}' because: '{}'", referenceId,
-                    response.error.getMessage());
-            throw response.error;
+                    e.getMessage());
+            throw e;
         }
     }
 

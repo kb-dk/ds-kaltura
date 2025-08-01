@@ -82,6 +82,20 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
+    public void testError() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        assertDoesNotThrow(() -> clientSession.getEntry(KALTURA_ID1));
+        assertThrows(APIException.class, () -> {
+            try {
+                clientSession.getEntry("notAnActualEntry");
+            } catch (Exception e) {
+                log.error(e.getMessage());
+                throw e;
+            }
+        });
+    }
+
+    @Test
     public void kalturaIDsLookup() throws IOException, APIException {
         Map<String, String> map = getClient().getKalturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
