@@ -176,9 +176,6 @@ public class KalturaApiIntegrationTest {
     }
 
 
-
-
-
     private DsKalturaClient getClient() throws IOException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(
