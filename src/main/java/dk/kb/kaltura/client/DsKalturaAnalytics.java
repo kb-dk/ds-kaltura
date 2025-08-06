@@ -15,7 +15,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 
-public class DsKalturaAnalytics extends DsKalturaClient {
+public class DsKalturaAnalytics extends DsKalturaClientBase {
     final int MAX_RESULT_SIZE = 10000;
 
     /**
