@@ -5,9 +5,6 @@ import com.kaltura.client.Client;
 import com.kaltura.client.Configuration;
 import com.kaltura.client.enums.*;
 import com.kaltura.client.services.*;
-import com.kaltura.client.services.MediaService.*;
-import com.kaltura.client.services.UploadTokenService.AddUploadTokenBuilder;
-import com.kaltura.client.services.UploadTokenService.UploadUploadTokenBuilder;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.request.RequestElement;
@@ -17,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -25,16 +21,14 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.concurrent.Callable;
 
 public class DsKalturaClientBase {
 
     // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
     public static final int BATCH_SIZE = 100;
+    public static final int RETRIES = 3;
+    public static final int RETRY_DELAY_MILLIS = 1000;
 
     static {
         // Kaltura library uses log4j2 and will remove this error message on start up: Log4j2 could not find a logging implementation
@@ -92,22 +86,22 @@ public class DsKalturaClientBase {
     }
 
     <T> Response<?> buildAndExecute(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession) throws
-            IOException {
+            APIException, IOException {
         if (refreshSession) {
             getClientInstance();
         }
         RequestElement<T> request = requestBuilder.build(client);
 
-        return APIOkRequestsExecutor.getExecutor().execute(request);
+        return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), RETRIES, RETRY_DELAY_MILLIS);
     }
 
-    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException {
+    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException, RuntimeException {
         return handleRequest(requestBuilder, true);
     }
 
     @SuppressWarnings("unchecked")
     private <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession)
-            throws IOException, APIException {
+            throws RuntimeException, APIException, IOException {
         try {
             Response<?> response = buildAndExecute(requestBuilder, refreshSession);
 
@@ -123,7 +117,30 @@ public class DsKalturaClientBase {
             e.setMessage(String.format("Request %s with body: %s, Reason: %s", requestBuilder.getTag(),
                     requestBuilder.getBody(), e.getMessage()));
             throw e;
+        }catch (RuntimeException e){
+            throw new RuntimeException(e.getMessage());
         }
+    }
+
+    public static <T> T retryOperation(Callable<T> operation, int retries, long delay) throws RuntimeException {
+        RuntimeException lastException = null;
+        for (int attempt = 1; attempt <= retries; attempt++) {
+            try {
+                return operation.call(); // Try the operation
+            } catch (Exception e) {
+                log.error("Attempt {} failed: {}", attempt, e.getClass().getSimpleName());
+                lastException = new RuntimeException(e); // Catch the exception and save it
+                if (attempt < retries) {
+                    try {
+                        Thread.sleep(delay);// Wait before the next attempt
+                    }catch (InterruptedException ie) {
+                        throw new RuntimeException(ie);
+                    }
+                }
+            }
+        }
+        assert lastException != null;
+        throw lastException; // Throw the last exception if all attempts failed
     }
 
         /**

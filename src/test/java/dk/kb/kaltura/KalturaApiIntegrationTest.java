@@ -89,6 +89,12 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
+    public void testErrorHandling() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        clientSession.getEntry("NotAEntry");
+    }
+
+    @Test
     public void kalturaIDsLookup() throws IOException, APIException {
         Map<String, String> map = getClient().getKalturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
@@ -126,7 +132,7 @@ public class KalturaApiIntegrationTest {
     
     
     @Test
-    public void blockStream() throws IOException {
+    public void blockStream() throws IOException, APIException {
         String entry_id="0_xxxxxx";
         boolean  success = getClient().blockStreamByEntryId(entry_id);
         assertTrue(success,"The stream was not blocked. Check that the entry id exists.");

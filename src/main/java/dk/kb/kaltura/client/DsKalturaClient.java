@@ -77,7 +77,7 @@ public class DsKalturaClient extends DsKalturaClientBase{
      * @return True if record was found and blocked. False if the record with the entryId could not be found in Kaltura.
      * @throws IOException if Kaltura API called failed.
      */
-    public boolean blockStreamByEntryId(String entryId) throws IOException {
+    public boolean blockStreamByEntryId(String entryId) throws IOException, APIException {
         RejectMediaBuilder request = MediaService.reject(entryId);
         return buildAndExecute(request, true).isSuccess();
     }
