@@ -96,13 +96,13 @@ public class DsKalturaClientBase {
                 RETRY_DELAY_MILLIS, request.getTag());
     }
 
-    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException, RuntimeException {
+    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException {
         return handleRequest(requestBuilder, true);
     }
 
     @SuppressWarnings("unchecked")
-    private <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession)
-            throws RuntimeException, APIException, IOException {
+    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession)
+            throws APIException, IOException {
         try {
             Response<?> response = buildAndExecute(requestBuilder, refreshSession);
 
@@ -118,12 +118,10 @@ public class DsKalturaClientBase {
             e.setMessage(String.format("Request %s with body: %s, Reason: %s", requestBuilder.getTag(),
                     requestBuilder.getBody(), e.getMessage()));
             throw e;
-        }catch (RuntimeException e){
-            throw new RuntimeException(e.getMessage());
         }
     }
 
-    public static <T> T retryOperation(Callable<T> operation, int retries, long delay, String operationName) {
+    static <T> T retryOperation(Callable<T> operation, int retries, long delay, String operationName) {
         RuntimeException lastException = null;
         for (int attempt = 1; attempt <= retries; attempt++) {
             try {
