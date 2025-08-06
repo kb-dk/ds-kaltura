@@ -14,7 +14,10 @@ import dk.kb.kaltura.config.ServiceConfig;
 import java.util.List;
 
 public class AppTokenClient {
-
+    static {
+        // Kaltura library uses log4j2 and will remove this error message on start up: Log4j2 could not find a logging implementation
+        System.setProperty("log4j2.loggerContextFactory", "org.apache.logging.log4j.simple.SimpleLoggerContextFactory");
+    }
     private Client client = null;
 
     public AppTokenClient(String secretKey) throws Exception {
