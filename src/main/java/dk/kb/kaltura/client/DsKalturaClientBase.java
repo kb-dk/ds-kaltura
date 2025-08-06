@@ -92,7 +92,8 @@ public class DsKalturaClientBase {
         }
         RequestElement<T> request = requestBuilder.build(client);
 
-        return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), RETRIES, RETRY_DELAY_MILLIS);
+        return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), RETRIES,
+                RETRY_DELAY_MILLIS, request.getTag());
     }
 
     <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException, RuntimeException {
@@ -122,13 +123,13 @@ public class DsKalturaClientBase {
         }
     }
 
-    public static <T> T retryOperation(Callable<T> operation, int retries, long delay) throws RuntimeException {
+    public static <T> T retryOperation(Callable<T> operation, int retries, long delay, String operationName) {
         RuntimeException lastException = null;
         for (int attempt = 1; attempt <= retries; attempt++) {
             try {
                 return operation.call(); // Try the operation
             } catch (Exception e) {
-                log.error("Attempt {} failed: {}", attempt, e.getClass().getSimpleName());
+                log.error("Attempt {} of {} failed: {}", attempt, operationName, e.getClass().getSimpleName(), e);
                 lastException = new RuntimeException(e); // Catch the exception and save it
                 if (attempt < retries) {
                     try {
