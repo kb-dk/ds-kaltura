@@ -53,7 +53,21 @@ public class DsKalturaClient extends DsKalturaClientBase {
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds, sessionRefreshThreshold);
     }
-
+    /**
+     * Retrieves a {@link BaseEntry} object based on the provided entry ID.
+     *
+     * This method handles the API request to fetch the entry from the service.
+     * It calls the static method {@link BaseEntryService#get(String)} to initiate
+     * the retrieval process and then processes the response using the
+     * {@link handleRequest} method.
+     *
+     * @param entryId the ID of the entry to be retrieved
+     * @return a {@link BaseEntry} object representing the requested entry
+     * @throws APIException if there is an error related to the API request,
+     *         such as an invalid entry ID or server-side issues
+     * @throws IOException if there is a communication error during the request,
+     *         such as network issues or timeouts
+     */
     public BaseEntry getEntry(String entryId) throws APIException, IOException {
         return handleRequest(BaseEntryService.get(entryId));
     }

@@ -39,7 +39,7 @@ public class DsKalturaClientBase {
     }
 
     private Client client = null; //Client having a Kaltura session  that can be reused between API calls.
-    static final Logger log = LoggerFactory.getLogger(DsKalturaClient.class);
+    static final Logger log = LoggerFactory.getLogger(DsKalturaClientBase.class);
     private final String kalturaUrl;
     private final String userId;
     private final int partnerId;
@@ -94,17 +94,19 @@ public class DsKalturaClientBase {
      * @param requestBuilder the request builder to create and execute the request
      * @param refreshSession if true, refresh the session before executing the request
      * @param retry if true, retry the request operation in case of failure
-     * @param <T> the type of the response expected from the request
+     * @param <ReturnedType> the type of the response expected from the request
+     * @param <SelfType> the type of request
      * @return a Response object containing the results of the executed request
      * @throws APIException if an API error occurs during the request execution
      * @throws IOException if an I/O error occurs during the request execution
      */
-    <T> Response<?> buildAndExecute(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession, boolean retry) throws
+    protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>> Response<?> buildAndExecute(BaseRequestBuilder<ReturnedType, SelfType> requestBuilder, boolean refreshSession,
+                                       boolean retry) throws
             APIException, IOException {
         if (refreshSession) {
             getClientInstance();
         }
-        RequestElement<T> request = requestBuilder.build(client);
+        RequestElement<ReturnedType> request = requestBuilder.build(client);
         if (retry) {
             return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), RETRIES,
                     RETRY_DELAY_MILLIS, request.getTag());
@@ -118,12 +120,14 @@ public class DsKalturaClientBase {
      * This method defaults to refreshing the session and retrying the request.
      *
      * @param requestBuilder the request builder to create and execute the request
-     * @param <T> the type of the response expected from the request
+     * @param <ReturnedType> the type of the response expected from the request
+     * @param <SelfType> the type of request
      * @return the result of the executed request
      * @throws APIException if an API error occurs during the request execution
      * @throws IOException if an I/O error occurs during the request execution
      */
-    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException {
+    protected <ReturnedType,SelfType extends BaseRequestBuilder<ReturnedType, SelfType>>
+        ReturnedType handleRequest(SelfType requestBuilder) throws APIException, IOException {
         return handleRequest(requestBuilder, true, true);
     }
 
@@ -133,14 +137,16 @@ public class DsKalturaClientBase {
      * @param requestBuilder the request builder to create and execute the request
      * @param refreshSession if true, refresh the session before executing the request
      * @param retry if true, retry the request operation in case of failure
-     * @param <T> the type of the response expected from the request
+     * @param <ReturnedType> the type of the response expected from the request
+     * @param <SelfType> the type of request
      * @return the result of the executed request
      * @throws APIException if an API error occurs during the request execution
      * @throws IOException if an I/O error occurs during the request execution
      * @throws IllegalStateException if the request builder type is null
      */
     @SuppressWarnings("unchecked")
-    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession, boolean retry)
+    protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>>
+        ReturnedType handleRequest(SelfType requestBuilder, boolean refreshSession, boolean retry)
             throws APIException, IOException {
         try {
             Response<?> response = buildAndExecute(requestBuilder, refreshSession, retry);
@@ -151,11 +157,10 @@ public class DsKalturaClientBase {
             if (!response.isSuccess()) {
                 throw response.error;
             }
-            return (T) response.results;
+            return (ReturnedType) response.results;
 
         } catch (APIException e) {
-            e.setMessage(String.format("Request '%s', Reason: '%s'", requestBuilder.getTag(),
-                    e.getMessage()));
+            e.setMessage("Request '"+ requestBuilder.getTag()+"' was unsuccessful Reason: '"+e.getMessage()+"'");
             throw e;
         }
     }
@@ -171,7 +176,7 @@ public class DsKalturaClientBase {
      * @return the result of the operation if successful
      * @throws RuntimeException if the operation fails after all retry attempts
      */
-    static <T> T retryOperation(Callable<T> operation, int retries, long delay, String operationName) {
+    private static <T> T retryOperation(Callable<T> operation, int retries, long delay, String operationName) {
         RuntimeException lastException = null;
         for (int attempt = 1; attempt <= retries; attempt++) {
             try {
