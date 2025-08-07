@@ -100,7 +100,7 @@ public class DsKalturaClientBase {
      * @throws APIException if an API error occurs during the request execution
      * @throws IOException if an I/O error occurs during the request execution
      */
-    protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>> Response<?> buildAndExecute(BaseRequestBuilder<ReturnedType, SelfType> requestBuilder, boolean refreshSession,
+    protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>> Response<?> buildAndExecute(SelfType requestBuilder, boolean refreshSession,
                                        boolean retry) throws
             APIException, IOException {
         if (refreshSession) {
