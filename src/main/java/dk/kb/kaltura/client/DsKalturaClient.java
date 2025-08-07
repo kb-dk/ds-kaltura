@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * <li> Upload a media entry (video, audio etc.) to Kaltura with meta data.
  * </ul><p>
  */
-public class DsKalturaClient extends DsKalturaClientBase{
+public class DsKalturaClient extends DsKalturaClientBase {
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -179,6 +179,7 @@ public class DsKalturaClient extends DsKalturaClientBase{
 
     /**
      * Simple free form term search in Kaltura.
+     *
      * @param term a search term, such as {@code dr} or {@code tv avisen}.
      * @return a list of Kaltura IDs for matching records, empty if no hits. Max result size is {@link #BATCH_SIZE}.
      * @throws IOException if the remote request failed.
@@ -197,6 +198,7 @@ public class DsKalturaClient extends DsKalturaClientBase{
     /**
      * Generic multi search for a list of {@link ESearchEntryBaseItem items},
      * returning at most {@link #BATCH_SIZE} results.
+     *
      * @param items at least 1 search item.
      * @return the response from a Kaltura search for the given items.
      * @throws IOException if the remote request failed.
@@ -260,11 +262,11 @@ public class DsKalturaClient extends DsKalturaClientBase{
     private String addUploadToken() throws IOException, APIException {
         //Get a token that will allow upload
         UploadToken uploadToken = new UploadToken();
-        try{
+        try {
             UploadToken results = handleRequest(UploadTokenService.add(uploadToken));
             log.debug("UploadToken '{}' successfully added.", results.getId());
             return results.getId();
-        } catch (Exception e){
+        } catch (Exception e) {
             log.debug("Adding uploadToken failed because: '{}'", e.getMessage());
             throw e;
         }
@@ -296,7 +298,7 @@ public class DsKalturaClient extends DsKalturaClientBase{
 
         try {
             UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileData, resume, finalChunk,
-                resumeAt));
+                    resumeAt));
             log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
                     results.getId());
             return results.getId();
@@ -334,7 +336,7 @@ public class DsKalturaClient extends DsKalturaClientBase{
             MediaEntry results = handleRequest(MediaService.add(entry));
             log.debug("Added entry '{}' successfully.", results.getId());
             return results.getId();
-        } catch (APIException | IOException e){
+        } catch (APIException | IOException e) {
             log.debug("Failed to add entry with reference ID '{}' because: '{}'", referenceId,
                     e.getMessage());
             throw e;

@@ -65,7 +65,7 @@ public class DsKalturaClientBase {
      * @throws IOException If session could not be created at Kaltura
      */
     public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
-                           String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
+                               String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
         this.sessionDurationSeconds = sessionDurationSeconds;
         this.sessionRefreshThreshold = sessionRefreshThreshold;
         this.sessionKeepAliveSeconds = sessionDurationSeconds - sessionRefreshThreshold;
@@ -114,7 +114,7 @@ public class DsKalturaClientBase {
             }
             return (T) response.results;
 
-        }catch (APIException e) {
+        } catch (APIException e) {
             e.setMessage(String.format("Request %s with body: %s, Reason: %s", requestBuilder.getTag(),
                     requestBuilder.getBody(), e.getMessage()));
             throw e;
@@ -132,7 +132,7 @@ public class DsKalturaClientBase {
                 if (attempt < retries) {
                     try {
                         Thread.sleep(delay);// Wait before the next attempt
-                    }catch (InterruptedException ie) {
+                    } catch (InterruptedException ie) {
                         throw new RuntimeException(ie);
                     }
                 }
@@ -142,7 +142,7 @@ public class DsKalturaClientBase {
         throw lastException; // Throw the last exception if all attempts failed
     }
 
-        /**
+    /**
      * Starts widgetSession with using a client.
      *
      * @param expiry The session duration in seconds. Should not be under 600 due to caching of response on Kaltura
@@ -207,7 +207,7 @@ public class DsKalturaClientBase {
                 client = new Client(config);
                 client.setPartnerId(partnerId);
             }
-            if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L) {
+            if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L || client.getKs().isEmpty()) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:" +
                         (System.currentTimeMillis() - lastSessionStart));
                 //Create the client
@@ -252,7 +252,6 @@ public class DsKalturaClientBase {
      * @throws NoSuchAlgorithmException
      */
     private String computeHash(String token, String ks) throws UnsupportedEncodingException, NoSuchAlgorithmException {
-
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update((ks + token).getBytes("UTF-8"));

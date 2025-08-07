@@ -91,7 +91,7 @@ public class KalturaApiIntegrationTest {
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
         log.debug("kalturaIDsLookup() got {} results from {} IDs", map.size(), KNOWN_PAIRS.size());
 
-        for (List<String> knownPair: KNOWN_PAIRS) {
+        for (List<String> knownPair : KNOWN_PAIRS) {
             String refID = knownPair.get(0);
             String kalID = knownPair.get(1);
             assertTrue(map.containsKey(refID), "There should be a mapping for referenceId '" + refID + "'");
@@ -106,7 +106,7 @@ public class KalturaApiIntegrationTest {
                 KNOWN_PAIRS.stream().map(e -> e.get(1)).collect(Collectors.toList()));
         log.debug("referenceIDsLookup() got {} hits for {} kalturaIDs", map.size(), KNOWN_PAIRS.size());
 
-        for (List<String> test: KNOWN_PAIRS) {
+        for (List<String> test : KNOWN_PAIRS) {
             String refID = test.get(0);
             String kalID = test.get(1);
             assertTrue(map.containsKey(kalID), "There should be a mapping for kalturaId '" + kalID + "'");
@@ -120,37 +120,37 @@ public class KalturaApiIntegrationTest {
         assertFalse(ids.isEmpty(), "Search result should not be empty");
         System.out.println(ids);
     }
-    
-    
+
+
     @Test
     public void blockStream() throws IOException, APIException {
-        String entry_id="0_xxxxxx";
-        boolean  success = getClient().blockStreamByEntryId(entry_id);
-        assertTrue(success,"The stream was not blocked. Check that the entry id exists.");
+        String entry_id = "0_xxxxxx";
+        boolean success = getClient().blockStreamByEntryId(entry_id);
+        assertTrue(success, "The stream was not blocked. Check that the entry id exists.");
     }
 
     @Test
-    public void testDeleteEntry() throws Exception{
-        String not_found_entryId="0_xxxxxx"; //Change to an existing ID if need to test a successful deletion.        
-        DsKalturaClient clientSession= getClient();
-        boolean success= clientSession.deleteStreamByEntryId(not_found_entryId);
+    public void testDeleteEntry() throws Exception {
+        String not_found_entryId = "0_xxxxxx"; //Change to an existing ID if need to test a successful deletion.
+        DsKalturaClient clientSession = getClient();
+        boolean success = clientSession.deleteStreamByEntryId(not_found_entryId);
         assertTrue(success); //The record does not exist in Kaltura and can therefor not be deleted.
     }
-    
+
     /**
-     * When uploading a file to Kaltura, remember to delete it from the Kaltura 
+     * When uploading a file to Kaltura, remember to delete it from the Kaltura
      *
      */
     @Test
-    public void kalturaUpload() throws Exception{
-        DsKalturaClient clientSession= getClient();
-        String file="/home/xxxx/Videos/test1.mp4"; // <-- Change to local video file
-        String referenceId="ref_test_1234s";
-        MediaType mediaType=MediaType.VIDEO;
-        String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
-        String title="test2 title from unittest";
-        String description="test2 description from unittest";
-        String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag);
+    public void kalturaUpload() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        String file = "/home/xxxx/Videos/test1.mp4"; // <-- Change to local video file
+        String referenceId = "ref_test_1234s";
+        MediaType mediaType = MediaType.VIDEO;
+        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
+        String title = "test2 title from unittest";
+        String description = "test2 description from unittest";
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag);
         assertNotNull(kalturaId);
     }
 
@@ -159,16 +159,16 @@ public class KalturaApiIntegrationTest {
      *
      */
     @Test
-    public void kalturaUploadWithFlavorParam() throws Exception{
-        DsKalturaClient clientSession= getClient();
-        String file="/home/xxxx/Videos/test.mp4"; // <-- Change to local video file
-        String referenceId="ref_test_1234s";
-        MediaType mediaType=MediaType.VIDEO;
-        String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
-        String title="test3 title from unittest";
-        String description="test3 description from unittest";
+    public void kalturaUploadWithFlavorParam() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        String file = "/home/xxxx/Videos/test.mp4"; // <-- Change to local video file
+        String referenceId = "ref_test_1234s";
+        MediaType mediaType = MediaType.VIDEO;
+        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
+        String title = "test3 title from unittest";
+        String description = "test3 description from unittest";
         Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag, flavorParamId);
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, flavorParamId);
         assertNotNull(kalturaId);
     }
 
@@ -181,7 +181,7 @@ public class KalturaApiIntegrationTest {
                 conf.getInteger("partnerId"),
                 conf.getString("token"),
                 conf.getString("tokenId"),
-                conf.getString("adminSecret",null),
+                conf.getString("adminSecret", null),
                 conf.getInteger("sessionDurationSeconds", DEFAULT_SESSION_DURATION_SECONDS),
                 conf.getInteger("sessionRefreshThreshold", DEFAULT_REFRESH_THRESHOLD));
     }

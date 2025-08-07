@@ -26,19 +26,19 @@ public class KalturaAppTokenTest {
 
 
     @Test
-    public void listAppTokens() throws Exception{
+    public void listAppTokens() throws Exception {
         AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
         List<AppToken> tokens = client.listAppTokens();
         tokens.stream().forEach((appToken) -> {
-            System.out.println("token:"+appToken.getToken() +" tokenId: "+appToken.getId()+" "+appToken.getCreatedAt()+" "+appToken.getExpiry()+" "+appToken.getSessionUserId()+" "+appToken.getDescription());
+            System.out.println("token:" + appToken.getToken() + " tokenId: " + appToken.getId() + " " + appToken.getCreatedAt() + " " + appToken.getExpiry() + " " + appToken.getSessionUserId() + " " + appToken.getDescription());
         });
     }
 
     @Test
-    public void addAppToken() throws Exception{
+    public void addAppToken() throws Exception {
         AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
         AppToken appToken = client.addAppToken("description");
-        System.out.println(appToken.getId()+" "+appToken.getToken()+" "+appToken.getExpiry()+" "+appToken.getDescription());
+        System.out.println(appToken.getId() + " " + appToken.getToken() + " " + appToken.getExpiry() + " " + appToken.getDescription());
     }
 
     @Test
