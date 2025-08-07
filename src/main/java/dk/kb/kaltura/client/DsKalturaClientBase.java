@@ -88,6 +88,17 @@ public class DsKalturaClientBase {
         getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
     }
 
+    /**
+     * Builds and executes a request using the specified request builder.
+     *
+     * @param requestBuilder the request builder to create and execute the request
+     * @param refreshSession if true, refresh the session before executing the request
+     * @param retry if true, retry the request operation in case of failure
+     * @param <T> the type of the response expected from the request
+     * @return a Response object containing the results of the executed request
+     * @throws APIException if an API error occurs during the request execution
+     * @throws IOException if an I/O error occurs during the request execution
+     */
     <T> Response<?> buildAndExecute(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession, boolean retry) throws
             APIException, IOException {
         if (refreshSession) {
@@ -102,10 +113,32 @@ public class DsKalturaClientBase {
         }
     }
 
+    /**
+     * Handles a request using the specified request builder.
+     * This method defaults to refreshing the session and retrying the request.
+     *
+     * @param requestBuilder the request builder to create and execute the request
+     * @param <T> the type of the response expected from the request
+     * @return the result of the executed request
+     * @throws APIException if an API error occurs during the request execution
+     * @throws IOException if an I/O error occurs during the request execution
+     */
     <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException {
         return handleRequest(requestBuilder, true, true);
     }
 
+    /**
+     * Handles a request using the specified request builder with options to refresh the session and retry the request.
+     *
+     * @param requestBuilder the request builder to create and execute the request
+     * @param refreshSession if true, refresh the session before executing the request
+     * @param retry if true, retry the request operation in case of failure
+     * @param <T> the type of the response expected from the request
+     * @return the result of the executed request
+     * @throws APIException if an API error occurs during the request execution
+     * @throws IOException if an I/O error occurs during the request execution
+     * @throws IllegalStateException if the request builder type is null
+     */
     @SuppressWarnings("unchecked")
     <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession, boolean retry)
             throws APIException, IOException {
@@ -127,6 +160,17 @@ public class DsKalturaClientBase {
         }
     }
 
+    /**
+     * Retries a given operation a specified number of times with a delay between attempts.
+     *
+     * @param operation the operation to be executed, which may throw an exception
+     * @param retries the number of times to retry the operation upon failure
+     * @param delay the delay in milliseconds between retry attempts
+     * @param operationName a descriptive name for the operation, used for logging
+     * @param <T> the type of the result returned by the operation
+     * @return the result of the operation if successful
+     * @throws RuntimeException if the operation fails after all retry attempts
+     */
     static <T> T retryOperation(Callable<T> operation, int retries, long delay, String operationName) {
         RuntimeException lastException = null;
         for (int attempt = 1; attempt <= retries; attempt++) {
