@@ -70,7 +70,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public boolean deleteStreamByEntryId(String entryId) throws IOException, APIException {
         DeleteMediaBuilder request = MediaService.delete(entryId);
-        return buildAndExecute(request, true).isSuccess(); // no object in response. Only status
+        return buildAndExecute(request, true, true).isSuccess(); // no object in response. Only status
     }
 
     /**
@@ -86,7 +86,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public boolean blockStreamByEntryId(String entryId) throws IOException, APIException {
         RejectMediaBuilder request = MediaService.reject(entryId);
-        return buildAndExecute(request, true).isSuccess();
+        return buildAndExecute(request, true, true).isSuccess();
     }
 
     /**
@@ -117,10 +117,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
         int numberResults = mediaEntries.size();
 
         if (numberResults == 0) {
-            log.warn("No entry found at Kaltura for referenceId:" + referenceId);// warn since method it should not happen if given a valid referenceId
+            log.warn("No entry found at Kaltura for referenceId:'{}'", referenceId);// warn since method it should not happen if given a valid referenceId
             return null;
         } else if (numberResults > 1) { //Sanity, has not happened yet.
-            log.error("More that one entry was found at Kaltura for referenceId:" + referenceId); // if this happens there is a logic error with uploading records
+            log.error("More that one entry was found at Kaltura for referenceId:'{}'", referenceId); // if this happens there is a logic error with uploading records
             throw new IOException("More than 1 entry found at Kaltura for referenceId:" + referenceId);
         }
 
@@ -228,7 +228,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
         // Issue search
         ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
-        return (Response<ESearchEntryResponse>) buildAndExecute(requestBuilder, true);
+        return (Response<ESearchEntryResponse>) buildAndExecute(requestBuilder, true, true);
     }
 
     /**

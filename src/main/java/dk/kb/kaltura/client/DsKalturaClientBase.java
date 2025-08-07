@@ -88,26 +88,29 @@ public class DsKalturaClientBase {
         getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
     }
 
-    <T> Response<?> buildAndExecute(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession) throws
+    <T> Response<?> buildAndExecute(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession, boolean retry) throws
             APIException, IOException {
         if (refreshSession) {
             getClientInstance();
         }
         RequestElement<T> request = requestBuilder.build(client);
-
-        return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), RETRIES,
-                RETRY_DELAY_MILLIS, request.getTag());
+        if (retry) {
+            return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), RETRIES,
+                    RETRY_DELAY_MILLIS, request.getTag());
+        }else{
+            return APIOkRequestsExecutor.getExecutor().execute(request);
+        }
     }
 
     <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder) throws APIException, IOException {
-        return handleRequest(requestBuilder, true);
+        return handleRequest(requestBuilder, true, true);
     }
 
     @SuppressWarnings("unchecked")
-    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession)
+    <T> T handleRequest(BaseRequestBuilder<T, ?> requestBuilder, boolean refreshSession, boolean retry)
             throws APIException, IOException {
         try {
-            Response<?> response = buildAndExecute(requestBuilder, refreshSession);
+            Response<?> response = buildAndExecute(requestBuilder, refreshSession, retry);
 
             if (requestBuilder.getType() == null) {
                 throw new IllegalStateException("RequestBuilder type is null");
@@ -118,8 +121,8 @@ public class DsKalturaClientBase {
             return (T) response.results;
 
         } catch (APIException e) {
-            e.setMessage(String.format("Request %s with body: %s, Reason: %s", requestBuilder.getTag(),
-                    requestBuilder.getBody(), e.getMessage()));
+            e.setMessage(String.format("Request '%s', Reason: '%s'", requestBuilder.getTag(),
+                    e.getMessage()));
             throw e;
         }
     }
@@ -130,7 +133,7 @@ public class DsKalturaClientBase {
             try {
                 return operation.call(); // Try the operation
             } catch (Exception e) {
-                log.error("Attempt {} of {} failed: {}", attempt, operationName, e.getClass().getSimpleName(), e);
+                log.error("Attempt {} of '{}' failed: '{}'", attempt, operationName, e.getClass().getSimpleName());
                 lastException = new RuntimeException(e); // Catch the exception and save it
                 if (attempt < retries) {
                     try {
@@ -162,7 +165,7 @@ public class DsKalturaClientBase {
         } else {
             requestBuilder = SessionService.startWidgetSession(widgetId, expiry);
         }
-        StartWidgetSessionResponse results = handleRequest(requestBuilder, false);
+        StartWidgetSessionResponse results = handleRequest(requestBuilder, false, true);
         log.debug("Widget Session started successfully");
 
         return results.getKs();
@@ -178,12 +181,12 @@ public class DsKalturaClientBase {
     public void logSessionInfo(String ks) throws APIException, IOException {
 
         SessionService.GetSessionBuilder requestBuilder = SessionService.get(ks);
-        SessionInfo result = handleRequest(requestBuilder, false);
+        SessionInfo result = handleRequest(requestBuilder, false, true);
 
         // Convert Unix time to Instant
         ZonedDateTime expiry = Instant.ofEpochSecond(result.getExpiry()).atZone(ZoneId.systemDefault());
 
-        log.info("Session expiry: {}, Session type: {}, Privileges: {}", expiry,
+        log.info("Session expiry: '{}', Session type: '{}', Privileges: '{}'", expiry,
                 result.getSessionType(), result.getPrivileges());
     }
 
@@ -298,7 +301,7 @@ public class DsKalturaClientBase {
 
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
                 AppTokenService.startSession(tokenId, hash, null, type, sessionDurationSeconds);
-        return handleRequest(sessionBuilder, false).getKs();
+        return handleRequest(sessionBuilder, false, true).getKs();
     }
 
 }
