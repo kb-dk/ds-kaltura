@@ -1,15 +1,22 @@
 package dk.kb.kaltura.client;
 
-import com.kaltura.client.enums.*;
-import com.kaltura.client.services.*;
-import com.kaltura.client.services.MediaService.*;
+import com.kaltura.client.enums.ESearchEntryFieldName;
+import com.kaltura.client.enums.ESearchItemType;
+import com.kaltura.client.enums.ESearchOperatorType;
+import com.kaltura.client.enums.MediaType;
+import com.kaltura.client.services.BaseEntryService;
+import com.kaltura.client.services.ESearchService;
+import com.kaltura.client.services.MediaService;
+import com.kaltura.client.services.MediaService.AddContentMediaBuilder;
+import com.kaltura.client.services.MediaService.DeleteMediaBuilder;
+import com.kaltura.client.services.MediaService.ListMediaBuilder;
+import com.kaltura.client.services.MediaService.RejectMediaBuilder;
+import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
-import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
 
 import java.io.File;
 import java.io.IOException;
-
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;

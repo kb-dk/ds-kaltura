@@ -1,16 +1,8 @@
 package dk.kb.kaltura;
 
-import java.io.*;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kaltura.client.types.*;
+import com.kaltura.client.enums.MediaType;
+import com.kaltura.client.types.APIException;
+import dk.kb.kaltura.client.DsKalturaClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,9 +11,10 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kaltura.client.enums.MediaType;
-
-import dk.kb.kaltura.client.DsKalturaClient;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
