@@ -27,10 +27,10 @@ import java.time.ZonedDateTime;
 
 public abstract class DsKalturaClientBase {
 
-    public final int MAX_BATCH_SIZE = 500;
-    public final int MIN_BATCH_SIZE = 1;
     // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
-    private int batchSize;
+    public static final int MAX_BATCH_SIZE = 500;
+    public static final int MIN_BATCH_SIZE = 1;
+
 
     static {
         // Kaltura library uses log4j2 and will remove this error message on start up: Log4j2 could not find a logging implementation
@@ -49,6 +49,7 @@ public abstract class DsKalturaClientBase {
     private long lastSessionStart = 0;
     private final int sessionRefreshThreshold;
     private final int sessionDurationSeconds;
+    private int batchSize;
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -67,7 +68,8 @@ public abstract class DsKalturaClientBase {
      * @throws IOException If session could not be created at Kaltura
      */
     public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
-                               String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
+                               String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
+                               int batchSize) throws APIException, IOException {
         this.sessionDurationSeconds = sessionDurationSeconds;
         this.sessionRefreshThreshold = sessionRefreshThreshold;
         this.sessionKeepAliveSeconds = sessionDurationSeconds - sessionRefreshThreshold;
@@ -77,6 +79,7 @@ public abstract class DsKalturaClientBase {
         this.tokenId = tokenId;
         this.adminSecret = adminSecret;
         this.partnerId = partnerId;
+        setBatchSize(batchSize);
 
         if (sessionKeepAliveSeconds < 600) { //Enforce some kind of reuse of session since authenticating sessions
             // will accumulate at Kaltura.
@@ -217,21 +220,20 @@ public abstract class DsKalturaClientBase {
         logSessionInfo(client.getKs());
     }
 
-    private void initializeKalturaClient() throws IOException {
+    private void initializeKalturaClient() throws APIException, IOException {
         log.info("Initializing Kaltura client");
         Configuration config = new Configuration();
         config.setEndpoint(kalturaUrl);
         client = new Client(config);
         client.setPartnerId(partnerId);
-
-        getClientInstance();
+        startClientSession();//Start session now to fail now rather than later if config is wrong.
     }
 
     /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
      * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
      */
-    private synchronized Client getClientInstance() throws IOException {
+    private synchronized Client getClientInstance() throws IOException, APIException {
         try {
             if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L || client.getKs().isEmpty()) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:" +
@@ -242,9 +244,9 @@ public abstract class DsKalturaClientBase {
                 log.info("Refreshed Kaltura client session");
             }
             return client;
-        } catch (Exception e) {
+        } catch (IOException | APIException e) {
             log.warn("Connecting to Kaltura failed. KalturaUrl={},error={}", kalturaUrl, e.getMessage());
-            throw new IOException(e);
+            throw e;
         }
     }
 
@@ -254,7 +256,7 @@ public abstract class DsKalturaClientBase {
      *
      * @throws Exception
      */
-    private void startClientSession() throws Exception {
+    private void startClientSession() throws APIException, IOException {
 
         String ks = null;
         if (StringUtils.isEmpty(adminSecret)) {
@@ -263,8 +265,12 @@ public abstract class DsKalturaClientBase {
         } else {
             log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you are generating " +
                     "appTokens.");
+            try{
             ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId,
                     sessionDurationSeconds);
+            }catch (Exception e){
+                throw new RuntimeException("Error starting KalturaSession from adminSecret", e);
+            }
         }
         client.setKs(ks);
     }
@@ -278,7 +284,7 @@ public abstract class DsKalturaClientBase {
      * @throws UnsupportedEncodingException
      * @throws NoSuchAlgorithmException
      */
-    private String computeHash(String token, String ks) throws UnsupportedEncodingException, NoSuchAlgorithmException {
+    private String computeHash(String token, String ks) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update((ks + token).getBytes("UTF-8"));
@@ -294,8 +300,7 @@ public abstract class DsKalturaClientBase {
             }
             return hashString.toString();
         } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
-            log.warn("SHA-256 algorithm not available");
-            throw e;
+            throw new RuntimeException("SHA-256 algorithm not available", e);
         }
     }
 
@@ -311,18 +316,17 @@ public abstract class DsKalturaClientBase {
      *             {@link SessionType} enumeration.
      * @return Kaltura Session with privileges inherited from token
      * @throws APIException
-     * @throws UnsupportedEncodingException
-     * @throws NoSuchAlgorithmException
+     * @throws IOException
      */
-    private String startAppTokenSession(SessionType type) throws APIException,
-            IOException, NoSuchAlgorithmException {
+    private String startAppTokenSession(SessionType type) throws APIException{
         String widgetSession = startWidgetSession(sessionDurationSeconds);
         client.setKs(widgetSession);
-        String hash = computeHash(token, widgetSession);
 
+        String hash = computeHash(token, widgetSession);
         AppTokenService.StartSessionAppTokenBuilder sessionBuilder =
                 AppTokenService.startSession(tokenId, hash, null, type, sessionDurationSeconds);
         return handleRequest(sessionBuilder, false).getKs();
+
     }
 
 }

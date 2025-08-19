@@ -50,9 +50,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *                                Either a token/tokenId a adminSecret must be provided for authentication.
      * @throws IOException If session could not be created at Kaltura
      */
-    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
-        super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds, sessionRefreshThreshold);
-        setBatchSize(MAX_BATCH_SIZE);
+    public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
+                           String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException,IOException {
+        super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
+                sessionRefreshThreshold, MAX_BATCH_SIZE);
     }
     /**
      * Retrieves a {@link BaseEntry} object based on the provided entry ID.
