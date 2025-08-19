@@ -236,7 +236,6 @@ public abstract class DsKalturaClientBase {
                         (System.currentTimeMillis() - lastSessionStart));
                 //Create the client
                 startClientSession();
-                lastSessionStart = System.currentTimeMillis(); //Reset timer
                 log.info("Refreshed Kaltura client session");
             }
             return client;
@@ -269,6 +268,7 @@ public abstract class DsKalturaClientBase {
             }
         }
         client.setKs(ks);
+        lastSessionStart = System.currentTimeMillis(); //Reset timer
     }
 
     /**
