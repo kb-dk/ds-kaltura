@@ -75,7 +75,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void testErrorHandling() throws Exception {
         DsKalturaClient clientSession = getClient();
-        clientSession.getEntry("NotAEntry");
+        assertThrows(APIException.class, () -> clientSession.getEntry("NotAEntry"));
     }
 
     @Test

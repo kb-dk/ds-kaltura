@@ -2,6 +2,7 @@ package dk.kb.kaltura.jobs;
 
 import java.io.IOException;
 
+import com.kaltura.client.types.APIException;
 import dk.kb.kaltura.client.DsKalturaClient;
 import dk.kb.kaltura.config.ServiceConfig;
 
@@ -11,7 +12,7 @@ import dk.kb.kaltura.config.ServiceConfig;
  */
 public abstract class JobsBase {
 
-    public static DsKalturaClient getKalturaClient() throws IOException {
+    public static DsKalturaClient getKalturaClient() throws IOException, APIException {
 
         ServiceConfig.initialize(System.getProperty("dk.kb.applicationConfig"));        
         String kalturaUrl=ServiceConfig.getConfig().getString("kaltura.url");
