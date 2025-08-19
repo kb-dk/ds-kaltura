@@ -52,6 +52,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds, sessionRefreshThreshold);
+        setBatchSize(MAX_BATCH_SIZE);
     }
     /**
      * Retrieves a {@link BaseEntry} object based on the provided entry ID.
@@ -121,7 +122,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
         FilterPager pager = new FilterPager();
         pager.setPageIndex(1);
-        pager.setPageSize(BATCH_SIZE);
+        pager.setPageSize(getBatchSize());
 
         ListMediaBuilder request = MediaService.list(filter);
         ListResponse<MediaEntry> results = handleRequest(request);
@@ -202,7 +203,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * Simple free form term search in Kaltura.
      *
      * @param term a search term, such as {@code dr} or {@code tv avisen}.
-     * @return a list of Kaltura IDs for matching records, empty if no hits. Max result size is {@link #BATCH_SIZE}.
+     * @return a list of Kaltura IDs for matching records, empty if no hits. Max result size is {@link #getBatchSize()}.
      * @throws IOException if the remote request failed.
      */
     public List<String> searchTerm(String term) throws IOException, APIException {
@@ -218,7 +219,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
     /**
      * Generic multi search for a list of {@link ESearchEntryBaseItem items},
-     * returning at most {@link #BATCH_SIZE} results.
+     * returning at most {@link #getBatchSize()} results.
      *
      * @param items at least 1 search item.
      * @return the response from a Kaltura search for the given items.
@@ -226,9 +227,9 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     @SuppressWarnings("unchecked")
     private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws IOException, APIException {
-        if (items.size() > BATCH_SIZE) {
+        if (items.size() > getBatchSize()) {
             throw new IllegalArgumentException(
-                    "Request for " + items.size() + " items exceeds current limit of " + BATCH_SIZE);
+                    "Request for " + items.size() + " items exceeds current limit of " + getBatchSize());
         }
 
         // Setup request
@@ -238,7 +239,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
         searchParams.setSearchOperator(operator);
         operator.setSearchItems(items);
         FilterPager pager = new FilterPager();
-        pager.setPageSize(BATCH_SIZE);
+        pager.setPageSize(getBatchSize());
 
         // Issue search
         ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
@@ -288,7 +289,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
             log.debug("UploadToken '{}' successfully added.", results.getId());
             return results.getId();
         } catch (Exception e) {
-            log.debug("Adding uploadToken failed because: '{}'", e.getMessage());
+            log.warn("Adding uploadToken failed because: '{}'", e.getMessage());
             throw e;
         }
     }
@@ -324,7 +325,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
                     results.getId());
             return results.getId();
         } catch (APIException | IOException e) {
-            log.debug("Failed to upload file '{}' to upload token '{}' because: '{}'", filePath,
+            log.warn("Failed to upload file '{}' to upload token '{}' because: '{}'", filePath,
                     uploadTokenId, e.getMessage());
             throw e;
         }
@@ -358,7 +359,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
             log.debug("Added entry '{}' successfully.", results.getId());
             return results.getId();
         } catch (APIException | IOException e) {
-            log.debug("Failed to add entry with reference ID '{}' because: '{}'", referenceId,
+            log.warn("Failed to add entry with reference ID '{}' because: '{}'", referenceId,
                     e.getMessage());
             throw e;
         }
@@ -394,7 +395,13 @@ public class DsKalturaClient extends DsKalturaClientBase {
             requestBuilder = MediaService.addContent(entryId, paramContainer);
         }
 
-        return handleRequest(requestBuilder).getId();
+        try {
+            return handleRequest(requestBuilder).getId();
+        } catch (APIException | IOException e) {
+            log.warn("UploadToken '{}' was not added to entry '{}' because: '{}'", uploadtokenId, entryId,
+                    e.getMessage());
+            throw e;
+        }
     }
 
     /**

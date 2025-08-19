@@ -24,12 +24,13 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.concurrent.Callable;
 
-public class DsKalturaClientBase {
+public abstract class DsKalturaClientBase {
 
+    public final int MAX_BATCH_SIZE = 500;
+    public final int MIN_BATCH_SIZE = 1;
     // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
-    public static final int BATCH_SIZE = 100;
+    private int batchSize;
 
     static {
         // Kaltura library uses log4j2 and will remove this error message on start up: Log4j2 could not find a logging implementation
@@ -82,8 +83,19 @@ public class DsKalturaClientBase {
             throw new IllegalArgumentException("The difference between the configured sessionDurationSeconds and " +
                     "sessionRefreshThreshold (SessionKeepAliveSession) must be at least 600 seconds (10 minutes) ");
         }
+        initializeKalturaClient();
+    }
 
-        getClientInstance();// Start a session already now so it will not fail later when used if credentials fails.
+    protected int getBatchSize(){
+        return batchSize;
+    }
+
+    protected void setBatchSize(int newBatchSize){
+        if (newBatchSize >= MIN_BATCH_SIZE && newBatchSize <= MAX_BATCH_SIZE) {
+            batchSize = newBatchSize;
+        }else{
+            throw new IllegalArgumentException("The batch size must be between "+ MIN_BATCH_SIZE +" and "+ MAX_BATCH_SIZE);
+        }
     }
 
     /**
@@ -141,16 +153,14 @@ public class DsKalturaClientBase {
         try {
             Response<?> response = buildAndExecute(requestBuilder, refreshSession);
 
-            if (requestBuilder.getType() == null) {
-                throw new IllegalStateException("RequestBuilder type is null");
-            }
             if (!response.isSuccess()) {
                 throw response.error;
             }
             return (ReturnedType) response.results;
 
         } catch (APIException e) {
-            e.setMessage("Request '" + requestBuilder.getTag() + "' was unsuccessful Reason: '" + e.getMessage() + "'");
+            e.setMessage("Request '" + requestBuilder.getTag() + "' was unsuccessful. Reason: '" + e.getMessage() +
+                    "'");
             throw e;
         }
     }
@@ -164,7 +174,7 @@ public class DsKalturaClientBase {
      */
     private String startWidgetSession(@Nullable Integer expiry) throws APIException, IOException {
         log.debug("Generating Widget Session...");
-        client.setKs(null);
+        client.setKs(null); //reset session in case it ran out, else this will cause an API error.
         String widgetId = "_" + client.getPartnerId();
         SessionService.StartWidgetSessionSessionBuilder requestBuilder;
         if (expiry == null) {
@@ -207,19 +217,22 @@ public class DsKalturaClientBase {
         logSessionInfo(client.getKs());
     }
 
+    private void initializeKalturaClient() throws IOException {
+        log.info("Initializing Kaltura client");
+        Configuration config = new Configuration();
+        config.setEndpoint(kalturaUrl);
+        client = new Client(config);
+        client.setPartnerId(partnerId);
+
+        getClientInstance();
+    }
+
     /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
      * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
      */
     private synchronized Client getClientInstance() throws IOException {
         try {
-            if (client == null) {
-                log.info("Initializing Kaltura client");
-                Configuration config = new Configuration();
-                config.setEndpoint(kalturaUrl);
-                client = new Client(config);
-                client.setPartnerId(partnerId);
-            }
             if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L || client.getKs().isEmpty()) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:" +
                         (System.currentTimeMillis() - lastSessionStart));
@@ -248,7 +261,8 @@ public class DsKalturaClientBase {
             log.info("Starting KalturaSession from appToken");
             ks = startAppTokenSession(SessionType.ADMIN);
         } else {
-            log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you generating appTokens.");
+            log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you are generating " +
+                    "appTokens.");
             ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId,
                     sessionDurationSeconds);
         }
