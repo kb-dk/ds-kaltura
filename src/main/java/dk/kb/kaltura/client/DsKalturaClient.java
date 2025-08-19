@@ -51,7 +51,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException If session could not be created at Kaltura
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
-                           String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException,IOException {
+                           String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
                 sessionRefreshThreshold, MAX_BATCH_SIZE);
     }
@@ -67,10 +67,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @return a {@link BaseEntry} object representing the requested entry
      * @throws APIException if there is an error related to the API request,
      *         such as an invalid entry ID or server-side issues
-     * @throws IOException if there is a communication error during the request,
-     *         such as network issues or timeouts
      */
-    public BaseEntry getEntry(String entryId) throws APIException, IOException {
+    public BaseEntry getEntry(String entryId) throws APIException {
         return handleRequest(BaseEntryService.get(entryId));
     }
 
@@ -84,7 +82,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @return True if record was found and deleted. False if the record with the entryId could not be found in Kaltura.
      * @throws IOException if Kaltura API called failed.
      */
-    public boolean deleteStreamByEntryId(String entryId) throws IOException, APIException {
+    public boolean deleteStreamByEntryId(String entryId) throws APIException {
         DeleteMediaBuilder request = MediaService.delete(entryId);
         return buildAndExecute(request, true).isSuccess(); // no object in response. Only status
     }
@@ -100,7 +98,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @return True if record was found and blocked. False if the record with the entryId could not be found in Kaltura.
      * @throws IOException if Kaltura API called failed.
      */
-    public boolean blockStreamByEntryId(String entryId) throws IOException, APIException {
+    public boolean blockStreamByEntryId(String entryId) throws APIException {
         RejectMediaBuilder request = MediaService.reject(entryId);
         return buildAndExecute(request, true).isSuccess();
     }
@@ -227,7 +225,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException if the remote request failed.
      */
     @SuppressWarnings("unchecked")
-    private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws IOException, APIException {
+    private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws APIException {
         if (items.size() > getBatchSize()) {
             throw new IllegalArgumentException(
                     "Request for " + items.size() + " items exceeds current limit of " + getBatchSize());
@@ -282,7 +280,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      * @throws APIException
      */
-    private String addUploadToken() throws IOException, APIException {
+    private String addUploadToken() throws APIException {
         //Get a token that will allow upload
         UploadToken uploadToken = new UploadToken();
         try {
@@ -304,7 +302,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      * @throws APIException
      */
-    private String uploadFile(String uploadTokenId, String filePath) throws IOException, APIException {
+    private String uploadFile(String uploadTokenId, String filePath) throws APIException, IOException {
         //Upload the file using the upload token.
         File fileData = new File(filePath);
         boolean resume = false;
@@ -312,11 +310,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
         int resumeAt = -1;
 
         if (!fileData.exists() & !fileData.canRead()) {
-            try {
-                throw new IOException(filePath + " not accessible");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            throw new IOException(filePath + " not accessible");
         }
 
         try {
@@ -325,7 +319,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
             log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
                     results.getId());
             return results.getId();
-        } catch (APIException | IOException e) {
+        } catch (APIException e) {
             log.warn("Failed to upload file '{}' to upload token '{}' because: '{}'", filePath,
                     uploadTokenId, e.getMessage());
             throw e;
@@ -344,7 +338,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      * @throws APIException
      */
-    private String addEmptyEntry(MediaType mediaType, String title, String description, String referenceId, String tag) throws IOException, APIException {
+    private String addEmptyEntry(MediaType mediaType, String title, String description, String referenceId,
+                                 String tag) throws APIException {
         //Create entry with meta data
         MediaEntry entry = new MediaEntry();
         entry.setMediaType(mediaType);
@@ -359,7 +354,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
             MediaEntry results = handleRequest(MediaService.add(entry));
             log.debug("Added entry '{}' successfully.", results.getId());
             return results.getId();
-        } catch (APIException | IOException e) {
+        } catch (APIException e) {
             log.warn("Failed to add entry with reference ID '{}' because: '{}'", referenceId,
                     e.getMessage());
             throw e;
@@ -380,7 +375,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      */
     private String addContentToEntry(String uploadtokenId, String entryId, Integer flavorParamId)
-            throws APIException, IOException {
+            throws APIException {
 
         //Connect uploaded file with meta data entry
         UploadedFileTokenResource resource = new UploadedFileTokenResource();
@@ -398,7 +393,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
         try {
             return handleRequest(requestBuilder).getId();
-        } catch (APIException | IOException e) {
+        } catch (APIException e) {
             log.warn("UploadToken '{}' was not added to entry '{}' because: '{}'", uploadtokenId, entryId,
                     e.getMessage());
             throw e;

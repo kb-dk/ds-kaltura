@@ -116,7 +116,7 @@ public class KalturaApiIntegrationTest {
 
 
     @Test
-    public void blockStream() throws IOException, APIException {
+    public void blockStream() throws APIException {
         String entry_id = "0_xxxxxx";
         boolean success = getClient().blockStreamByEntryId(entry_id);
         assertTrue(success, "The stream was not blocked. Check that the entry id exists.");
@@ -166,7 +166,7 @@ public class KalturaApiIntegrationTest {
     }
 
 
-    private DsKalturaClient getClient() throws IOException {
+    private DsKalturaClient getClient() throws APIException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(
                 conf.getString("url"),

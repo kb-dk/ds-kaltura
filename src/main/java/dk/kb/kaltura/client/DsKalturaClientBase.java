@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -65,11 +64,10 @@ public abstract class DsKalturaClientBase {
      * @param sessionRefreshThreshold The threshold in seconds for session renewal.
      *                                <p>
      *                                Either a token/tokenId a adminSecret must be provided for authentication.
-     * @throws IOException If session could not be created at Kaltura
      */
     public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
                                String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
-                               int batchSize) throws APIException, IOException {
+                               int batchSize) throws APIException {
         this.sessionDurationSeconds = sessionDurationSeconds;
         this.sessionRefreshThreshold = sessionRefreshThreshold;
         this.sessionKeepAliveSeconds = sessionDurationSeconds - sessionRefreshThreshold;
@@ -110,10 +108,9 @@ public abstract class DsKalturaClientBase {
      * @param <SelfType>     the type of request
      * @return a Response object containing the results of the executed request
      * @throws APIException if an API error occurs during the request execution
-     * @throws IOException  if an I/O error occurs during the request execution
      */
     protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>> Response<?> buildAndExecute(SelfType requestBuilder, boolean refreshSession) throws
-            APIException, IOException {
+            APIException {
         if (refreshSession) {
             getClientInstance();
         }
@@ -130,10 +127,10 @@ public abstract class DsKalturaClientBase {
      * @param <SelfType>     the type of request
      * @return the result of the executed request
      * @throws APIException if an API error occurs during the request execution
-     * @throws IOException  if an I/O error occurs during the request execution
+
      */
     protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>>
-    ReturnedType handleRequest(SelfType requestBuilder) throws APIException, IOException {
+    ReturnedType handleRequest(SelfType requestBuilder) throws APIException{
         return handleRequest(requestBuilder, true);
     }
 
@@ -146,13 +143,13 @@ public abstract class DsKalturaClientBase {
      * @param <SelfType>     the type of request
      * @return the result of the executed request
      * @throws APIException          if an API error occurs during the request execution
-     * @throws IOException           if an I/O error occurs during the request execution
+
      * @throws IllegalStateException if the request builder type is null
      */
     @SuppressWarnings("unchecked")
     protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>>
     ReturnedType handleRequest(SelfType requestBuilder, boolean refreshSession)
-            throws APIException, IOException {
+            throws APIException {
         try {
             Response<?> response = buildAndExecute(requestBuilder, refreshSession);
 
@@ -175,7 +172,7 @@ public abstract class DsKalturaClientBase {
      *               server.
      * @return Kaltura Session
      */
-    private String startWidgetSession(@Nullable Integer expiry) throws APIException, IOException {
+    private String startWidgetSession(@Nullable Integer expiry) throws APIException {
         log.debug("Generating Widget Session...");
         client.setKs(null); //reset session in case it ran out, else this will cause an API error.
         String widgetId = "_" + client.getPartnerId();
@@ -196,9 +193,9 @@ public abstract class DsKalturaClientBase {
      *
      * @param ks Kaltura session to log
      * @throws APIException
-     * @throws IOException
+
      */
-    public void logSessionInfo(String ks) throws APIException, IOException {
+    public void logSessionInfo(String ks) throws APIException {
 
         SessionService.GetSessionBuilder requestBuilder = SessionService.get(ks);
         SessionInfo result = handleRequest(requestBuilder, false);
@@ -214,13 +211,12 @@ public abstract class DsKalturaClientBase {
      * logs SessionInfo response from SessionService.get(client.getKs()).
      *
      * @throws APIException
-     * @throws IOException
      */
-    public void logSessionInfo() throws APIException, IOException {
+    public void logSessionInfo() throws APIException{
         logSessionInfo(client.getKs());
     }
 
-    private void initializeKalturaClient() throws APIException, IOException {
+    private void initializeKalturaClient() throws APIException {
         log.info("Initializing Kaltura client");
         Configuration config = new Configuration();
         config.setEndpoint(kalturaUrl);
@@ -233,7 +229,7 @@ public abstract class DsKalturaClientBase {
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
      * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
      */
-    private synchronized Client getClientInstance() throws IOException, APIException {
+    private synchronized Client getClientInstance() throws APIException {
         try {
             if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L || client.getKs().isEmpty()) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:" +
@@ -244,7 +240,7 @@ public abstract class DsKalturaClientBase {
                 log.info("Refreshed Kaltura client session");
             }
             return client;
-        } catch (IOException | APIException e) {
+        } catch (APIException e) {
             log.warn("Connecting to Kaltura failed. KalturaUrl={},error={}", kalturaUrl, e.getMessage());
             throw e;
         }
@@ -256,7 +252,7 @@ public abstract class DsKalturaClientBase {
      *
      * @throws Exception
      */
-    private void startClientSession() throws APIException, IOException {
+    private void startClientSession() throws APIException {
 
         String ks = null;
         if (StringUtils.isEmpty(adminSecret)) {
@@ -281,8 +277,6 @@ public abstract class DsKalturaClientBase {
      * @param token AppToken String for computing hash
      * @param ks    Kaltura Widget Session for computing hash
      * @return A string representing a SHA-256 tokenHash package.
-     * @throws UnsupportedEncodingException
-     * @throws NoSuchAlgorithmException
      */
     private String computeHash(String token, String ks) {
         try {
@@ -316,7 +310,6 @@ public abstract class DsKalturaClientBase {
      *             {@link SessionType} enumeration.
      * @return Kaltura Session with privileges inherited from token
      * @throws APIException
-     * @throws IOException
      */
     private String startAppTokenSession(SessionType type) throws APIException{
         String widgetSession = startWidgetSession(sessionDurationSeconds);
