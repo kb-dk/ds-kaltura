@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- DsKalturaClient is now spilt into two classes. An abstract class called DsKalturaClientBase and DsKalturaClient 
+- DsKalturaClient is now split into two classes. An abstract class called DsKalturaClientBase and DsKalturaClient 
   that extends DsKalturaClientBase. DsKalturaClientBase maintains kaltura sessions, generically builds and sends API 
   requests to kaltura and unpacks API responses. This serves to reduce the responsibilities and complexity of each 
   method residing in child classes.
