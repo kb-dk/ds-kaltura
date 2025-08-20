@@ -87,15 +87,15 @@ public abstract class DsKalturaClientBase {
         initializeKalturaClient();
     }
 
-    protected int getBatchSize(){
+    protected int getBatchSize() {
         return batchSize;
     }
 
-    protected void setBatchSize(int newBatchSize){
+    protected void setBatchSize(int newBatchSize) {
         if (newBatchSize >= MIN_BATCH_SIZE && newBatchSize <= MAX_BATCH_SIZE) {
             batchSize = newBatchSize;
-        }else{
-            throw new IllegalArgumentException("The batch size must be between "+ MIN_BATCH_SIZE +" and "+ MAX_BATCH_SIZE);
+        } else {
+            throw new IllegalArgumentException("The batch size must be between " + MIN_BATCH_SIZE + " and " + MAX_BATCH_SIZE);
         }
     }
 
@@ -127,10 +127,9 @@ public abstract class DsKalturaClientBase {
      * @param <SelfType>     the type of request
      * @return the result of the executed request
      * @throws APIException if an API error occurs during the request execution
-
      */
     protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>>
-    ReturnedType handleRequest(SelfType requestBuilder) throws APIException{
+    ReturnedType handleRequest(SelfType requestBuilder) throws APIException {
         return handleRequest(requestBuilder, true);
     }
 
@@ -143,7 +142,6 @@ public abstract class DsKalturaClientBase {
      * @param <SelfType>     the type of request
      * @return the result of the executed request
      * @throws APIException          if an API error occurs during the request execution
-
      * @throws IllegalStateException if the request builder type is null
      */
     @SuppressWarnings("unchecked")
@@ -193,7 +191,6 @@ public abstract class DsKalturaClientBase {
      *
      * @param ks Kaltura session to log
      * @throws APIException
-
      */
     public void logSessionInfo(String ks) throws APIException {
 
@@ -212,7 +209,7 @@ public abstract class DsKalturaClientBase {
      *
      * @throws APIException
      */
-    public void logSessionInfo() throws APIException{
+    public void logSessionInfo() throws APIException {
         logSessionInfo(client.getKs());
     }
 
@@ -260,10 +257,10 @@ public abstract class DsKalturaClientBase {
         } else {
             log.warn("Starting KalturaSession from adminsecret. Use appToken instead unless you are generating " +
                     "appTokens.");
-            try{
-            ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId,
-                    sessionDurationSeconds);
-            }catch (Exception e){
+            try {
+                ks = client.generateSession(adminSecret, userId, SessionType.ADMIN, partnerId,
+                        sessionDurationSeconds);
+            } catch (Exception e) {
                 throw new RuntimeException("Error starting KalturaSession from adminSecret", e);
             }
         }
@@ -311,7 +308,7 @@ public abstract class DsKalturaClientBase {
      * @return Kaltura Session with privileges inherited from token
      * @throws APIException
      */
-    private String startAppTokenSession(SessionType type) throws APIException{
+    private String startAppTokenSession(SessionType type) throws APIException {
         String widgetSession = startWidgetSession(sessionDurationSeconds);
         client.setKs(widgetSession);
 

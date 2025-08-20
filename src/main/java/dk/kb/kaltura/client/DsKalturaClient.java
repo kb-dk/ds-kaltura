@@ -13,6 +13,7 @@ import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
+import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
 
 import java.io.File;
@@ -55,18 +56,19 @@ public class DsKalturaClient extends DsKalturaClientBase {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
                 sessionRefreshThreshold, MAX_BATCH_SIZE);
     }
+
     /**
      * Retrieves a {@link BaseEntry} object based on the provided entry ID.
-     *
+     * <p>
      * This method handles the API request to fetch the entry from the service.
      * It calls the static method {@link BaseEntryService#get(String)} to initiate
      * the retrieval process and then processes the response using the
-     * {@link handleRequest} method.
+     * {@link DsKalturaClientBase#handleRequest(BaseRequestBuilder)} method.
      *
      * @param entryId the ID of the entry to be retrieved
      * @return a {@link BaseEntry} object representing the requested entry
      * @throws APIException if there is an error related to the API request,
-     *         such as an invalid entry ID or server-side issues
+     *                      such as an invalid entry ID or server-side issues
      */
     public BaseEntry getEntry(String entryId) throws APIException {
         return handleRequest(BaseEntryService.get(entryId));
