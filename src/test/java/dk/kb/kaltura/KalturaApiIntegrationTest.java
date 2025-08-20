@@ -1,25 +1,20 @@
 package dk.kb.kaltura;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import com.kaltura.client.enums.MediaType;
 import com.kaltura.client.types.APIException;
-import com.kaltura.client.types.AppToken;
-import dk.kb.kaltura.client.AppTokenClient;
+import dk.kb.kaltura.client.DsKalturaClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.kaltura.client.enums.MediaType;
-
-import dk.kb.kaltura.client.DsKalturaClient;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -78,12 +73,18 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
+    public void testErrorHandling() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        assertThrows(APIException.class, () -> clientSession.getEntry("NotAEntry"));
+    }
+
+    @Test
     public void kalturaIDsLookup() throws IOException, APIException {
         Map<String, String> map = getClient().getKalturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
         log.debug("kalturaIDsLookup() got {} results from {} IDs", map.size(), KNOWN_PAIRS.size());
 
-        for (List<String> knownPair: KNOWN_PAIRS) {
+        for (List<String> knownPair : KNOWN_PAIRS) {
             String refID = knownPair.get(0);
             String kalID = knownPair.get(1);
             assertTrue(map.containsKey(refID), "There should be a mapping for referenceId '" + refID + "'");
@@ -98,7 +99,7 @@ public class KalturaApiIntegrationTest {
                 KNOWN_PAIRS.stream().map(e -> e.get(1)).collect(Collectors.toList()));
         log.debug("referenceIDsLookup() got {} hits for {} kalturaIDs", map.size(), KNOWN_PAIRS.size());
 
-        for (List<String> test: KNOWN_PAIRS) {
+        for (List<String> test : KNOWN_PAIRS) {
             String refID = test.get(0);
             String kalID = test.get(1);
             assertTrue(map.containsKey(kalID), "There should be a mapping for kalturaId '" + kalID + "'");
@@ -112,60 +113,37 @@ public class KalturaApiIntegrationTest {
         assertFalse(ids.isEmpty(), "Search result should not be empty");
         System.out.println(ids);
     }
-    
-    
-    @Test
-    public void blockStream() throws IOException {
-        String entry_id="0_h5p9kkqk"; // Hvornår var det nu det var  (tv, stage miljø)
-                
-        boolean  success = getClient().blockStreamByEntryId(entry_id);
-        assertTrue(success,"The steam was not blocked.Check that the entry id exists.");
-    }
-
-
-    // Old stress test to see why repeated calls failed (they don't anymore)
-    @Disabled
-    public void callKalturaApi() throws Exception{
-
-        //These data can change in Kaltura
-        String referenceId="7f7ffcbc-58dc-40bd-8ca9-12d0f9cf3ed7";
-        String kalturaInternallId="0_vvp1ozjl";
-
-        DsKalturaClient clientSession= getClient();
-
-        int success=0;
-        for (int i = 0;i<10;i++) {
-            String kalturaId = clientSession.getKalturaInternalId(referenceId);
-            assertEquals(kalturaInternallId, kalturaId,"API error was reproduced after "+success+" number of calls");
-            log.debug("API returned internal Kaltura id:"+kalturaId);
-            success++;
-            Thread.sleep(1000L);
-        }
-    }
 
 
     @Test
-    public void testDeleteEntry() throws Exception{
-        String not_found_entryId="0_xxxxxx"; //Change to an existing ID if need to test a successful deletion.        
-        DsKalturaClient clientSession= getClient();
-        boolean success= clientSession.deleteStreamByEntryId(not_found_entryId);
-        assertFalse(success); //The record does not exist in Kaltura and can therefor not be deleted.
+    public void blockStream() throws APIException {
+        String entry_id = "0_xxxxxx";
+        boolean success = getClient().blockStreamByEntryId(entry_id);
+        assertTrue(success, "The stream was not blocked. Check that the entry id exists.");
     }
-    
+
+    @Test
+    public void testDeleteEntry() throws Exception {
+        String not_found_entryId = "0_xxxxxx"; //Change to an existing ID if need to test a successful deletion.
+        DsKalturaClient clientSession = getClient();
+        boolean success = clientSession.deleteStreamByEntryId(not_found_entryId);
+        assertTrue(success); //The record does not exist in Kaltura and can therefor not be deleted.
+    }
+
     /**
-     * When uploading a file to Kaltura, remember to delete it from the Kaltura 
+     * When uploading a file to Kaltura, remember to delete it from the Kaltura
      *
      */
     @Test
-    public void kalturaUpload() throws Exception{
-        DsKalturaClient clientSession= getClient();
-        String file="/home/xxxx/Videos/test1.mp4"; // <-- Change to local video file
-        String referenceId="ref_test_1234s";
-        MediaType mediaType=MediaType.VIDEO;
-        String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
-        String title="test2 title from unittest";
-        String description="test2 description from unittest";
-        String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag);
+    public void kalturaUpload() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        String file = "/home/xxxx/Videos/test1.mp4"; // <-- Change to local video file
+        String referenceId = "ref_test_1234s";
+        MediaType mediaType = MediaType.VIDEO;
+        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
+        String title = "test2 title from unittest";
+        String description = "test2 description from unittest";
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag);
         assertNotNull(kalturaId);
     }
 
@@ -174,42 +152,21 @@ public class KalturaApiIntegrationTest {
      *
      */
     @Test
-    public void kalturaUploadWithFlavorParam() throws Exception{
-        DsKalturaClient clientSession= getClient();
-        String file="/home/xxxx/Videos/test.mp4"; // <-- Change to local video file
-        String referenceId="ref_test_1234s";
-        MediaType mediaType=MediaType.VIDEO;
-        String tag="DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
-        String title="test3 title from unittest";
-        String description="test3 description from unittest";
+    public void kalturaUploadWithFlavorParam() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        String file = "/home/xxxx/Videos/test.mp4"; // <-- Change to local video file
+        String referenceId = "ref_test_1234s";
+        MediaType mediaType = MediaType.VIDEO;
+        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
+        String title = "test3 title from unittest";
+        String description = "test3 description from unittest";
         Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        String kalturaId = clientSession.uploadMedia(file,referenceId,mediaType,title,description,tag, flavorParamId);
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, flavorParamId);
         assertNotNull(kalturaId);
     }
 
-    @Test
-    public void listAppTokens() throws Exception{
-        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
-        List<AppToken> tokens = client.listAppTokens();
-        tokens.stream().forEach((appToken) -> {
-            System.out.println("token:"+appToken.getToken() +" tokenId: "+appToken.getId()+" "+appToken.getCreatedAt()+" "+appToken.getExpiry()+" "+appToken.getSessionUserId()+" "+appToken.getDescription());
-        });
-    }
 
-    @Test
-    public void addAppToken() throws Exception{
-        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
-        AppToken appToken = client.addAppToken("description");
-        System.out.println(appToken.getId()+" "+appToken.getToken()+" "+appToken.getExpiry()+" "+appToken.getDescription());
-    }
-
-    @Test
-    public void deleteAppToken() throws Exception {
-        AppTokenClient client = new AppTokenClient(ServiceConfig.getConfig().getString("kaltura.adminSecret"));
-        client.deleteAppToken("");
-    }
-
-    private DsKalturaClient getClient() throws IOException {
+    private DsKalturaClient getClient() throws APIException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(
                 conf.getString("url"),
@@ -217,7 +174,7 @@ public class KalturaApiIntegrationTest {
                 conf.getInteger("partnerId"),
                 conf.getString("token"),
                 conf.getString("tokenId"),
-                conf.getString("adminSecret",null),
+                conf.getString("adminSecret", null),
                 conf.getInteger("sessionDurationSeconds", DEFAULT_SESSION_DURATION_SECONDS),
                 conf.getInteger("sessionRefreshThreshold", DEFAULT_REFRESH_THRESHOLD));
     }
