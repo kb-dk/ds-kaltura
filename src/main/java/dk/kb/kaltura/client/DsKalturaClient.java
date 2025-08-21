@@ -86,7 +86,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public boolean deleteStreamByEntryId(String entryId) throws APIException {
         DeleteMediaBuilder request = MediaService.delete(entryId);
-        return buildAndExecute(request, true).isSuccess(); // no object in response. Only status
+        return buildAndExecute(request, true, true).isSuccess(); // no object in response. Only status
     }
 
     /**
@@ -102,7 +102,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public boolean blockStreamByEntryId(String entryId) throws APIException {
         RejectMediaBuilder request = MediaService.reject(entryId);
-        return buildAndExecute(request, true).isSuccess();
+        return buildAndExecute(request, true, true).isSuccess();
     }
 
     /**
@@ -244,7 +244,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
         // Issue search
         ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
-        return (Response<ESearchEntryResponse>) buildAndExecute(requestBuilder, true);
+        return (Response<ESearchEntryResponse>) buildAndExecute(requestBuilder, true, true);
     }
 
     /**

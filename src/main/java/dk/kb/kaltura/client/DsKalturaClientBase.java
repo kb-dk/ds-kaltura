@@ -28,9 +28,10 @@ import java.util.concurrent.Callable;
 
 public class DsKalturaClientBase {
 
-    // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
     public static final int RETRIES = 3;
     public static final int RETRY_DELAY_MILLIS = 1000;
+
+    // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
     public static final int MAX_BATCH_SIZE = 500;
     public static final int MIN_BATCH_SIZE = 1;
 
@@ -116,7 +117,7 @@ public class DsKalturaClientBase {
      */
     protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>> Response<?> buildAndExecute(SelfType requestBuilder, boolean refreshSession,
                                        boolean retry) throws
-            APIException, IOException {
+            APIException {
         if (refreshSession) {
             getClientInstance();
         }
@@ -140,7 +141,7 @@ public class DsKalturaClientBase {
      * @throws APIException if an API error occurs during the request execution
      */
     protected <ReturnedType,SelfType extends BaseRequestBuilder<ReturnedType, SelfType>>
-        ReturnedType handleRequest(SelfType requestBuilder) throws APIException, IOException {
+    ReturnedType handleRequest(SelfType requestBuilder) throws APIException {
         return handleRequest(requestBuilder, true, true);
     }
 
