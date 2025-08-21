@@ -27,8 +27,8 @@ import java.util.concurrent.Callable;
 
 public class DsKalturaClientBase {
 
-    public static final int NUMBER_OF_RETRIES = 3;
-    public static final int RETRY_DELAY_MILLIS = 1000;
+    public static final int DEFAULT_NUMBER_OF_RETRIES = 3;
+    public static final int DEFAULT_RETRY_DELAY_MILLIS = 10_000;
 
     // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
     public static final int MAX_BATCH_SIZE = 500;
@@ -53,6 +53,8 @@ public class DsKalturaClientBase {
     private final int sessionRefreshThreshold;
     private final int sessionDurationSeconds;
     private int batchSize;
+    private final int numberOfRetries;
+    private final int retryDelayMillis;
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -71,7 +73,7 @@ public class DsKalturaClientBase {
      */
     public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
                                String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
-                               int batchSize) throws APIException {
+                               int batchSize, int numberOfRetries, int retryDelayMillis) throws APIException {
         this.sessionDurationSeconds = sessionDurationSeconds;
         this.sessionRefreshThreshold = sessionRefreshThreshold;
         this.sessionKeepAliveSeconds = sessionDurationSeconds - sessionRefreshThreshold;
@@ -81,6 +83,9 @@ public class DsKalturaClientBase {
         this.tokenId = tokenId;
         this.adminSecret = adminSecret;
         this.partnerId = partnerId;
+        this.numberOfRetries = numberOfRetries;
+        this.retryDelayMillis = retryDelayMillis;
+
         setBatchSize(batchSize);
 
         if (sessionKeepAliveSeconds < 600) { //Enforce some kind of reuse of session since authenticating sessions
@@ -89,6 +94,13 @@ public class DsKalturaClientBase {
                     "sessionRefreshThreshold (SessionKeepAliveSession) must be at least 600 seconds (10 minutes) ");
         }
         initializeKalturaClient();
+    }
+
+    public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
+                               String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
+                               int batchSize) throws APIException {
+        this(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
+                sessionRefreshThreshold, batchSize, DEFAULT_NUMBER_OF_RETRIES, DEFAULT_RETRY_DELAY_MILLIS);
     }
 
     protected int getBatchSize() {
@@ -122,8 +134,8 @@ public class DsKalturaClientBase {
         }
         RequestElement<ReturnedType> request = requestBuilder.build(client);
         if (retry) {
-            return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), NUMBER_OF_RETRIES,
-                    RETRY_DELAY_MILLIS, request.getTag());
+            return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), numberOfRetries,
+                    retryDelayMillis, request.getTag());
         }else{
             return APIOkRequestsExecutor.getExecutor().execute(request);
         }
@@ -290,7 +302,7 @@ public class DsKalturaClientBase {
      * Start a creates a new Kaltura session and add it to client. If secret is available in conf, it will take
      * precedent over appTokens.
      *
-     * @throws Exception
+     * @throws APIException
      */
     private void startClientSession() throws APIException {
 
