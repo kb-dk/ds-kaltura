@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -28,7 +27,7 @@ import java.util.concurrent.Callable;
 
 public class DsKalturaClientBase {
 
-    public static final int RETRIES = 3;
+    public static final int NUMBER_OF_RETRIES = 3;
     public static final int RETRY_DELAY_MILLIS = 1000;
 
     // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
@@ -123,7 +122,7 @@ public class DsKalturaClientBase {
         }
         RequestElement<ReturnedType> request = requestBuilder.build(client);
         if (retry) {
-            return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), RETRIES,
+            return retryOperation(() -> APIOkRequestsExecutor.getExecutor().execute(request), NUMBER_OF_RETRIES,
                     RETRY_DELAY_MILLIS, request.getTag());
         }else{
             return APIOkRequestsExecutor.getExecutor().execute(request);
