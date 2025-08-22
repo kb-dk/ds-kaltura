@@ -218,6 +218,16 @@ public class DsKalturaClient extends DsKalturaClientBase {
         return (Response<ESearchEntryResponse>) response;
     }
 
+    /**
+     * Creates a search entry builder for the given list of ESearchEntryBaseItems.
+     *
+     * <p>Validates that the list size does not exceed the current batch size limit.
+     * Configures search parameters with an OR operator and sets up pagination.</p>
+     *
+     * @param items a list of {@link ESearchEntryBaseItem} to search. Must not exceed the batch size limit.
+     * @return an instance of {@link ESearchService.SearchEntryESearchBuilder} configured for the search.
+     * @throws IllegalArgumentException if the size of {@code items} exceeds the batch size limit.
+     */
     private ESearchService.SearchEntryESearchBuilder getSearchEntryESearchBuilder(List<ESearchEntryBaseItem> items) {
         if (items.size() > getBatchSize()) {
             throw new IllegalArgumentException(
