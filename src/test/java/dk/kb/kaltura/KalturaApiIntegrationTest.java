@@ -35,10 +35,10 @@ public class KalturaApiIntegrationTest {
     // TODO: Add a step to setup() creating test kaltura<->reference IDs 
     public static final String KALTURA_ID1 = "0_954nx5eh";
     public static final String KALTURA_ID2 = "0_sjjppu7s";
-    public static final String KALTURA_ID3 = "0_zo7k1tgh";
+    public static final String KALTURA_ID3 = "0_zo7k1tgh"; //Rejected
     public static final String REFERENCE_ID1 = "0b1af131-879a-4286-8637-50f0f4b0705f";
     public static final String REFERENCE_ID2 = "9ee1e45a-60e4-4a9d-a44e-72c089bc924d";
-    public static final String REFERENCE_ID3 = "8cd60e55-72a2-482e-9715-67a2f884a285";
+    public static final String REFERENCE_ID3 = "8cd60e55-72a2-482e-9715-67a2f884a285"; //Rejected
 
     // referenceID, kalturaID
     public static final List<List<String>> KNOWN_PAIRS_1 = List.of(
@@ -78,8 +78,29 @@ public class KalturaApiIntegrationTest {
         assertThrows(APIException.class, () -> clientSession.getEntry("NotAEntry"));
     }
 
+
     @Test
-    public void kalturaIDsLookup() throws IOException, APIException {
+    public void kalturaIDLookup() throws IOException, APIException {
+        DsKalturaClient client = getClient();
+        // Known pairs with different moderationStatus
+        for (List<String> knownPair : KNOWN_PAIRS) {
+            String refID = knownPair.get(0);
+            String kalID = knownPair.get(1);
+
+            String res = client.getKalturaInternalId(refID);
+            assertEquals(kalID, res);
+        }
+
+        //No Entry with refID
+        String res = client.getKalturaInternalId("notRefId");
+        assertNull(res);
+
+        //More than one entry with refID
+        assertThrows(IOException.class, () -> client.getKalturaInternalId("ref_test_1234s"));
+    }
+
+    @Test
+    public void kalturaIDsLookup() throws APIException {
         Map<String, String> map = getClient().getKalturaIds(
                 KNOWN_PAIRS.stream().map(e -> e.get(0)).collect(Collectors.toList()));
         log.debug("kalturaIDsLookup() got {} results from {} IDs", map.size(), KNOWN_PAIRS.size());

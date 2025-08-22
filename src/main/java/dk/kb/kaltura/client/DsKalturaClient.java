@@ -1,9 +1,6 @@
 package dk.kb.kaltura.client;
 
-import com.kaltura.client.enums.ESearchEntryFieldName;
-import com.kaltura.client.enums.ESearchItemType;
-import com.kaltura.client.enums.ESearchOperatorType;
-import com.kaltura.client.enums.MediaType;
+import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
 import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
@@ -15,6 +12,7 @@ import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -115,32 +113,20 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @return The Kaltura id (internal id). Return null if the refId is not found.
      * @throws IOException if Kaltura called failed, or more than 1 entry was found with the referenceId.
      */
-    @SuppressWarnings("unchecked")
     public String getKalturaInternalId(String referenceId) throws IOException, APIException {
-
-        MediaEntryFilter filter = new MediaEntryFilter();
-        filter.setReferenceIdEqual(referenceId);
-
-        FilterPager pager = new FilterPager();
-        pager.setPageIndex(1);
-        pager.setPageSize(getBatchSize());
-
-        ListMediaBuilder request = MediaService.list(filter);
-        ListResponse<MediaEntry> results = handleRequest(request);
-
-        List<MediaEntry> mediaEntries = results.getObjects();
-
-        int numberResults = mediaEntries.size();
+        List<ESearchEntryBaseItem> items = List.of(createReferenceIdItem(referenceId));
+        ESearchEntryResponse response = handleRequest(getSearchEntryESearchBuilder(items));
+        int numberResults = response.getTotalCount();
 
         if (numberResults == 0) {
-            log.warn("No entry found at Kaltura for referenceId:'{}'", referenceId);// warn since method it should not happen if given a valid referenceId
+            log.info("No entry found at Kaltura for referenceId:'{}'", referenceId);
             return null;
         } else if (numberResults > 1) { //Sanity, has not happened yet.
             log.error("More that one entry was found at Kaltura for referenceId:'{}'", referenceId); // if this happens there is a logic error with uploading records
             throw new IOException("More than 1 entry found at Kaltura for referenceId:" + referenceId);
         }
 
-        return results.getObjects().get(0).getId();
+        return response.getObjects().get(0).getObject().getId();
     }
 
     /**
@@ -151,7 +137,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * Unresolvable {@code referenceIDs} will not be present in the map.
      * @throws IOException if the remote request failed.
      */
-    public Map<String, String> getKalturaIds(List<String> referenceIds) throws IOException, APIException {
+    public Map<String, String> getKalturaIds(List<String> referenceIds) throws APIException {
         if (referenceIds.isEmpty()) {
             log.info("getKulturaInternalIds(referenceIDs) called with empty list of IDs");
             return Collections.emptyMap();
@@ -228,6 +214,11 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     @SuppressWarnings("unchecked")
     private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws APIException {
+        Response<?> response = buildAndExecute(getSearchEntryESearchBuilder(items), true);
+        return (Response<ESearchEntryResponse>) response;
+    }
+
+    private ESearchService.SearchEntryESearchBuilder getSearchEntryESearchBuilder(List<ESearchEntryBaseItem> items) {
         if (items.size() > getBatchSize()) {
             throw new IllegalArgumentException(
                     "Request for " + items.size() + " items exceeds current limit of " + getBatchSize());
@@ -242,9 +233,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
         FilterPager pager = new FilterPager();
         pager.setPageSize(getBatchSize());
 
-        // Issue search
-        ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
-        return (Response<ESearchEntryResponse>) buildAndExecute(requestBuilder, true);
+        return ESearchService.searchEntry(searchParams, pager);
     }
 
     /**
