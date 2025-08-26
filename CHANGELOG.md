@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that extends DsKalturaClientBase. DsKalturaClientBase maintains kaltura sessions, generically builds and sends API 
   requests to kaltura and unpacks API responses. This serves to reduce the responsibilities and complexity of each 
   method residing in child classes.
+- Changed getKalturaInternalId to detect entries that are rejected.
 
 ### Added
 
