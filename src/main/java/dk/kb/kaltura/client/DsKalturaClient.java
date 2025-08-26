@@ -112,7 +112,9 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *
      * @param referenceId External reference ID given when uploading the entry to Kaltura.
      * @return The Kaltura id (internal id). Return null if the refId is not found.
-     * @throws IOException if Kaltura called failed, or more than 1 entry was found with the referenceId.
+     * @throws IOException if more than 1 entry was found with the referenceId.
+     * @throws APIException if the client failed to establish an kaltura session or if the request itself was
+     * unsuccessful.
      */
     public String getKalturaInternalId(String referenceId) throws IOException, APIException {
         List<ESearchEntryBaseItem> items = List.of(createReferenceIdItem(referenceId));
@@ -136,7 +138,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param referenceIds a list of {@code referenceIDs}, typically UUIDs from stream filenames.
      * @return a map from {@code referenceID} to {@code kalturaID}.
      * Unresolvable {@code referenceIDs} will not be present in the map.
-     * @throws IOException if the remote request failed.
+     * @throws APIException if the client failed to establish an kaltura session or if the request itself was
+     * unsuccessful.
      */
     public Map<String, String> getKalturaIds(List<String> referenceIds) throws APIException {
         if (referenceIds.isEmpty()) {
