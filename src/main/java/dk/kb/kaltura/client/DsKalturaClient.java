@@ -9,7 +9,6 @@ import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
 import com.kaltura.client.services.MediaService.AddContentMediaBuilder;
 import com.kaltura.client.services.MediaService.DeleteMediaBuilder;
-import com.kaltura.client.services.MediaService.ListMediaBuilder;
 import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
@@ -113,34 +112,24 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *
      * @param referenceId External reference ID given when uploading the entry to Kaltura.
      * @return The Kaltura id (internal id). Return null if the refId is not found.
-     * @throws IOException if Kaltura called failed, or more than 1 entry was found with the referenceId.
+     * @throws IOException  if more than 1 entry was found with the referenceId.
+     * @throws APIException if the client failed to establish an kaltura session or if the request itself was
+     *                      unsuccessful.
      */
-    @SuppressWarnings("unchecked")
     public String getKalturaInternalId(String referenceId) throws IOException, APIException {
-
-        MediaEntryFilter filter = new MediaEntryFilter();
-        filter.setReferenceIdEqual(referenceId);
-
-        FilterPager pager = new FilterPager();
-        pager.setPageIndex(1);
-        pager.setPageSize(getBatchSize());
-
-        ListMediaBuilder request = MediaService.list(filter);
-        ListResponse<MediaEntry> results = handleRequest(request);
-
-        List<MediaEntry> mediaEntries = results.getObjects();
-
-        int numberResults = mediaEntries.size();
+        List<ESearchEntryBaseItem> items = List.of(createReferenceIdItem(referenceId));
+        ESearchEntryResponse response = handleRequest(getSearchEntryESearchBuilder(items));
+        int numberResults = response.getTotalCount();
 
         if (numberResults == 0) {
-            log.warn("No entry found at Kaltura for referenceId:'{}'", referenceId);// warn since method it should not happen if given a valid referenceId
+            log.info("No entry found at Kaltura for referenceId:'{}'", referenceId);
             return null;
         } else if (numberResults > 1) { //Sanity, has not happened yet.
             log.error("More that one entry was found at Kaltura for referenceId:'{}'", referenceId); // if this happens there is a logic error with uploading records
             throw new IOException("More than 1 entry found at Kaltura for referenceId:" + referenceId);
         }
 
-        return results.getObjects().get(0).getId();
+        return response.getObjects().get(0).getObject().getId();
     }
 
     /**
@@ -149,9 +138,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param referenceIds a list of {@code referenceIDs}, typically UUIDs from stream filenames.
      * @return a map from {@code referenceID} to {@code kalturaID}.
      * Unresolvable {@code referenceIDs} will not be present in the map.
-     * @throws IOException if the remote request failed.
+     * @throws APIException if the client failed to establish an kaltura session or if the request itself was
+     *                      unsuccessful.
      */
-    public Map<String, String> getKalturaIds(List<String> referenceIds) throws IOException, APIException {
+    public Map<String, String> getKalturaIds(List<String> referenceIds) throws APIException {
         if (referenceIds.isEmpty()) {
             log.info("getKulturaInternalIds(referenceIDs) called with empty list of IDs");
             return Collections.emptyMap();
@@ -228,6 +218,21 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     @SuppressWarnings("unchecked")
     private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws APIException {
+        Response<?> response = buildAndExecute(getSearchEntryESearchBuilder(items), true);
+        return (Response<ESearchEntryResponse>) response;
+    }
+
+    /**
+     * Creates a search entry builder for the given list of ESearchEntryBaseItems.
+     *
+     * <p>Validates that the list size does not exceed the current batch size limit.
+     * Configures search parameters with an OR operator and sets up pagination.</p>
+     *
+     * @param items a list of {@link ESearchEntryBaseItem} to search. Must not exceed the batch size limit.
+     * @return an instance of {@link ESearchService.SearchEntryESearchBuilder} configured for the search.
+     * @throws IllegalArgumentException if the size of {@code items} exceeds the batch size limit.
+     */
+    private ESearchService.SearchEntryESearchBuilder getSearchEntryESearchBuilder(List<ESearchEntryBaseItem> items) {
         if (items.size() > getBatchSize()) {
             throw new IllegalArgumentException(
                     "Request for " + items.size() + " items exceeds current limit of " + getBatchSize());
@@ -242,9 +247,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
         FilterPager pager = new FilterPager();
         pager.setPageSize(getBatchSize());
 
-        // Issue search
-        ESearchService.SearchEntryESearchBuilder requestBuilder = ESearchService.searchEntry(searchParams, pager);
-        return (Response<ESearchEntryResponse>) buildAndExecute(requestBuilder, true);
+        return ESearchService.searchEntry(searchParams, pager);
     }
 
     /**
