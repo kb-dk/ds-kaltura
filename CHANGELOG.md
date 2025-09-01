@@ -7,13 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+
+### Added
+
+
+## [3.0.2] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.2) - 2025-09-01
+### Changed
 - DsKalturaClient is now split into two classes. An abstract class called DsKalturaClientBase and DsKalturaClient 
   that extends DsKalturaClientBase. DsKalturaClientBase maintains kaltura sessions, generically builds and sends API 
   requests to kaltura and unpacks API responses. This serves to reduce the responsibilities and complexity of each 
   method residing in child classes.
 - Changed getKalturaInternalId to detect entries that are rejected.
-
-### Added
 
 ## [3.0.1] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.1) - 2025-07-07
 ### Changed
