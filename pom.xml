@@ -10,14 +10,14 @@
     
     <groupId>dk.kb.kaltura</groupId>
     <artifactId>ds-kaltura</artifactId>
-    <version>3.0.2-SNAPSHOT</version>
+    <version>3.0.2</version>
     <packaging>jar</packaging>
 
    <scm>
      <url>https://github.com/kb-dk/ds-kaltura</url>
      <connection>scm:git:git@github.com:kb-dk/ds-kaltura.git</connection>
      <developerConnection>scm:git:git@github.com:kb-dk/ds-kaltura.git</developerConnection>
-     <tag>HEAD</tag>
+     <tag>ds-kaltura-3.0.2</tag>
     </scm>
 
   <properties>
