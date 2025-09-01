@@ -5,7 +5,7 @@
     <parent>
         <groupId>dk.kb.dsparent</groupId>
         <artifactId>ds-parent</artifactId>
-        <version>3.0.1-SNAPSHOT</version>
+        <version>3.0.0</version>
     </parent>
     
     <groupId>dk.kb.kaltura</groupId>
@@ -35,11 +35,11 @@
   </properties>
 
   <dependencies>
-      <dependency>
-          <groupId>dk.kb.dsshared</groupId>
-          <artifactId>ds-shared</artifactId>
-          <version>3.0.0-SNAPSHOT</version>
-      </dependency>
+<!--      <dependency>-->
+<!--          <groupId>dk.kb.dsshared</groupId>-->
+<!--          <artifactId>ds-shared</artifactId>-->
+<!--          <version>3.0.0</version>-->
+<!--      </dependency>-->
       
     <!--Command line -->
     <dependency>
