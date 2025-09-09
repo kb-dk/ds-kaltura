@@ -51,7 +51,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     @SuppressWarnings("unchecked")
     public <T extends BaseEntryFilter, E extends BaseEntry, B extends BaseRequestBuilder<ListResponse<E>, B>> void
-        exportAllEntriesToFile(T filter, BiFunction<T, FilterPager, B> service, String filename) {
+    exportAllEntriesToFile(T filter, BiFunction<T, FilterPager, B> service, String filename) {
 
         //TODO: BUGFIX - This creates duplicates entries.
         FilterPager pager = new FilterPager();
@@ -106,7 +106,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         } catch (APIException e) {
             throw new RuntimeException(e);
         }
-
     }
 
     public Map<String, String> getReportTable(ReportType reportType, ReportInputFilter reportInputFilter,
