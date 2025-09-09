@@ -2,17 +2,18 @@ package dk.kb.kaltura.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.kaltura.client.enums.*;
-import com.kaltura.client.services.*;
+import com.kaltura.client.enums.ReportOrderBy;
+import com.kaltura.client.enums.ReportType;
+import com.kaltura.client.services.BaseEntryService;
+import com.kaltura.client.services.MediaService;
+import com.kaltura.client.services.ReportService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
-import org.yaml.snakeyaml.reader.StreamReader;
 
 import java.io.*;
-
-import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -82,12 +83,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                 log.info("Page: " + pager.getPageIndex());
                 log.info("Response.size(): {}, total received: {}", result.size(), count);
                 log.info("LatstCreatedTimeStamp: {}", lastCreatedTimeStamp);
+
+                ObjectMapper mapper = new ObjectMapper();
                 for (BaseEntry mediaEntry : result) {
                     if (lastEntry.getId().equals(mediaEntry.getId())) {
                         continue;
                     }
-                    String json = new Gson().toJson(mediaEntry);
-                    writer.write(json);
+                    mapper.writeValue(writer, mediaEntry);
                     writer.newLine();
 
                 }
