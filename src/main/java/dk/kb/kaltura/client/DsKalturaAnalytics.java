@@ -18,7 +18,6 @@ import java.util.stream.Stream;
 
 
 public class DsKalturaAnalytics extends DsKalturaClientBase {
-    final int MAX_RESULT_SIZE = 10000;
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
