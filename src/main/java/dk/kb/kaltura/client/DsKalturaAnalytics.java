@@ -36,27 +36,30 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      *                                Either a token/tokenId a adminSecret must be provided for authentication.
      * @throws IOException If session could not be created at Kaltura
      */
-    public DsKalturaAnalytics(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws IOException {
-        super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds, sessionRefreshThreshold);
+    public DsKalturaAnalytics(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException {
+        super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
+                sessionRefreshThreshold, MAX_BATCH_SIZE);
     }
 
-    public int countAllBaseEntries(BaseEntryFilter filter) throws IOException, APIException {
+    public int countAllBaseEntries(BaseEntryFilter filter) throws APIException {
         return handleRequest(BaseEntryService.count(filter));
     }
 
-    public int countAllMediaEntries(MediaEntryFilter filter) throws IOException, APIException {
+    public int countAllMediaEntries(MediaEntryFilter filter) throws APIException {
         return handleRequest(MediaService.count(filter));
     }
 
-    public <T extends BaseEntryFilter> void exportAllEntriesToFile(T filter, BiFunction<T, FilterPager,
-            BaseRequestBuilder> service, String filename) {
+    @SuppressWarnings("unchecked")
+    public <T extends BaseEntryFilter, E extends BaseEntry, B extends BaseRequestBuilder<ListResponse<E>, B>> void
+        exportAllEntriesToFile(T filter, BiFunction<T, FilterPager, B> service, String filename) {
+
         //TODO: BUGFIX - This creates duplicates entries.
         FilterPager pager = new FilterPager();
-        pager.setPageSize(BATCH_SIZE);
+        pager.setPageSize(getBatchSize());
         pager.setPageIndex(1);
         filter.setOrderBy("createdAt_ASC");
 
-        int maxPages = MAX_RESULT_SIZE / BATCH_SIZE;
+        int maxPages = MAX_RESULT_SIZE / getBatchSize();
         Long lastCreatedTimeStamp = null;
         BaseEntry lastEntry;
         int count = 0;
@@ -70,9 +73,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                     pager.setPageIndex(1);
                 }
 
-                BaseRequestBuilder<ListResponse<BaseEntry>, ?> listBuilder = service.apply(filter, pager);
+                B listBuilder = service.apply(filter, pager);
 
-                result = handleRequest(listBuilder).getObjects();
+                result = (List<BaseEntry>) handleRequest(listBuilder).getObjects();
                 count += result.size();
                 lastEntry = result.get(result.size() - 1);
                 lastCreatedTimeStamp = lastEntry.getCreatedAt();
@@ -106,17 +109,16 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     }
 
-
     public Map<String, String> getReportTable(ReportType reportType, ReportInputFilter reportInputFilter,
-                                              String order, String objectIds) throws IOException, APIException {
+                                              String order, String objectIds) throws APIException {
         FilterPager pager = new FilterPager();
-        pager.setPageSize(BATCH_SIZE);
+        pager.setPageSize(getBatchSize());
 
         StringBuilder rawData = new StringBuilder();
-        int totalCount = BATCH_SIZE;
+        int totalCount = getBatchSize();
         int index = 0;
         String header = "";
-        while (totalCount > BATCH_SIZE * index && MAX_RESULT_SIZE > BATCH_SIZE * index) {
+        while (totalCount > getBatchSize() * index && MAX_RESULT_SIZE > getBatchSize() * index) {
             totalCount = 0;
             index++;
             pager.setPageIndex(index);

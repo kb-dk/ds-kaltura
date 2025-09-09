@@ -70,7 +70,7 @@ public class KalturaAnalyticsTest {
         MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
         mediaEntryFilter.setModerationStatusEqual(EntryModerationStatus.REJECTED);
         String filename = "RejectedEntries_test.json";
-        client.exportAllEntriesToFile(mediaEntryFilter, (filter, pager) -> MediaService.list(filter, pager), filename);
+        client.exportAllEntriesToFile(mediaEntryFilter, MediaService::list, filename);
     }
 
     @Test
@@ -80,7 +80,7 @@ public class KalturaAnalyticsTest {
         mediaEntryFilter.statusNotIn("notAStatus");
         mediaEntryFilter.moderationStatusNotIn("notAStatus");
         String filename = "ReadyEntries.json";
-        client.exportAllEntriesToFile(mediaEntryFilter, (filter, pager) -> MediaService.list(filter, pager), filename);
+        client.exportAllEntriesToFile(mediaEntryFilter, MediaService::list, filename);
 
     }
 
@@ -91,7 +91,7 @@ public class KalturaAnalyticsTest {
         mediaEntryFilter.statusNotIn("notAStatus");
         mediaEntryFilter.moderationStatusNotIn("notAStatus");
         String filename = "AllEntriesProd2.json";
-        client.exportAllEntriesToFile(mediaEntryFilter, (filter, pager) -> MediaService.list(filter, pager),
+        client.exportAllEntriesToFile(mediaEntryFilter, MediaService::list,
                 filename);
     }
 
@@ -235,7 +235,7 @@ public class KalturaAnalyticsTest {
         }
     }
 
-    private DsKalturaAnalytics getClient() throws IOException {
+    private DsKalturaAnalytics getClient() throws APIException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaAnalytics(
                 conf.getString("url"),
