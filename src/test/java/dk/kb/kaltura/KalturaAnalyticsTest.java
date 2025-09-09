@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-
 import java.io.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -65,7 +64,7 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void listAllRejectedEntriesGenericTest() throws Exception{
+    public void listAllRejectedEntriesGenericTest() throws Exception {
         DsKalturaAnalytics client = getClient();
         MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
         mediaEntryFilter.setModerationStatusEqual(EntryModerationStatus.REJECTED);
@@ -74,7 +73,7 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void listAllReadyEntriesGenericTest() throws Exception{
+    public void listAllReadyEntriesGenericTest() throws Exception {
         DsKalturaAnalytics client = getClient();
         MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
         mediaEntryFilter.statusNotIn("notAStatus");
@@ -85,7 +84,7 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void listAllEntriesGenericTest() throws Exception{
+    public void listAllEntriesGenericTest() throws Exception {
         DsKalturaAnalytics client = getClient();
         MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
         mediaEntryFilter.statusNotIn("notAStatus");
@@ -169,11 +168,11 @@ public class KalturaAnalyticsTest {
         String toDay = "20261231";
         String domain = "www.kb.dk";
         String outputFilePath =
-                "src/test/resources/test_files/TOP_CONTENT-"+fromDay+"-"+ toDay+ "-" + conf.getString("partnerId") +
+                "src/test/resources/test_files/TOP_CONTENT-" + fromDay + "-" + toDay + "-" + conf.getString("partnerId") +
                         "-" + LocalDate.now();
         String inputFilePath = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/AllEntriesProd1.json";
 
-        ReportInputFilter filter = new  ReportInputFilter();
+        ReportInputFilter filter = new ReportInputFilter();
         filter.setDomainIn(domain);
         filter.setFromDay(fromDay);
         filter.setToDay(toDay);
@@ -184,34 +183,34 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void getReportFromEntryIds() throws Exception{
+    public void getReportFromEntryIds() throws Exception {
         DsKalturaAnalytics client = getClient();
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
 
-            Stream<String> ids =
+        Stream<String> ids =
                 readFromFile("/home/adpe/IdeaProjects/ds-parent/ds-kaltura/AllEntriesProd1.json")
                         .stream()
                         .map(x -> x.getId());
-            String fromDay = "20250101";
-            String toDay = "20261231";
-            String domain = "www.kb.dk";
+        String fromDay = "20250101";
+        String toDay = "20261231";
+        String domain = "www.kb.dk";
 
-            ReportInputFilter filter = new  ReportInputFilter();
-            filter.setDomainIn(domain);
-            filter.setFromDay(fromDay);
-            filter.setToDay(toDay);
+        ReportInputFilter filter = new ReportInputFilter();
+        filter.setDomainIn(domain);
+        filter.setFromDay(fromDay);
+        filter.setToDay(toDay);
 
-            String path =
-                    "src/test/resources/test_files/TOP_CONTENT-"+fromDay+"-"+ toDay+ "-" + conf.getString("partnerId") +
-                            "-" + LocalDate.now();
-            FileWriter fw = new FileWriter(path);
+        String path =
+                "src/test/resources/test_files/TOP_CONTENT-" + fromDay + "-" + toDay + "-" + conf.getString("partnerId") +
+                        "-" + LocalDate.now();
+        FileWriter fw = new FileWriter(path);
 
-            client.reportFromIds(ids, fw, filter);
+        client.reportFromIds(ids, fw, filter);
 
     }
 
     @Test
-    public void getReportTableNoObjects() throws Exception{
+    public void getReportTableNoObjects() throws Exception {
         DsKalturaAnalytics client = getClient();
         var filter = new ReportInputFilter();
         filter.setFromDay("20250101");
@@ -221,7 +220,6 @@ public class KalturaAnalyticsTest {
         String path = "src/test/resources/test_files/" + reportType.name() + "-" + LocalDateTime.now();
         writeToFile(path, map);
     }
-
 
 
     private boolean filterReportType(ReportType reportType) {
@@ -243,7 +241,7 @@ public class KalturaAnalyticsTest {
                 conf.getInteger("partnerId"),
                 conf.getString("token"),
                 conf.getString("tokenId"),
-                conf.getString("adminSecret",null),
+                conf.getString("adminSecret", null),
                 conf.getInteger("sessionDurationSeconds"),
                 conf.getInteger("sessionRefreshThreshold"));
     }
