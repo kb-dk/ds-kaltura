@@ -53,7 +53,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     public <T extends BaseEntryFilter, E extends BaseEntry, B extends BaseRequestBuilder<ListResponse<E>, B>> void
     exportAllEntriesToFile(T filter, BiFunction<T, FilterPager, B> service, String filename) {
 
-        //TODO: BUGFIX - This creates duplicates entries.
+        //TODO: BUGFIX - This creates duplicates entries on larger datasets.
         FilterPager pager = new FilterPager();
         pager.setPageSize(getBatchSize());
         pager.setPageIndex(1);
@@ -109,12 +109,32 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         }
     }
 
+    /**
+     * Retrieves a report table based on the specified report type and input filter.
+     * The method paginates through the results to accommodate large datasets and
+     * compiles the report data into a single map containing the header, total count,
+     * and data of the report. This method is limited to only fetch {@link #MAX_RESULT_SIZE} results
+     * to not exceed Kalturas documented limits on API service.
+     *
+     * @param reportType       The type of report to generate, specified by the {@link ReportType} enum.
+     * @param reportInputFilter The filter to apply to the report's input data, specified by {@link ReportInputFilter}.
+     * @param order            The order in which to sort the report data, typically a string representation of sorting criteria.
+     * @param objectIds        A string containing the IDs of specific objects to include in the report.
+     * @return A map containing the report's header, total count of records, and the data as a string.
+     *         The map has the following keys:
+     *         <ul>
+     *             <li><b>header</b>: A string representing the report's header.</li>
+     *             <li><b>totalCount</b>: A string representation of the total number of records in the report.</li>
+     *             <li><b>data</b>: A string containing the data of the report.</li>
+     *         </ul>
+     * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
+     */
     public Map<String, String> getReportTable(ReportType reportType, ReportInputFilter reportInputFilter,
                                               String order, String objectIds) throws APIException {
         FilterPager pager = new FilterPager();
         pager.setPageSize(getBatchSize());
 
-        StringBuilder rawData = new StringBuilder();
+        StringBuilder data = new StringBuilder();
         int totalCount = getBatchSize();
         int index = 0;
         String header = "";
@@ -130,34 +150,29 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             if (results.getData() == null) {
                 break;
             }
-            rawData.append(results.getData());
+            data.append(results.getData());
             totalCount = results.getTotalCount();
             header = results.getHeader();
         }
-        return Map.of("header", header, "totalCount", String.valueOf(totalCount), "data", rawData.toString());
+        return Map.of("header", header, "totalCount", String.valueOf(totalCount), "data", data.toString());
     }
 
-    public void reportFromJson(String inputFilePath, String outputFilePath,
-                               ReportInputFilter reportInputFilter) throws IOException, APIException {
-        log.info("Starting to report from {} to {}", inputFilePath, outputFilePath);
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        try (FileWriter fileWriter = new FileWriter(outputFilePath)) {
-            Stream<String> lines = new BufferedReader(new FileReader(inputFilePath))
-                    .lines()
-                    .map(line -> {
-                        try {
-                            return objectMapper.readValue(line, Map.class).get(
-                                    "id").toString();
-                        } catch (JsonProcessingException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
-
-            reportFromIds(lines, fileWriter, reportInputFilter);
-        }
-    }
-
+    /**
+     * Generates a report from a stream of object IDs and writes the output to the specified writer.
+     * This method processes the IDs in batches and utilizes the provided {@link ReportInputFilter}
+     * to filter the report data. It manages the writing of results to the output writer efficiently,
+     * flushing the content at the end of the operation.
+     *
+     * <p>The method logs the progress of the reporting process, including the counts of queried
+     * items and the response items received from each batch. If the number of queried items reaches
+     * the {@code MAX_RESULT_SIZE}, it triggers the processing of a batch of data.</p>
+     *
+     * @param inputStream      A stream of object IDs to be reported, represented as strings.
+     * @param outputWriter     A {@link Writer} instance to which the report data will be written.
+     * @param reportInputFilter The filter to apply to the report's input data, specified by {@link ReportInputFilter}.
+     * @throws IOException If an error occurs while writing to the {@code Writer} or processing the stream.
+     * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
+     */
     public void reportFromIds(Stream<String> inputStream, Writer outputWriter,
                               ReportInputFilter reportInputFilter) throws IOException, APIException {
         log.info("Starting to report from objectIds");
@@ -185,6 +200,23 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         log.info("Finished report from objectIds");
     }
 
+    /**
+     * Processes a batch of report data based on the provided input filter and object IDs.
+     * This method retrieves a report table, writes the header and data to a provided
+     * {@link BufferedWriter}, and returns the total count of items in the report.
+     *
+     * <p>If no items have been queried yet and the header is present in the retrieved report,
+     * the header will be written to the {@code BufferedWriter} first. The data from the report will
+     * replace semicolons with the system's line separator before being written.</p>
+     *
+     * @param reportInputFilter The filter to apply to the report's input data, specified by {@link ReportInputFilter}.
+     * @param objectIds        A string containing the IDs of specific objects to include in the report.
+     * @param bw               A {@link BufferedWriter} to which the report header and data will be written.
+     * @param queriedItemCount The count of items that have been queried so far; used to determine if the header should be written.
+     * @return The total count of items in the report, as an integer.
+     * @throws IOException If an error occurs while writing to the {@code BufferedWriter}.
+     * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
+     */
     private int processBatch(ReportInputFilter reportInputFilter, String objectIds, BufferedWriter bw, int queriedItemCount) throws IOException, APIException {
         Map<String, String> map = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 ReportOrderBy.CREATED_AT_ASC.getValue(), objectIds);

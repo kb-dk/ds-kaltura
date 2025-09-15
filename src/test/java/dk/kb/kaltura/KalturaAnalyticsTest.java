@@ -40,29 +40,28 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void countAllBaseEntriesTest() throws IOException, APIException {
+    public void countAllBaseEntriesTest() throws APIException {
         DsKalturaAnalytics client = getClient();
         BaseEntryFilter filter = new BaseEntryFilter();
         filter.statusIn(EntryStatus.READY.getValue());
-        filter.setModerationStatusNotEqual(EntryModerationStatus.REJECTED);
+        filter.setModerationStatusNotIn("notAStatus");
         int i = client.countAllBaseEntries(filter);
         System.out.println("Total: " + i);
     }
 
     @Test
-    public void countAllMediaEntriesTest() throws IOException, APIException {
-//        DsKalturaClient client = getClientPROD();
+    public void countAllMediaEntriesTest() throws APIException {
         DsKalturaAnalytics client = getClient();
         MediaEntryFilter filter = new MediaEntryFilter();
-//        filter.statusIn(EntryStatus.READY.getValue());
-        filter.setModerationStatusEqual(EntryModerationStatus.REJECTED);
+        filter.statusNotIn("notAStatus");
+        filter.setModerationStatusNotIn("notAStatus");
         filter.setCreatedAtGreaterThanOrEqual(1704067200L);
         int i = client.countAllMediaEntries(filter);
         System.out.println("Total: " + i);
     }
 
     @Test
-    public void listAllRejectedEntriesGenericTest() throws Exception {
+    public void listAllRejectedEntriesGenericTest() throws APIException {
         DsKalturaAnalytics client = getClient();
         MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
         mediaEntryFilter.setModerationStatusEqual(EntryModerationStatus.REJECTED);
@@ -71,10 +70,10 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void listAllReadyEntriesGenericTest() throws Exception {
+    public void listAllReadyEntriesGenericTest() throws APIException {
         DsKalturaAnalytics client = getClient();
         MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
-        mediaEntryFilter.statusNotIn("notAStatus");
+        mediaEntryFilter.statusEqual(EntryStatus.READY.getValue());
         mediaEntryFilter.moderationStatusNotIn("notAStatus");
         String filename = "ReadyEntries.json";
         client.exportAllEntriesToFile(mediaEntryFilter, MediaService::list, filename);
@@ -157,27 +156,6 @@ public class KalturaAnalyticsTest {
         }
 
         return mediaEntries;
-    }
-
-    @Test
-    public void reportFromJson() throws IOException, APIException {
-        YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
-        String fromDay = "20250101";
-        String toDay = "20261231";
-        String domain = "www.kb.dk";
-        String outputFilePath =
-                "src/test/resources/test_files/TOP_CONTENT-" + fromDay + "-" + toDay + "-" + conf.getString("partnerId") +
-                        "-" + LocalDate.now();
-        String inputFilePath = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/AllEntriesProd1.json";
-
-        ReportInputFilter filter = new ReportInputFilter();
-        filter.setDomainIn(domain);
-        filter.setFromDay(fromDay);
-        filter.setToDay(toDay);
-
-        DsKalturaAnalytics client = getClient();
-        client.reportFromJson(inputFilePath, outputFilePath, filter);
-
     }
 
     @Test
