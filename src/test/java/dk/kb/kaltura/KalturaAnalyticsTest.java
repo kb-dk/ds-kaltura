@@ -1,10 +1,15 @@
 package dk.kb.kaltura;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.kaltura.client.enums.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kaltura.client.enums.EntryModerationStatus;
+import com.kaltura.client.enums.EntryStatus;
+import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.services.MediaService;
-import com.kaltura.client.types.*;
+import com.kaltura.client.types.APIException;
+import com.kaltura.client.types.BaseEntryFilter;
+import com.kaltura.client.types.MediaEntryFilter;
+import com.kaltura.client.types.ReportInputFilter;
 import dk.kb.kaltura.client.DsKalturaAnalytics;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
@@ -15,9 +20,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 
@@ -86,29 +97,52 @@ public class KalturaAnalyticsTest {
         MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
         mediaEntryFilter.statusNotIn("notAStatus");
         mediaEntryFilter.moderationStatusNotIn("notAStatus");
-        String filename = "AllEntriesProd2.json";
+        String filename = "JsonObjects";
         client.exportAllEntriesToFile(mediaEntryFilter, MediaService::list,
                 filename);
     }
 
+    @Test
+    public void getReportTableNoObjectIds() throws Exception {
+        DsKalturaAnalytics client = getClient();
+        var filter = new ReportInputFilter();
+        filter.setFromDay("20250101");
+        filter.setToDay("20260101");
+        var reportType = ReportType.TOP_CONTENT;
+        var map = client.getReportTable(reportType, filter, null, null);
+        String path = "src/test/resources/test_files/" + reportType.name() + "-" + LocalDateTime.now(ZoneId.systemDefault());
+        writeToFile(path, map);
+    }
 
-    private void writeToFile(String filename, Set<? extends BaseEntry> rejectedMediaEntries) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
-            for (BaseEntry mediaEntry : rejectedMediaEntries) {
-                String json = new Gson().toJson(mediaEntry);
-//                String json = mediaEntry.toParams().toString();
-                writer.write(json);
-                writer.newLine();
-            }
-            writer.flush();
-        } catch (IOException e) {
-            //TODO handle exception
-            e.printStackTrace();
-        }
+    @Test
+    public void getReportFromEntryIds() throws Exception {
+        final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
+
+        Stream<String> ids =
+                readFromFile("./JsonObjects")
+                        .stream()
+                        .map(x -> x.get("id").asText());
+//        ids.forEach(System.out::println);
+        String fromDay = "20250101";
+        String toDay = "20261231";
+        String domain = "www.kb.dk";
+
+        ReportInputFilter filter = new ReportInputFilter();
+//        filter.setDomainIn(domain);
+        filter.setFromDay(fromDay);
+        filter.setToDay(toDay);
+
+        String path =
+                "src/test/resources/test_files/TOP_CONTENT-" + fromDay + "-" + toDay + "-" + conf.getString("partnerId") +
+                        "-" + LocalDate.now(ZoneId.systemDefault());
+        OutputStreamWriter fw = new OutputStreamWriter(new FileOutputStream(path), Charset.defaultCharset());
+
+        DsKalturaAnalytics client = getClient();
+        client.reportFromIds(ids, fw, filter);
     }
 
     private void writeToFile(String filename, Map<String, String> map) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), Charset.defaultCharset()))) {
             writer.write(map.get("header"));
             writer.newLine();
             Arrays.stream(map.get("data").split(";")).forEach(line -> {
@@ -126,87 +160,20 @@ public class KalturaAnalyticsTest {
         }
     }
 
+    public List<JsonNode> readFromFile(String filename) throws IOException {
+        List<JsonNode> jsonNodes = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
 
-    public List<MediaEntry> readFromFile(String filename) throws IOException {
-        List<MediaEntry> mediaEntries = new ArrayList<>();
-        Gson gson = new Gson();
-
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filename), Charset.defaultCharset()))) {
             String line;
             while ((line = br.readLine()) != null) {
                 // Parse the JSON line into Params
-                JsonObject jsonObject = gson.fromJson(line, JsonObject.class);
-
-                jsonObject.addProperty("moderationStatus", EntryModerationStatus.valueOf(jsonObject.get(
-                        "moderationStatus").getAsString()).getValue());
-
-                jsonObject.addProperty("licenseType", LicenseType.valueOf(jsonObject.get(
-                        "licenseType").getAsString()).getValue());
-
-                jsonObject.addProperty("displayInSearch", EntryDisplayInSearchType.valueOf(jsonObject.get(
-                        "displayInSearch").getAsString()).getValue());
-
-                jsonObject.addProperty("mediaType", MediaType.valueOf(jsonObject.get(
-                        "mediaType").getAsString()).getValue());
-
-                mediaEntries.add(new MediaEntry(jsonObject));
+                JsonNode jsonNode = mapper.readValue(line, JsonNode.class);
+                jsonNodes.add(jsonNode);
             }
-        } catch (APIException e) {
-            throw new RuntimeException(e);
         }
 
-        return mediaEntries;
-    }
-
-    @Test
-    public void getReportFromEntryIds() throws Exception {
-        DsKalturaAnalytics client = getClient();
-        final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
-
-        Stream<String> ids =
-                readFromFile("/home/adpe/IdeaProjects/ds-parent/ds-kaltura/AllEntriesProd1.json")
-                        .stream()
-                        .map(x -> x.getId());
-        String fromDay = "20250101";
-        String toDay = "20261231";
-        String domain = "www.kb.dk";
-
-        ReportInputFilter filter = new ReportInputFilter();
-        filter.setDomainIn(domain);
-        filter.setFromDay(fromDay);
-        filter.setToDay(toDay);
-
-        String path =
-                "src/test/resources/test_files/TOP_CONTENT-" + fromDay + "-" + toDay + "-" + conf.getString("partnerId") +
-                        "-" + LocalDate.now();
-        FileWriter fw = new FileWriter(path);
-
-        client.reportFromIds(ids, fw, filter);
-
-    }
-
-    @Test
-    public void getReportTableNoObjects() throws Exception {
-        DsKalturaAnalytics client = getClient();
-        var filter = new ReportInputFilter();
-        filter.setFromDay("20250101");
-        filter.setToDay("20260101");
-        var reportType = ReportType.TOP_CONTENT;
-        var map = client.getReportTable(reportType, filter, null, null);
-        String path = "src/test/resources/test_files/" + reportType.name() + "-" + LocalDateTime.now();
-        writeToFile(path, map);
-    }
-
-
-    private boolean filterReportType(ReportType reportType) {
-        switch (reportType) {
-            case QUIZ:
-            case TOP_PLAYBACK_CONTEXT_VPAAS:
-            case QOE_VOD_SESSION_FLOW:
-                return true;
-            default:
-                return false;
-        }
+        return jsonNodes;
     }
 
     private DsKalturaAnalytics getClient() throws APIException {

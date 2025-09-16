@@ -1,6 +1,5 @@
 package dk.kb.kaltura.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kaltura.client.enums.ReportOrderBy;
 import com.kaltura.client.enums.ReportType;
@@ -11,6 +10,7 @@ import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +64,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         BaseEntry lastEntry;
         int count = 0;
         List<BaseEntry> result;
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename),
+                StandardCharsets.UTF_8))) {
             while (true) {
                 pager.setPageIndex(pager.getPageIndex());
 
@@ -89,9 +91,8 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                     if (lastEntry.getId().equals(mediaEntry.getId())) {
                         continue;
                     }
-                    mapper.writeValue(writer, mediaEntry);
+                    writer.write(mapper.writeValueAsString(mediaEntry));
                     writer.newLine();
-
                 }
                 writer.flush();
 
@@ -116,17 +117,17 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * and data of the report. This method is limited to only fetch {@link #MAX_RESULT_SIZE} results
      * to not exceed Kalturas documented limits on API service.
      *
-     * @param reportType       The type of report to generate, specified by the {@link ReportType} enum.
+     * @param reportType        The type of report to generate, specified by the {@link ReportType} enum.
      * @param reportInputFilter The filter to apply to the report's input data, specified by {@link ReportInputFilter}.
-     * @param order            The order in which to sort the report data, typically a string representation of sorting criteria.
-     * @param objectIds        A string containing the IDs of specific objects to include in the report.
+     * @param order             The order in which to sort the report data, typically a string representation of sorting criteria.
+     * @param objectIds         A string containing the IDs of specific objects to include in the report.
      * @return A map containing the report's header, total count of records, and the data as a string.
-     *         The map has the following keys:
-     *         <ul>
-     *             <li><b>header</b>: A string representing the report's header.</li>
-     *             <li><b>totalCount</b>: A string representation of the total number of records in the report.</li>
-     *             <li><b>data</b>: A string containing the data of the report.</li>
-     *         </ul>
+     * The map has the following keys:
+     * <ul>
+     *     <li><b>header</b>: A string representing the report's header.</li>
+     *     <li><b>totalCount</b>: A string representation of the total number of records in the report.</li>
+     *     <li><b>data</b>: A string containing the data of the report.</li>
+     * </ul>
      * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
      */
     public Map<String, String> getReportTable(ReportType reportType, ReportInputFilter reportInputFilter,
@@ -167,10 +168,10 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * items and the response items received from each batch. If the number of queried items reaches
      * the {@code MAX_RESULT_SIZE}, it triggers the processing of a batch of data.</p>
      *
-     * @param inputStream      A stream of object IDs to be reported, represented as strings.
-     * @param outputWriter     A {@link Writer} instance to which the report data will be written.
+     * @param inputStream       A stream of object IDs to be reported, represented as strings.
+     * @param outputWriter      A {@link Writer} instance to which the report data will be written.
      * @param reportInputFilter The filter to apply to the report's input data, specified by {@link ReportInputFilter}.
-     * @throws IOException If an error occurs while writing to the {@code Writer} or processing the stream.
+     * @throws IOException  If an error occurs while writing to the {@code Writer} or processing the stream.
      * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
      */
     public void reportFromIds(Stream<String> inputStream, Writer outputWriter,
@@ -210,11 +211,11 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * replace semicolons with the system's line separator before being written.</p>
      *
      * @param reportInputFilter The filter to apply to the report's input data, specified by {@link ReportInputFilter}.
-     * @param objectIds        A string containing the IDs of specific objects to include in the report.
-     * @param bw               A {@link BufferedWriter} to which the report header and data will be written.
-     * @param queriedItemCount The count of items that have been queried so far; used to determine if the header should be written.
+     * @param objectIds         A string containing the IDs of specific objects to include in the report.
+     * @param bw                A {@link BufferedWriter} to which the report header and data will be written.
+     * @param queriedItemCount  The count of items that have been queried so far; used to determine if the header should be written.
      * @return The total count of items in the report, as an integer.
-     * @throws IOException If an error occurs while writing to the {@code BufferedWriter}.
+     * @throws IOException  If an error occurs while writing to the {@code BufferedWriter}.
      * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
      */
     private int processBatch(ReportInputFilter reportInputFilter, String objectIds, BufferedWriter bw, int queriedItemCount) throws IOException, APIException {
