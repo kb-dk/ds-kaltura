@@ -8,13 +8,12 @@ import com.kaltura.client.services.MediaService;
 import com.kaltura.client.services.ReportService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
+import dk.kb.kaltura.domain.ReportTableDto;
+import dk.kb.kaltura.domain.TopContentDto;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -131,8 +130,8 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * </ul>
      * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
      */
-    public Map<String, String> getReportTable(ReportType reportType, ReportInputFilter reportInputFilter,
-                                              String order, String objectIds) throws APIException {
+    public ReportTableDto getReportTable(ReportType reportType, ReportInputFilter reportInputFilter,
+                                         String order, String objectIds) throws APIException {
         FilterPager pager = new FilterPager();
         pager.setPageSize(getBatchSize());
 
@@ -156,7 +155,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             totalCount = results.getTotalCount();
             header = results.getHeader();
         }
-        return Map.of("header", header, "totalCount", String.valueOf(totalCount), "data", data.toString());
+        return new ReportTableDto(header, data.toString(), totalCount);
     }
 
     /**
@@ -220,38 +219,58 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
      */
     private int processBatch(ReportInputFilter reportInputFilter, String objectIds, BufferedWriter bw, int queriedItemCount) throws IOException, APIException {
-        Map<String, String> map = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
+        ReportTableDto reportTableDto = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 ReportOrderBy.CREATED_AT_ASC.getValue(), objectIds);
-        if (queriedItemCount == 0 && !map.get("header").isEmpty()) {
-            bw.write(map.get("header"));
+        if (queriedItemCount == 0 && !reportTableDto.getHeader().isEmpty()) {
+            bw.write(reportTableDto.getHeader());
             bw.newLine();
         }
-        bw.write(map.get("data").replace(";", System.lineSeparator()));
-        return Integer.parseInt(map.get("totalCount"));
+        bw.write(reportTableDto.getData().replace(";", System.lineSeparator()));
+        return reportTableDto.getTotalCount();
     }
 
-    public Map<String, String> getReportFromIdList(String fromDay, String toDay, String domainIn,
-        List<String> objectIds) throws APIException {
+    public List<TopContentDto> getTopContentFromIdList(String fromDay, String toDay, String domainIn,
+                                                       List<String> objectIds) throws APIException, IOException {
         if (objectIds == null || objectIds.isEmpty()) {
             log.warn("Report from empty list will give unpredictable results on larger datasets. Returning empty map.");
-            return new HashMap<>();
+            return new ArrayList<>();
         }
-        if (objectIds.size() > MAX_RESULT_SIZE){
+        if (objectIds.size() > MAX_RESULT_SIZE) {
             throw new IllegalArgumentException("Size of ObjectIds is greater than " + MAX_RESULT_SIZE);
         }
 
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay(fromDay);
         reportInputFilter.setToDay(toDay);
-        reportInputFilter.setDomainIn(domainIn);
+        if (!domainIn.isEmpty()){
+            reportInputFilter.setDomainIn(domainIn);
+        }
 
-        StringBuilder objectIdStringBuilder= new StringBuilder();
+        StringBuilder objectIdStringBuilder = new StringBuilder();
         objectIds.forEach(objectId -> {
             objectIdStringBuilder.append(objectId.trim()).append(",");
         });
 
-        return getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
+        ReportTableDto reportTableDto = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 ReportOrderBy.CREATED_AT_ASC.getValue(), objectIdStringBuilder.toString());
+
+        return reportTableTopContent(reportTableDto);
+    }
+
+    private List<TopContentDto> reportTableTopContent(ReportTableDto reportDto) throws IOException {
+        List<TopContentDto> topContentDtos = new ArrayList<>();
+        if (reportDto.getHeader().isEmpty()) {
+            log.warn("Report map has an empty header");
+            return topContentDtos;
+        }
+
+        for (String record : reportDto.getData().split(";")){ //TODO: Should this be handled in a more robust manner.
+            String[] stringArr = record.split(",");
+            topContentDtos.add(new TopContentDto(reportDto.getHeader(), stringArr));
+        }
+
+        return topContentDtos;
+
     }
 
 }

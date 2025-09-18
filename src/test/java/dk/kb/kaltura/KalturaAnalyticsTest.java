@@ -10,6 +10,7 @@ import com.kaltura.client.types.APIException;
 import com.kaltura.client.types.BaseEntryFilter;
 import com.kaltura.client.types.MediaEntryFilter;
 import com.kaltura.client.types.ReportInputFilter;
+import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.client.DsKalturaAnalytics;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.util.yaml.YAML;
@@ -21,14 +22,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -124,7 +124,7 @@ public class KalturaAnalyticsTest {
                         .map(x -> x.get("id").asText());
 //        ids.forEach(System.out::println);
         String fromDay = "20250101";
-        String toDay = "20261231";
+        String toDay = "20251231";
         String domain = "www.kb.dk";
 
         ReportInputFilter filter = new ReportInputFilter();
@@ -141,11 +141,31 @@ public class KalturaAnalyticsTest {
         client.reportFromIds(ids, fw, filter);
     }
 
-    private void writeToFile(String filename, Map<String, String> map) {
+    @Test
+    public void getReportFromEntryIdsSimple() throws Exception {
+        final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
+
+        List<String> ids =
+                readFromFile("./JsonObjects")
+                        .stream()
+                        .limit(10000)
+                        .map(x -> x.get("id").asText())
+                        .collect(Collectors.toList());
+//        ids.forEach(System.out::println);
+        String fromDay = "20250101";
+        String toDay = "20251231";
+        String domain = "www.kb.dk";
+
+        DsKalturaAnalytics client = getClient();
+        var dtos = client.getTopContentFromIdList(fromDay, toDay, "", ids);
+        dtos.forEach(System.out::println);
+    }
+
+    private void writeToFile(String filename, ReportTableDto reportTableDto) {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), Charset.defaultCharset()))) {
-            writer.write(map.get("header"));
+            writer.write(reportTableDto.getHeader());
             writer.newLine();
-            Arrays.stream(map.get("data").split(";")).forEach(line -> {
+            Arrays.stream(reportTableDto.getData().split(";")).forEach(line -> {
                 try {
                     writer.write(line);
                     writer.newLine();
