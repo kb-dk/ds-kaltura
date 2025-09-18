@@ -118,33 +118,6 @@ public class KalturaAnalyticsTest {
     public void getReportFromEntryIds() throws Exception {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
 
-        Stream<String> ids =
-                readFromFile("./JsonObjects")
-                        .stream()
-                        .map(x -> x.get("id").asText());
-//        ids.forEach(System.out::println);
-        String fromDay = "20250101";
-        String toDay = "20251231";
-        String domain = "www.kb.dk";
-
-        ReportInputFilter filter = new ReportInputFilter();
-//        filter.setDomainIn(domain);
-        filter.setFromDay(fromDay);
-        filter.setToDay(toDay);
-
-        String path =
-                "src/test/resources/test_files/TOP_CONTENT-" + fromDay + "-" + toDay + "-" + conf.getString("partnerId") +
-                        "-" + LocalDate.now(ZoneId.systemDefault());
-        OutputStreamWriter fw = new OutputStreamWriter(new FileOutputStream(path), Charset.defaultCharset());
-
-        DsKalturaAnalytics client = getClient();
-        client.reportFromIds(ids, fw, filter);
-    }
-
-    @Test
-    public void getReportFromEntryIdsSimple() throws Exception {
-        final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
-
         List<String> ids =
                 readFromFile("./JsonObjects")
                         .stream()
