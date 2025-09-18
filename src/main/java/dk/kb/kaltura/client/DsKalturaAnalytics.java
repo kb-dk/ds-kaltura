@@ -11,6 +11,7 @@ import com.kaltura.client.utils.request.BaseRequestBuilder;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -227,6 +228,30 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         }
         bw.write(map.get("data").replace(";", System.lineSeparator()));
         return Integer.parseInt(map.get("totalCount"));
+    }
+
+    public Map<String, String> getReportFromIdList(String fromDay, String toDay, String domainIn,
+        List<String> objectIds) throws APIException {
+        if (objectIds == null || objectIds.isEmpty()) {
+            log.warn("Report from empty list will give unpredictable results on larger datasets. Returning empty map.");
+            return new HashMap<>();
+        }
+        if (objectIds.size() > MAX_RESULT_SIZE){
+            throw new IllegalArgumentException("Size of ObjectIds is greater than " + MAX_RESULT_SIZE);
+        }
+
+        ReportInputFilter reportInputFilter = new ReportInputFilter();
+        reportInputFilter.setFromDay(fromDay);
+        reportInputFilter.setToDay(toDay);
+        reportInputFilter.setDomainIn(domainIn);
+
+        StringBuilder objectIdStringBuilder= new StringBuilder();
+        objectIds.forEach(objectId -> {
+            objectIdStringBuilder.append(objectId.trim()).append(",");
+        });
+
+        return getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
+                ReportOrderBy.CREATED_AT_ASC.getValue(), objectIdStringBuilder.toString());
     }
 
 }
