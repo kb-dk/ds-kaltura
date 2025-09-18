@@ -1,120 +1,100 @@
-#!/usr/bin/env groovy
+pipeline {
+    agent {
+        label 'DS agent'
+    }
 
+    environment {
+        MVN_SETTINGS = '/etc/m2/settings.xml' //This should be changed in Jenkins config for the DS agent
+        PROJECT = 'ds-kaltura'
+        BUILD_TO_TRIGGER = 'ds-datahandler'
+    }
 
-openshift.withCluster() { // Use "default" cluster or fallback to OpenShift cluster detection
+    triggers {
+        // This triggers the pipeline when a PR is opened or updated or so I hope
+        githubPush()
+    }
 
+    parameters {
+        string(name: 'ORIGINAL_BRANCH', defaultValue: "${env.BRANCH_NAME}", description: 'Branch of first job to run, will also be PI_ID for a PR')
+        string(name: 'ORIGINAL_JOB', defaultValue: "${env.PROJECT}", description: 'What job was the first to build?')
+        string(name: 'TARGET_BRANCH', defaultValue: "${env.CHANGE_TARGET}", description: 'Target branch if PR')
+    }
 
-    echo "Hello from the project running Jenkins: ${openshift.project()}"
+    stages {
+        stage('Echo Environment Variables') {
+            steps {
+                echo "ORIGINAL_BRANCH: ${env.ORIGINAL_BRANCH}"
+                echo "PROJECT: ${env.PROJECT}"
+                echo "ORIGINAL_JOB: ${env.ORIGINAL_JOB}"
+                echo "BUILD_TO_TRIGGER: ${env.BUILD_TO_TRIGGER}"
+                echo "TARGET_BRANCH: ${env.TARGET_BRANCH}"
+            }
+        }
 
-    //Create template with maven settings.xml, so we have credentials for nexus
-    podTemplate(
-	    // If the project uses Java 11 instead of Java 17, change to
-            //   inheritFrom: 'maven',
-            // and update the envVars section
-            inheritFrom: 'kb-jenkins-agent-java',
-            cloud: 'openshift', //cloud must be openshift
-            envVars: [
-                    // If the project uses Java 11 instead of Java 17, remove the lines with
-                    //   USE_JAVA_VERSION and MAVEN_SKIP_RC
-                    // and update inheritsFrom a few lines above
-                    envVar(key: 'USE_JAVA_VERSION', value: 'java-17'),
-                    envVar(key: 'MAVEN_SKIP_RC', value: 'true'),
-
-                    //This fixes the error with en_US.utf8 not being found
-                    envVar(key:"LC_ALL", value:"C.utf8")
-            ],
-            volumes: [ //mount the settings.xml
-                       secretVolume(mountPath: '/etc/m2', secretName: 'maven-settings')
-            ]) {
-
-
-        String projectName = encodeName("${JOB_NAME}")
-        echo "name=${projectName}"
-
-        try {
-            //GO to a node with maven and settings.xml
-            node(POD_LABEL) {
-                //Do not use concurrent builds
-                properties([disableConcurrentBuilds()])
-
-                def mvnCmd = "mvn -s /etc/m2/settings.xml --batch-mode"
-                //settings.xml could be in ~/.m2/settings.xml but I did not want to find the username and home
-
-                stage('checkout') {
-                    checkout scm
-                }
-
-                stage('Mvn clean package') {
-                    sh "${mvnCmd} -PallTests clean package"
-                }
-
-                stage('Analyze build results') {
-                    recordIssues aggregatingResults: true,
-                        tools: [java(),
-                                javaDoc(),
-                                mavenConsole(),
-                                taskScanner(highTags:'FIXME', normalTags:'TODO', includePattern: '**/*.java', excludePattern: 'target/**/*')]
-                }
-
-                stage('Push to Nexus (if Master)') {
-                    sh 'env'
-                    echo "Branch name ${env.BRANCH_NAME}"
-                    if (env.BRANCH_NAME == 'master') {
-	                    sh "${mvnCmd} deploy -DskipTests=true"
-                    } else {
-	                    echo "Branch ${env.BRANCH_NAME} is not master, so no mvn deploy"
-                    }
+        stage('Change version if part of PR') {
+            when {
+                expression {
+                    env.ORIGINAL_BRANCH ==~ "PR-[0-9]+"
                 }
             }
-        } catch (e) {
-            currentBuild.result = 'FAILURE'
-            throw e
+            steps {
+                script {
+                    sh "mvn -s ${env.MVN_SETTINGS} versions:set -DnewVersion=${env.ORIGINAL_BRANCH}-${env.ORIGINAL_JOB}-${env.PROJECT}-SNAPSHOT"
+                    echo "Changing MVN version to: ${env.ORIGINAL_BRANCH}-${env.ORIGINAL_JOB}-${env.PROJECT}-SNAPSHOT"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    // Execute Maven build
+                    sh "mvn -s ${env.MVN_SETTINGS} clean package"
+                }
+            }
+        }
+
+        stage('Push to Nexus') {
+            when {
+                // Check if Build was successful
+                expression {
+                    currentBuild.currentResult == "SUCCESS" && env.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+|PR-[0-9]+"
+                }
+            }
+            steps {
+                sh "mvn -s ${env.MVN_SETTINGS} clean deploy -DskipTests=true"
+            }
+        }
+
+        stage('Trigger Datahandler Build') {
+            when {
+                expression {
+                    currentBuild.currentResult == "SUCCESS" && env.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+|PR-[0-9]+"
+                }
+            }
+            steps {
+                script {
+                    if ( env.ORIGINAL_BRANCH ==~ "PR-[0-9]+" ) {
+                        echo "Triggering: DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.TARGET_BRANCH}"
+
+                        def result = build job: "DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.TARGET_BRANCH}",
+                        parameters: [
+                            string(name: 'ORIGINAL_BRANCH', value: env.ORIGINAL_BRANCH),
+                            string(name: 'ORIGINAL_JOB', value: env.ORIGINAL_JOB),
+                            string(name: 'TARGET_BRANCH', value: env.TARGET_BRANCH)
+                        ]
+                        wait: true // Wait for the pipeline to finish
+                    }
+
+                    else if ( env.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+" ){
+                        echo "Triggering: DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.ORIGINAL_BRANCH}"
+
+                        def result = build job: "DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.ORIGINAL_BRANCH}"
+                        wait: true // Wait for the pipeline to finish
+                    }
+                    echo "Child Pipeline Result: ${result}"
+                }
+            }
         }
     }
 }
-
-
-private void recreateProject(String projectName) {
-    echo "Delete the project ${projectName}, ignore errors if the project does not exist"
-    try {
-        openshift.selector("project/${projectName}").delete()
-
-        openshift.selector("project/${projectName}").watch {
-            echo "Waiting for the project ${projectName} to be deleted"
-            return it.count() == 0
-        }
-
-    } catch (e) {
-
-    }
-//
-//    //Wait for the project to be gone
-//    sh "until ! oc get project ${projectName}; do date;sleep 2; done; exit 0"
-
-    echo "Create the project ${projectName}"
-    openshift.newProject(projectName)
-}
-
-/**
- * Encode the jobname as a valid openshift project name
- * @param jobName the name of the job
- * @return the jobname as a valid openshift project name
- */
-private static String encodeName(groovy.lang.GString jobName) {
-    def jobTokens = jobName.tokenize("/")
-    def repo = jobTokens[0]
-    if(repo.contains('-')) {
-        repo = repo.tokenize("-").collect{it.take(1)}.join("")
-    } else {
-        repo = repo.take(3)
-    }
-
-    def name = ([repo] + jobTokens.drop(1)).join("-")
-            .replaceAll("\\s", "-")
-            .replaceAll("_", "-")
-            .replace("/", '-')
-            .replaceAll("^openshift-", "")
-            .toLowerCase()
-    return name
-}
-
