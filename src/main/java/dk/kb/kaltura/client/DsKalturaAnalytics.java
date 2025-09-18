@@ -158,8 +158,19 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         return new ReportTableDto(header, data.toString(), totalCount);
     }
 
+    /**
+     * Retrieves a list of top content based on the specified date range, domain, and object IDs.
+     *
+     * @param fromDay   The start date for the report in the format "yyyy-MM-dd".
+     * @param toDay     The end date for the report in the format "yyyy-MM-dd".
+     * @param domainIn  A string representing the domain filter for the report. Can be empty.
+     * @param objectIds  A list of object IDs to filter the report by. Must not be empty and must not exceed the
+     *                   maximum result size: {@link #MAX_RESULT_SIZE}.
+     * @return A list of {@link TopContentDto} containing the top content data for the specified parameters.
+     * @throws APIException if an error occurs while calling the API to retrieve the report.
+     */
     public List<TopContentDto> getTopContentFromIdList(String fromDay, String toDay, String domainIn,
-                                                       List<String> objectIds) throws APIException, IOException {
+                                                       List<String> objectIds) throws APIException {
         if (objectIds == null || objectIds.isEmpty()) {
             log.warn("Report from empty list will give unpredictable results on larger datasets. Returning empty map.");
             return new ArrayList<>();
@@ -186,7 +197,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         return reportTableTopContent(reportTableDto);
     }
 
-    private List<TopContentDto> reportTableTopContent(ReportTableDto reportDto) throws IOException {
+    /**
+     * Converts the data in the provided report table DTO into a list of top content DTOs.
+     *
+     * @param reportDto The {@link ReportTableDto} containing the report data to be processed.
+     * @return A list of {@link TopContentDto} objects created from the report data.
+     */
+    private List<TopContentDto> reportTableTopContent(ReportTableDto reportDto) {
         List<TopContentDto> topContentDtos = new ArrayList<>();
         if (reportDto.getHeader().isEmpty()) {
             log.warn("Report map has an empty header");
