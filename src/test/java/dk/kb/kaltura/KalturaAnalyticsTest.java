@@ -6,10 +6,7 @@ import com.kaltura.client.enums.EntryModerationStatus;
 import com.kaltura.client.enums.EntryStatus;
 import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.services.MediaService;
-import com.kaltura.client.types.APIException;
-import com.kaltura.client.types.BaseEntryFilter;
-import com.kaltura.client.types.MediaEntryFilter;
-import com.kaltura.client.types.ReportInputFilter;
+import com.kaltura.client.types.*;
 import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.client.DsKalturaAnalytics;
 import dk.kb.kaltura.config.ServiceConfig;
@@ -22,14 +19,12 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 @Tag("integration")
@@ -81,25 +76,22 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void listAllReadyEntriesGenericTest() throws APIException {
-        DsKalturaAnalytics client = getClient();
-        MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
-        mediaEntryFilter.statusEqual(EntryStatus.READY.getValue());
-        mediaEntryFilter.moderationStatusNotIn("notAStatus");
-        String filename = "ReadyEntries.json";
-        client.exportAllEntriesToFile(mediaEntryFilter, MediaService::list, filename);
+    public void listMediaEntriesTest() throws APIException, IOException {
+        List<String> kalturaIds = List.of(
+                "0_bjkijl7g",
+                "0_f7njg6g0",
+                "0_g8qzthk9",
+                "0_n4wyfccm",
+                "0_r1kb04lm",
+                "0_06vq7yxa",
+                "0_0l5tj2se",
+                "0_1pnhorjb",
+                "0_54kdj7nf");
 
-    }
-
-    @Test
-    public void listAllEntriesGenericTest() throws Exception {
         DsKalturaAnalytics client = getClient();
-        MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
-        mediaEntryFilter.statusNotIn("notAStatus");
-        mediaEntryFilter.moderationStatusNotIn("notAStatus");
-        String filename = "JsonObjects";
-        client.exportAllEntriesToFile(mediaEntryFilter, MediaService::list,
-                filename);
+        for (BaseEntry entry : client.listMediaEntry(kalturaIds)){
+            System.out.println(entry.getId());
+        };
     }
 
     @Test

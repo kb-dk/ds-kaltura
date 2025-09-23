@@ -1,9 +1,9 @@
 package dk.kb.kaltura.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kaltura.client.enums.ReportOrderBy;
-import com.kaltura.client.enums.ReportType;
+import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
+import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
 import com.kaltura.client.services.ReportService;
 import com.kaltura.client.types.*;
@@ -15,7 +15,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 
 public class DsKalturaAnalytics extends DsKalturaClientBase {
@@ -110,6 +110,71 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         }
     }
 
+    public List<BaseEntry> listMediaEntry(List<String> objectIds) throws APIException, IOException{
+        if (objectIds == null || objectIds.isEmpty()) {
+            log.warn("Report from empty list will give unpredictable results on larger datasets. Returning empty map.");
+            return new ArrayList<>();
+        }
+        if (objectIds.size() > MAX_RESULT_SIZE) {
+            throw new IllegalArgumentException("Size of ObjectIds is greater than " + MAX_RESULT_SIZE);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        objectIds.forEach(objectId -> sb.append(objectId).append(","));
+        FilterPager pager = new FilterPager();
+        pager.setPageSize(getBatchSize());
+        ESearchEntryOperator entryOperator = new ESearchEntryOperator();
+        entryOperator.setOperator(ESearchOperatorType.OR_OP);
+        ESearchEntryParams searchParams = new ESearchEntryParams();
+        entryOperator.setSearchItems(
+                objectIds.stream()
+                .map(entryId -> {
+                    var item = new ESearchEntryItem();
+                    item.setFieldName(ESearchEntryFieldName.ID);
+                    item.setItemType(ESearchItemType.EXACT_MATCH);
+                    item.searchTerm(entryId);
+                    return item;
+                })
+                .collect(Collectors.toList())
+        );
+
+        searchParams.setSearchOperator(entryOperator);
+//        searchParams.setObjectId(sb.toString());
+
+
+        List<BaseEntry> result = new ArrayList<>();
+        int totalCount = getBatchSize();
+        int runningTotal = 0;
+        int index = 0;
+
+        while (totalCount > getBatchSize() * index) {
+            index++;
+            pager.setPageIndex(index);
+
+            ESearchEntryResponse response = handleRequest( ESearchService.searchEntry(searchParams, pager));
+            log.info("Response: {} of {}", runningTotal += response.getObjects().size(),  response.getTotalCount());
+            if (response.getObjects() == null) {
+                throw new IOException("Unexpectedly no results was returned from list");
+            }
+            totalCount = response.getTotalCount();
+            if (totalCount > MAX_RESULT_SIZE) {
+                throw new IOException("Size of response exceeded MAX_RESULT_SIZE " + MAX_RESULT_SIZE );
+            }
+            response.getObjects()
+                    .stream()
+                    .map(ESearchEntryResult::getObject)
+                    .forEach(result::add);
+        }
+
+        int resultSize = result.size();
+
+        if (objectIds.size() != result.size()) {
+            log.warn("Size of ObjectIds does not equal to final result size. {} != {}", objectIds.size(), resultSize);
+        }
+        log.debug("listMediaEntry returned {} results", resultSize);
+        return result;
+    }
+
     /**
      * Retrieves a report table based on the specified report type and input filter.
      * The method paginates through the results to accommodate large datasets and
@@ -127,7 +192,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      *     <li><b>header</b>: A string representing the report's header.</li>
      *     <li><b>totalCount</b>: A string representation of the total number of records in the report.</li>
      *     <li><b>data</b>: A string containing the data of the report.</li>
-     * </ul>
+     * </ul><
      * @throws APIException If an error occurs while retrieving the report, such as issues with the API request.
      */
     public ReportTableDto getReportTable(ReportType reportType, ReportInputFilter reportInputFilter,
