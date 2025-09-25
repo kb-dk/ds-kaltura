@@ -92,7 +92,6 @@ pipeline {
                         def result = build job: "DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.ORIGINAL_BRANCH}"
                         wait: true // Wait for the pipeline to finish
                     }
-                    echo "Child Pipeline Result: ${result}"
                 }
             }
         }
