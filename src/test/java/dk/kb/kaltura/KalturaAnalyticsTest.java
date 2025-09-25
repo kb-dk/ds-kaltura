@@ -7,9 +7,9 @@ import com.kaltura.client.enums.EntryStatus;
 import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.services.MediaService;
 import com.kaltura.client.types.*;
-import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.client.DsKalturaAnalytics;
 import dk.kb.kaltura.config.ServiceConfig;
+import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.util.yaml.YAML;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -19,12 +19,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 @Tag("integration")
@@ -78,20 +81,49 @@ public class KalturaAnalyticsTest {
     @Test
     public void listMediaEntriesTest() throws APIException, IOException {
         List<String> kalturaIds = List.of(
-                "0_bjkijl7g",
-                "0_f7njg6g0",
-                "0_g8qzthk9",
-                "0_n4wyfccm",
-                "0_r1kb04lm",
-                "0_06vq7yxa",
-                "0_0l5tj2se",
-                "0_1pnhorjb",
-                "0_54kdj7nf");
-
+                "0_w5s6vp2a",
+                "0_o2e4ngw7",
+                "0_qbpo11nc",
+                "0_akjkov8b",
+                "0_r99v3ofh",
+                "0_hsdoxvuj",
+                "0_mznmaip5",
+                "0_83guhx04",
+                "0_nvjplxiv",
+                "0_5n5gsh0q",
+                "0_bbendl8f",
+                "0_zri8pmvr",
+                "0_6ck2166o",
+                "0_1ginfxxa",
+                "0_icg8mrky",
+                "0_h4ey0nco");
         DsKalturaAnalytics client = getClient();
-        for (BaseEntry entry : client.listMediaEntry(kalturaIds)){
+        for (BaseEntry entry : client.getEntriesFromIdList(kalturaIds)) {
             System.out.println(entry.getId());
-        };
+        }
+    }
+
+    @Test
+    public void listMediaFromFile() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("src/test/resources/test_files" +
+                "/newStageEntryIds.txt",
+                StandardCharsets.UTF_8));) { // file where each line is a KalturaId
+            List<String> kalturaIds = reader.lines()
+                    .limit(500)
+                    .map(String::strip)
+                    .collect(Collectors.toList());
+
+            System.out.println("KalturaIds: " + kalturaIds);
+            DsKalturaAnalytics client = getClient();
+            List<String> results = client.getEntriesFromIdList(kalturaIds).stream().map(BaseEntry::getId).collect(Collectors.toList());
+
+            for (String id : kalturaIds) {
+                assertTrue(results.contains(id), "Id was not found in results: " + id);
+            }
+
+        } catch (IOException | APIException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Test

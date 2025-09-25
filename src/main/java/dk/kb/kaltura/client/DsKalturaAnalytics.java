@@ -11,7 +11,10 @@ import com.kaltura.client.utils.request.BaseRequestBuilder;
 import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.domain.TopContentDto;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -110,61 +113,60 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         }
     }
 
-    public List<BaseEntry> listMediaEntry(List<String> objectIds) throws APIException, IOException{
+    public List<BaseEntry> getEntriesFromIdList(List<String> objectIds) throws APIException {
         if (objectIds == null || objectIds.isEmpty()) {
             log.warn("Report from empty list will give unpredictable results on larger datasets. Returning empty map.");
             return new ArrayList<>();
         }
         if (objectIds.size() > MAX_RESULT_SIZE) {
-            throw new IllegalArgumentException("Size of ObjectIds is greater than " + MAX_RESULT_SIZE);
+            log.warn("This method is not designed to conserve memory and is not meant for larger datasets.");
         }
 
-        StringBuilder sb = new StringBuilder();
-        objectIds.forEach(objectId -> sb.append(objectId).append(","));
+        int batchSize = getBatchSize();
+        int remainingElements;
+        int totalElements = objectIds.size();
+        List<BaseEntry> results = new ArrayList<>();
+        for (int i = 0; i < totalElements; i += batchSize) {
+            remainingElements = totalElements - i;
+            results.addAll(listEntryBatch(objectIds.subList(i, Math.min(batchSize + i, remainingElements + i))));
+        }
+        return results;
+    }
+
+    private List<BaseEntry> listEntryBatch(List<String> objectIds) throws APIException {
+        if (objectIds.size() > getBatchSize()) {
+            throw new IllegalArgumentException("Size of ObjectIds is greater than " + getBatchSize());
+        }
+
         FilterPager pager = new FilterPager();
         pager.setPageSize(getBatchSize());
         ESearchEntryOperator entryOperator = new ESearchEntryOperator();
         entryOperator.setOperator(ESearchOperatorType.OR_OP);
         ESearchEntryParams searchParams = new ESearchEntryParams();
+
+        searchParams.setObjectStatuses(EntryStatus.READY.getValue() + "," + EntryStatus.DELETED.getValue() +
+                "," + EntryStatus.BLOCKED.getValue());
+
         entryOperator.setSearchItems(
                 objectIds.stream()
-                .map(entryId -> {
-                    var item = new ESearchEntryItem();
-                    item.setFieldName(ESearchEntryFieldName.ID);
-                    item.setItemType(ESearchItemType.EXACT_MATCH);
-                    item.searchTerm(entryId);
-                    return item;
-                })
-                .collect(Collectors.toList())
-        );
+                        .map(entryId -> {
+                            var item = new ESearchEntryItem();
+                            item.setFieldName(ESearchEntryFieldName.ID);
+                            item.setItemType(ESearchItemType.EXACT_MATCH);
+                            item.setSearchTerm(entryId);
+                            return item;
+                        })
+                        .collect(Collectors.toList()));
 
         searchParams.setSearchOperator(entryOperator);
-//        searchParams.setObjectId(sb.toString());
-
 
         List<BaseEntry> result = new ArrayList<>();
-        int totalCount = getBatchSize();
-        int runningTotal = 0;
-        int index = 0;
+        ESearchEntryResponse response = handleRequest(ESearchService.searchEntry(searchParams, pager));
 
-        while (totalCount > getBatchSize() * index) {
-            index++;
-            pager.setPageIndex(index);
-
-            ESearchEntryResponse response = handleRequest( ESearchService.searchEntry(searchParams, pager));
-            log.info("Response: {} of {}", runningTotal += response.getObjects().size(),  response.getTotalCount());
-            if (response.getObjects() == null) {
-                throw new IOException("Unexpectedly no results was returned from list");
-            }
-            totalCount = response.getTotalCount();
-            if (totalCount > MAX_RESULT_SIZE) {
-                throw new IOException("Size of response exceeded MAX_RESULT_SIZE " + MAX_RESULT_SIZE );
-            }
-            response.getObjects()
-                    .stream()
-                    .map(ESearchEntryResult::getObject)
-                    .forEach(result::add);
-        }
+        response.getObjects()
+                .stream()
+                .map(ESearchEntryResult::getObject)
+                .forEach(result::add);
 
         int resultSize = result.size();
 
@@ -229,8 +231,8 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @param fromDay   The start date for the report in the format "yyyy-MM-dd".
      * @param toDay     The end date for the report in the format "yyyy-MM-dd".
      * @param domainIn  A string representing the domain filter for the report. Can be empty.
-     * @param objectIds  A list of object IDs to filter the report by. Must not be empty and must not exceed the
-     *                   maximum result size: {@link #MAX_RESULT_SIZE}.
+     * @param objectIds A list of object IDs to filter the report by. Must not be empty and must not exceed the
+     *                  maximum result size: {@link #MAX_RESULT_SIZE}.
      * @return A list of {@link TopContentDto} containing the top content data for the specified parameters.
      * @throws APIException if an error occurs while calling the API to retrieve the report.
      */
@@ -247,7 +249,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay(fromDay);
         reportInputFilter.setToDay(toDay);
-        if (!domainIn.isEmpty()){
+        if (domainIn == null || !domainIn.isEmpty()) {
             reportInputFilter.setDomainIn(domainIn);
         }
 
@@ -275,7 +277,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             return topContentDtos;
         }
 
-        for (String record : reportDto.getData().split(";")){ //TODO: Should this be handled in a more robust manner.
+        for (String record : reportDto.getData().split(";")) { //TODO: Should this be handled in a more robust manner.
             String[] stringArr = record.split(",");
             topContentDtos.add(new TopContentDto(reportDto.getHeader(), stringArr));
         }
