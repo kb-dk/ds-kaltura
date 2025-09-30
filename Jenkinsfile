@@ -51,6 +51,25 @@ pipeline {
             }
         }
 
+        stage('Change dependencies') {
+            when {
+                expression {
+                    params.ORIGINAL_BRANCH ==~ "PR-[0-9]+"
+                }
+            }
+            steps {
+                script {
+                    switch (params.ORIGINAL_JOB) {
+                        case ['ds-shared']:
+                            sh "mvn -s ${env.MVN_SETTINGS} versions:use-dep-version -Dincludes=dk.kb.dsshared:* -DdepVersion=${params.ORIGINAL_BRANCH}-${params.ORIGINAL_JOB}-ds-shared-SNAPSHOT -DforceVersion=true"
+
+                            echo "Changing MVN dependency ds-shared to: ${params.ORIGINAL_BRANCH}-${params.ORIGINAL_JOB}-ds-shared-SNAPSHOT"
+                            break
+                    }
+                }
+            }
+        }
+
         stage('Build') {
             steps {
                 withMaven(traceability: true) {
@@ -93,7 +112,7 @@ pipeline {
             }
         }
 
-        stage('Trigger Datahandler Build') {
+        stage('Trigger ds-datahandler Build') {
             when {
                 expression {
                     currentBuild.currentResult == "SUCCESS" && params.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+|PR-[0-9]+"
