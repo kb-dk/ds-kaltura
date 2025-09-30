@@ -3,6 +3,10 @@ pipeline {
         label 'DS agent'
     }
 
+    options {
+        disableConcurrentBuilds()
+    }
+
     environment {
         MVN_SETTINGS = '/etc/m2/settings.xml' //This should be changed in Jenkins config for the DS agent
         PROJECT = 'ds-kaltura'
@@ -16,41 +20,62 @@ pipeline {
 
     parameters {
         string(name: 'ORIGINAL_BRANCH', defaultValue: "${env.BRANCH_NAME}", description: 'Branch of first job to run, will also be PI_ID for a PR')
-        string(name: 'ORIGINAL_JOB', defaultValue: "${env.PROJECT}", description: 'What job was the first to build?')
+        string(name: 'ORIGINAL_JOB', defaultValue: "ds-kaltura", description: 'What job was the first to build?')
         string(name: 'TARGET_BRANCH', defaultValue: "${env.CHANGE_TARGET}", description: 'Target branch if PR')
+        string(name: 'SOURCE_BRANCH', defaultValue: "${env.CHANGE_BRANCH}", description: 'Source branch if PR')
     }
 
     stages {
         stage('Echo Environment Variables') {
             steps {
-                echo "ORIGINAL_BRANCH: ${env.ORIGINAL_BRANCH}"
                 echo "PROJECT: ${env.PROJECT}"
-                echo "ORIGINAL_JOB: ${env.ORIGINAL_JOB}"
                 echo "BUILD_TO_TRIGGER: ${env.BUILD_TO_TRIGGER}"
-                echo "TARGET_BRANCH: ${env.TARGET_BRANCH}"
+                echo "ORIGINAL_BRANCH: ${params.ORIGINAL_BRANCH}"
+                echo "ORIGINAL_JOB: ${params.ORIGINAL_JOB}"
+                echo "TARGET_BRANCH: ${params.TARGET_BRANCH}"
+                echo "SOURCE_BRANCH: ${params.SOURCE_BRANCH}"
             }
         }
 
         stage('Change version if part of PR') {
             when {
                 expression {
-                    env.ORIGINAL_BRANCH ==~ "PR-[0-9]+"
+                    params.ORIGINAL_BRANCH ==~ "PR-[0-9]+"
                 }
             }
             steps {
                 script {
-                    sh "mvn -s ${env.MVN_SETTINGS} versions:set -DnewVersion=${env.ORIGINAL_BRANCH}-${env.ORIGINAL_JOB}-${env.PROJECT}-SNAPSHOT"
-                    echo "Changing MVN version to: ${env.ORIGINAL_BRANCH}-${env.ORIGINAL_JOB}-${env.PROJECT}-SNAPSHOT"
+                    sh "mvn -s ${env.MVN_SETTINGS} versions:set -DnewVersion=${params.ORIGINAL_BRANCH}-${params.ORIGINAL_JOB}-${env.PROJECT}-SNAPSHOT"
+                    echo "Changing MVN version to: ${params.ORIGINAL_BRANCH}-${params.ORIGINAL_JOB}-${env.PROJECT}-SNAPSHOT"
                 }
             }
         }
 
         stage('Build') {
             steps {
-                script {
+                withMaven(traceability: true) {
                     // Execute Maven build
                     sh "mvn -s ${env.MVN_SETTINGS} clean package"
                 }
+            }
+        }
+
+        stage('Analyze build results') {
+            steps {
+                recordIssues(
+                    aggregatingResults: true,
+                    tools: [
+                        java(),
+                        javaDoc(),
+                        mavenConsole(),
+                        taskScanner(
+                            highTags: 'FIXME',
+                            normalTags: 'TODO',
+                            includePattern: '**/*.java',
+                            excludePattern: 'target/**/*'
+                        )
+                    ]
+                )
             }
         }
 
@@ -58,39 +83,50 @@ pipeline {
             when {
                 // Check if Build was successful
                 expression {
-                    currentBuild.currentResult == "SUCCESS" && env.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+|PR-[0-9]+"
+                    currentBuild.currentResult == "SUCCESS" && params.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+|PR-[0-9]+"
                 }
             }
             steps {
-                sh "mvn -s ${env.MVN_SETTINGS} clean deploy -DskipTests=true"
+                withMaven(traceability: true) {
+                    sh "mvn -s ${env.MVN_SETTINGS} clean deploy -DskipTests=true"
+                }
             }
         }
 
         stage('Trigger Datahandler Build') {
             when {
                 expression {
-                    currentBuild.currentResult == "SUCCESS" && env.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+|PR-[0-9]+"
+                    currentBuild.currentResult == "SUCCESS" && params.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+|PR-[0-9]+"
                 }
             }
             steps {
                 script {
-                    if ( env.ORIGINAL_BRANCH ==~ "PR-[0-9]+" ) {
-                        echo "Triggering: DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.TARGET_BRANCH}"
+                    if (params.ORIGINAL_BRANCH ==~ "PR-[0-9]+") {
+                        // Check the next job to trigger, if there is a branch with same name as the source branch (if a task has involved multiple repositories)
+                        def EMPTY_IF_NO_BRANCH = sh(script: "git ls-remote --heads https://github.com/kb-dk/${env.BUILD_TO_TRIGGER}.git | grep 'refs/heads/${params.SOURCE_BRANCH}' || echo empty", returnStdout: true).trim()
+                        echo "EMPTY_IF_NO_BRANCH: ${EMPTY_IF_NO_BRANCH}"
 
-                        def result = build job: "DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.TARGET_BRANCH}",
-                        parameters: [
-                            string(name: 'ORIGINAL_BRANCH', value: env.ORIGINAL_BRANCH),
-                            string(name: 'ORIGINAL_JOB', value: env.ORIGINAL_JOB),
-                            string(name: 'TARGET_BRANCH', value: env.TARGET_BRANCH)
-                        ]
-                        wait: true // Wait for the pipeline to finish
-                    }
+                        if ("${EMPTY_IF_NO_BRANCH}" == "empty") {
+                            BRANCH_TO_USE = "${params.TARGET_BRANCH}"
+                        } else {
+                            BRANCH_TO_USE = "${params.SOURCE_BRANCH}"
+                        }
 
-                    else if ( env.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+" ){
-                        echo "Triggering: DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.ORIGINAL_BRANCH}"
+                        echo "Triggering: DS-GitHub/${env.BUILD_TO_TRIGGER}/${BRANCH_TO_USE}"
 
-                        def result = build job: "DS-GitHub/${env.BUILD_TO_TRIGGER}/${env.ORIGINAL_BRANCH}"
-                        wait: true // Wait for the pipeline to finish
+                        build job: "DS-GitHub/${env.BUILD_TO_TRIGGER}/${BRANCH_TO_USE}",
+                            parameters: [
+                                string(name: 'ORIGINAL_BRANCH', value: params.ORIGINAL_BRANCH),
+                                string(name: 'ORIGINAL_JOB', value: params.ORIGINAL_JOB),
+                                string(name: 'TARGET_BRANCH', value: params.TARGET_BRANCH),
+                                string(name: 'SOURCE_BRANCH', value: params.SOURCE_BRANCH)
+                            ],
+                            wait: true // Wait for the pipeline to finish
+                    } else if (params.ORIGINAL_BRANCH ==~ "master|release_v[0-9]+") {
+                        echo "Triggering: DS-GitHub/${env.BUILD_TO_TRIGGER}/${params.ORIGINAL_BRANCH}"
+
+                        build job: "DS-GitHub/${env.BUILD_TO_TRIGGER}/${params.ORIGINAL_BRANCH}",
+                            wait: true // Wait for the pipeline to finish
                     }
                 }
             }
