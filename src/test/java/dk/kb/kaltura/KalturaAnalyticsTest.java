@@ -53,7 +53,7 @@ public class KalturaAnalyticsTest {
         DsKalturaAnalytics client = getClient();
         BaseEntryFilter filter = new BaseEntryFilter();
         filter.statusIn(EntryStatus.READY.getValue());
-        filter.setModerationStatusNotIn("notAStatus");
+//        filter.setModerationStatusEqual(EntryModerationStatus.REJECTED);
         int i = client.countAllBaseEntries(filter);
         System.out.println("Total: " + i);
     }
@@ -79,6 +79,16 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
+    public void listAllEntriesGenericTest() throws APIException {
+        DsKalturaAnalytics client = getClient();
+        MediaEntryFilter mediaEntryFilter = new MediaEntryFilter();
+        mediaEntryFilter.statusIn(EntryStatus.READY.getValue());
+        mediaEntryFilter.setModerationStatusNotIn("notModerationStatus");
+        String filename = "AllEntries.json";
+        client.exportAllEntriesToFile(mediaEntryFilter, MediaService::list, filename);
+    }
+
+    @Test
     public void listMediaEntriesTest() throws APIException, IOException {
         List<String> kalturaIds = List.of(
                 "0_w5s6vp2a",
@@ -99,7 +109,7 @@ public class KalturaAnalyticsTest {
                 "0_h4ey0nco");
         DsKalturaAnalytics client = getClient();
         for (BaseEntry entry : client.getEntriesFromIdList(kalturaIds)) {
-            System.out.println(entry.getId());
+            kalturaIds.contains(entry.getId());
         }
     }
 
@@ -109,7 +119,7 @@ public class KalturaAnalyticsTest {
                 "/newStageEntryIds.txt",
                 StandardCharsets.UTF_8));) { // file where each line is a KalturaId
             List<String> kalturaIds = reader.lines()
-                    .limit(500)
+                    .limit(10000)
                     .map(String::strip)
                     .collect(Collectors.toList());
 

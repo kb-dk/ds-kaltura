@@ -1,6 +1,7 @@
 package dk.kb.kaltura.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Sets;
 import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
 import com.kaltura.client.services.ESearchService;
@@ -60,49 +61,47 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         FilterPager pager = new FilterPager();
         pager.setPageSize(getBatchSize());
         pager.setPageIndex(1);
-        filter.setOrderBy("createdAt_ASC");
+        filter.setOrderBy(MediaEntryOrderBy.CREATED_AT_ASC.getValue());
 
-        int maxPages = MAX_RESULT_SIZE / getBatchSize();
-        Long lastCreatedTimeStamp = null;
-        BaseEntry lastEntry;
+        E lasEntry;
+        Long lastCreatedTimeStamp = 1700000000L;
         int count = 0;
-        List<BaseEntry> result;
+        List<E> result;
+        ObjectMapper mapper = new ObjectMapper();
+        Map<String, String> createdAtMap = new HashMap<>();
+
+        Set<String> lastPage = Sets.newHashSet();
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename),
                 StandardCharsets.UTF_8))) {
             while (true) {
-                pager.setPageIndex(pager.getPageIndex());
-
-                if (pager.getPageIndex() > maxPages) {
-                    filter.setCreatedAtGreaterThanOrEqual(lastCreatedTimeStamp);
-                    pager.setPageIndex(1);
-                }
+                filter.setCreatedAtGreaterThanOrEqual(lastCreatedTimeStamp);
 
                 B listBuilder = service.apply(filter, pager);
 
-                result = (List<BaseEntry>) handleRequest(listBuilder).getObjects();
-                count += result.size();
-                lastEntry = result.get(result.size() - 1);
-                lastCreatedTimeStamp = lastEntry.getCreatedAt();
+                result = (List<E>) handleRequest(listBuilder).getObjects();
 
-                log.info("Page: " + pager.getPageIndex());
-                log.info("Response.size(): {}, total received: {}", result.size(), count);
-                log.info("LatstCreatedTimeStamp: {}", lastCreatedTimeStamp);
 
-                ObjectMapper mapper = new ObjectMapper();
-                for (BaseEntry mediaEntry : result) {
-                    if (lastEntry.getId().equals(mediaEntry.getId())) {
+                for (E mediaEntry : result) {
+                    if (lastPage.contains(mediaEntry.getId())) {
                         continue;
                     }
+                    count += 1;
+                    lastCreatedTimeStamp = mediaEntry.getCreatedAt();
                     writer.write(mapper.writeValueAsString(mediaEntry));
                     writer.newLine();
                 }
                 writer.flush();
 
-                if (result.size() < pager.getPageSize()) {
+                log.info("Page: " + pager.getPageIndex());
+                log.info("Response.size(): {}, total received: {}", result.size(), count);
+                log.info("LatstCreatedTimeStamp: {}", lastCreatedTimeStamp);
+
+                if (result.size() < getBatchSize()) {
+                    log.info("No more entries found");
                     break;
                 }
-                pager.setPageIndex(pager.getPageIndex() + 1);
+                lastPage = result.stream().map(E::getId).collect(Collectors.toSet());
             }
 
         } catch (IOException e) {
@@ -133,7 +132,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         return results;
     }
 
-    private List<BaseEntry> listEntryBatch(List<String> objectIds) throws APIException {
+    private List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
         if (objectIds.size() > getBatchSize()) {
             throw new IllegalArgumentException("Size of ObjectIds is greater than " + getBatchSize());
         }
@@ -143,9 +142,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         ESearchEntryOperator entryOperator = new ESearchEntryOperator();
         entryOperator.setOperator(ESearchOperatorType.OR_OP);
         ESearchEntryParams searchParams = new ESearchEntryParams();
-
-        searchParams.setObjectStatuses(EntryStatus.READY.getValue() + "," + EntryStatus.DELETED.getValue() +
-                "," + EntryStatus.BLOCKED.getValue());
 
         entryOperator.setSearchItems(
                 objectIds.stream()
@@ -160,12 +156,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         searchParams.setSearchOperator(entryOperator);
 
-        List<BaseEntry> result = new ArrayList<>();
+        List<MediaEntry> result = new ArrayList<>();
         ESearchEntryResponse response = handleRequest(ESearchService.searchEntry(searchParams, pager));
 
         response.getObjects()
                 .stream()
                 .map(ESearchEntryResult::getObject)
+                .map(entry -> (MediaEntry) entry)
                 .forEach(result::add);
 
         int resultSize = result.size();
@@ -272,8 +269,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      */
     private List<TopContentDto> reportTableTopContent(ReportTableDto reportDto) {
         List<TopContentDto> topContentDtos = new ArrayList<>();
-        if (reportDto.getHeader().isEmpty()) {
-            log.warn("Report map has an empty header");
+        if (reportDto.getTotalCount() == 0) {
             return topContentDtos;
         }
 
