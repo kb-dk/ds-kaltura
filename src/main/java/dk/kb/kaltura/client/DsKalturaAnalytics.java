@@ -1,6 +1,9 @@
 package dk.kb.kaltura.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.google.common.collect.Sets;
 import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
@@ -12,10 +15,7 @@ import com.kaltura.client.utils.request.BaseRequestBuilder;
 import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.domain.TopContentDto;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiFunction;
@@ -114,7 +114,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     public List<BaseEntry> getEntriesFromIdList(List<String> objectIds) throws APIException {
         if (objectIds == null || objectIds.isEmpty()) {
-            log.warn("Report from empty list will give unpredictable results on larger datasets. Returning empty map.");
+            log.warn("objectIds is empty or null");
             return new ArrayList<>();
         }
         if (objectIds.size() > MAX_RESULT_SIZE) {
@@ -122,12 +122,10 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         }
 
         int batchSize = getBatchSize();
-        int remainingElements;
         int totalElements = objectIds.size();
         List<BaseEntry> results = new ArrayList<>();
         for (int i = 0; i < totalElements; i += batchSize) {
-            remainingElements = totalElements - i;
-            results.addAll(listEntryBatch(objectIds.subList(i, Math.min(batchSize + i, remainingElements + i))));
+            results.addAll(listEntryBatch(objectIds.subList(i, Math.min(batchSize + i, totalElements))));
         }
         return results;
     }
@@ -167,10 +165,20 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         int resultSize = result.size();
 
-        if (objectIds.size() != result.size()) {
-            log.warn("Size of ObjectIds does not equal to final result size. {} != {}", objectIds.size(), resultSize);
+        Set<String> resultIdSet = result.stream().map(mediaEntry -> mediaEntry.getId() ).collect(Collectors.toSet());
+        objectIds.forEach(objectId ->
+        {
+            if (!resultIdSet.contains(objectId)){
+                log.warn("kaltura id missing: {}", objectId);
+            }
+        });
+        if (objectIds.size() != resultIdSet.size()) {
+            log.warn("Requested ({}) != result size({})"
+                    , objectIds.size(), resultSize);
+        }else{
+            log.info("Requested ({}) == result size({})", objectIds.size(), resultIdSet.size());
         }
-        log.debug("listMediaEntry returned {} results", resultSize);
+
         return result;
     }
 
@@ -234,7 +242,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @throws APIException if an error occurs while calling the API to retrieve the report.
      */
     public List<TopContentDto> getTopContentFromIdList(String fromDay, String toDay, String domainIn,
-                                                       List<String> objectIds) throws APIException {
+                                                       List<String> objectIds) throws APIException, IOException {
         if (objectIds == null || objectIds.isEmpty()) {
             log.warn("Report from empty list will give unpredictable results on larger datasets. Returning empty map.");
             return new ArrayList<>();
@@ -257,8 +265,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         ReportTableDto reportTableDto = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 ReportOrderBy.CREATED_AT_ASC.getValue(), objectIdStringBuilder.toString());
-
-        return reportTableTopContent(reportTableDto);
+        List<TopContentDto> result = reportTableTopContent(reportTableDto);
+        log.info("Size of TopContent Report: {}", result.size());
+        return result;
     }
 
     /**
@@ -267,19 +276,49 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @param reportDto The {@link ReportTableDto} containing the report data to be processed.
      * @return A list of {@link TopContentDto} objects created from the report data.
      */
-    private List<TopContentDto> reportTableTopContent(ReportTableDto reportDto) {
+    private List<TopContentDto> reportTableTopContent(ReportTableDto reportDto) throws IOException {
         List<TopContentDto> topContentDtos = new ArrayList<>();
         if (reportDto.getTotalCount() == 0) {
             return topContentDtos;
         }
 
-        for (String record : reportDto.getData().split(";")) { //TODO: Should this be handled in a more robust manner.
-            String[] stringArr = record.split(",");
-            topContentDtos.add(new TopContentDto(reportDto.getHeader(), stringArr));
-        }
+        CsvMapper csvMapper = new CsvMapper();
+        csvMapper.registerModule(new JavaTimeModule());
 
-        return topContentDtos;
+        // Define the CSV schema (you can customize the schema as needed)
 
+//        CsvSchema schema = CsvSchema.builder()
+//                .addColumn("object_id")          // Maps to TopContentDto's object_id
+//                .addColumn("entry_name")         // Maps to TopContentDto's entry_name
+//                .addColumn("count_plays")        // Maps to TopContentDto's count_plays
+//                .addColumn("sum_time_viewed")    // Maps to TopContentDto's sum_time_viewed
+//                .addColumn("avg_time_viewed")    // Maps to TopContentDto's avg_time_viewed
+//                .addColumn("count_loads")        // Maps to TopContentDto's count_loads
+//                .addColumn("load_play_ratio")     // Maps to TopContentDto's load_play_ratio
+//                .addColumn("avg_view_drop_off")   // Maps to TopContentDto's avg_view_drop_off
+//                .addColumn("unique_known_users")// Maps to TopContentDto's unique_known_users
+//                .setUseHeader(true)               // Indicates that the first row is a header
+//                .build().withColumnSeparator(',');
+        CsvSchema schema =
+                CsvSchema.emptySchema().withHeader().withColumnSeparator(',');
+        System.out.println(reportDto.getData());
+
+        Class<TopContentDto> clazz = TopContentDto.class;
+        List<TopContentDto> topContentDtoList = csvMapper.readerFor(clazz)
+                .with(schema)
+                .<TopContentDto>readValues(new StringReader(reportDto.getHeader()+
+                        System.lineSeparator()
+                        +reportDto.getData().replace(
+                        ";",
+
+                        System.lineSeparator())))
+                .readAll();
+//        for (String record : reportDto.getData().split(";")) { //TODO: Should this be handled in a more robust manner.
+//            String[] stringArr = record.split(",");
+//            topContentDtos.add(new TopContentDto(reportDto.getHeader(), stringArr));
+//        }
+
+        return topContentDtoList;
     }
 
 }
