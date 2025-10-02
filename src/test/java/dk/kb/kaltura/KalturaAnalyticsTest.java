@@ -161,7 +161,7 @@ public class KalturaAnalyticsTest {
 //        ids.forEach(System.out::println);
         String fromDay = "20250101";
         String toDay = "20251231";
-        String domain = "www.kb.dk";
+//        String domain = "www.kb.dk";
 
         DsKalturaAnalytics client = getClient();
         var dtos = client.getTopContentFromIdList(fromDay, toDay, "", ids);

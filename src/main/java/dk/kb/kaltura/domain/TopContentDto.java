@@ -1,5 +1,7 @@
 package dk.kb.kaltura.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.math.NumberUtils;
 
 public class TopContentDto {
@@ -21,18 +23,27 @@ public class TopContentDto {
     }
 
     // Parameterized constructor
-    public TopContentDto(String object_id, String entry_name, String count_plays, String sum_time_viewed,
-                         String avg_time_viewed, String count_loads, String load_play_ratio,
-                         String avg_view_drop_off, String unique_known_users) {
+    @JsonCreator
+    public TopContentDto(
+            @JsonProperty("object_id") String object_id,
+            @JsonProperty("entry_name") String entry_name,
+            @JsonProperty("count_plays") Integer count_plays,
+            @JsonProperty("sum_time_viewed") Float sum_time_viewed,
+            @JsonProperty("avg_time_viewed") Float avg_time_viewed,
+            @JsonProperty("count_loads") Integer count_loads,
+            @JsonProperty("load_play_ratio") Float load_play_ratio,
+            @JsonProperty("avg_view_drop_off") Float avg_view_drop_off,
+            @JsonProperty("unique_known_users") Integer unique_known_users
+    ) {
         this.object_id = object_id;
         this.entry_name = entry_name;
-        this.count_plays = Integer.getInteger(count_plays);
-        this.sum_time_viewed = NumberUtils.createFloat(sum_time_viewed);
-        this.avg_time_viewed = NumberUtils.createFloat(avg_time_viewed);
-        this.count_loads = NumberUtils.createInteger(count_loads);
-        this.load_play_ratio = NumberUtils.createFloat(load_play_ratio);
-        this.avg_view_drop_off = NumberUtils.createFloat(avg_view_drop_off);
-        this.unique_known_users = NumberUtils.createInteger(unique_known_users);
+        this.count_plays = count_plays;
+        this.sum_time_viewed = sum_time_viewed;
+        this.avg_time_viewed = avg_time_viewed;
+        this.count_loads = count_loads;
+        this.load_play_ratio = load_play_ratio;
+        this.avg_view_drop_off = avg_view_drop_off;
+        this.unique_known_users = unique_known_users;
     }
 
     public TopContentDto(String header, String... args) {
