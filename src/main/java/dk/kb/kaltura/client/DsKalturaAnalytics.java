@@ -285,26 +285,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         CsvMapper csvMapper = new CsvMapper();
         csvMapper.registerModule(new JavaTimeModule());
 
-        // Define the CSV schema (you can customize the schema as needed)
-
-//        CsvSchema schema = CsvSchema.builder()
-//                .addColumn("object_id")          // Maps to TopContentDto's object_id
-//                .addColumn("entry_name")         // Maps to TopContentDto's entry_name
-//                .addColumn("count_plays")        // Maps to TopContentDto's count_plays
-//                .addColumn("sum_time_viewed")    // Maps to TopContentDto's sum_time_viewed
-//                .addColumn("avg_time_viewed")    // Maps to TopContentDto's avg_time_viewed
-//                .addColumn("count_loads")        // Maps to TopContentDto's count_loads
-//                .addColumn("load_play_ratio")     // Maps to TopContentDto's load_play_ratio
-//                .addColumn("avg_view_drop_off")   // Maps to TopContentDto's avg_view_drop_off
-//                .addColumn("unique_known_users")// Maps to TopContentDto's unique_known_users
-//                .setUseHeader(true)               // Indicates that the first row is a header
-//                .build().withColumnSeparator(',');
         CsvSchema schema =
                 CsvSchema.emptySchema().withHeader().withColumnSeparator(',');
         System.out.println(reportDto.getData());
 
         Class<TopContentDto> clazz = TopContentDto.class;
-        List<TopContentDto> topContentDtoList = csvMapper.readerFor(clazz)
+
+        return csvMapper.readerFor(clazz)
                 .with(schema)
                 .<TopContentDto>readValues(new StringReader(reportDto.getHeader()+
                         System.lineSeparator()
@@ -313,12 +300,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
                         System.lineSeparator())))
                 .readAll();
-//        for (String record : reportDto.getData().split(";")) { //TODO: Should this be handled in a more robust manner.
-//            String[] stringArr = record.split(",");
-//            topContentDtos.add(new TopContentDto(reportDto.getHeader(), stringArr));
-//        }
-
-        return topContentDtoList;
     }
 
 }
