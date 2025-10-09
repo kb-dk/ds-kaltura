@@ -287,7 +287,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         CsvSchema schema =
                 CsvSchema.emptySchema().withHeader().withColumnSeparator(',');
-        System.out.println(reportDto.getData());
 
         Class<TopContentDto> clazz = TopContentDto.class;
 

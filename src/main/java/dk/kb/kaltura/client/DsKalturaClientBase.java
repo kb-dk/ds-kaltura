@@ -29,7 +29,7 @@ public abstract class DsKalturaClientBase {
     // Kaltura-default: 30, maximum 500: https://developer.kaltura.com/api-docs/service/eSearch/action/searchEntry
     public static final int MAX_BATCH_SIZE = 500;
     public static final int MIN_BATCH_SIZE = 1;
-    final int MAX_RESULT_SIZE = 10000;
+    public static final int MAX_RESULT_SIZE = 10000;
 
 
     static {
