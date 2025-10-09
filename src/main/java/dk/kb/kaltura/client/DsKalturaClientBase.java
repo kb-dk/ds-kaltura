@@ -85,7 +85,7 @@ public abstract class DsKalturaClientBase {
         initializeKalturaClient();
     }
 
-    protected int getBatchSize() {
+    public int getBatchSize() {
         return batchSize;
     }
 
