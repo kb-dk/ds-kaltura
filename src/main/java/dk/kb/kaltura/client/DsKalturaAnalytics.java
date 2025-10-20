@@ -1,9 +1,9 @@
 package dk.kb.kaltura.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Sets;
 import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
@@ -17,7 +17,9 @@ import dk.kb.kaltura.domain.TopContentDto;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -38,7 +40,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @param sessionRefreshThreshold The threshold in seconds for session renewal.
      *                                <p>
      *                                Either a token/tokenId a adminSecret must be provided for authentication.
-     * @throws IOException If session could not be created at Kaltura
      */
     public DsKalturaAnalytics(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
@@ -53,23 +54,32 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         return handleRequest(MediaService.count(filter));
     }
 
-    @SuppressWarnings("unchecked")
+    /**
+     * Exports all entries of a specified type to a file, applying a given filter and service for pagination.
+     *
+     * <p>This method retrieves entries in batches based on the provided filter and writes them
+     * to a specified file in JSON format. It handles pagination and ensures no duplicate entries
+     * are written to the file. The entries are ordered by their creation timestamp.</p>
+     *
+     * @param <T>      The type of filter used to specify the criteria for entries to export.
+     * @param <E>      The type of entries being exported, extending from BaseEntry.
+     * @param <B>      The type of request builder used to create service requests, extending from BaseRequestBuilder.
+     * @param filter   The filter to apply for exporting entries.
+     * @param service  A function that takes the filter and a FilterPager, and returns a configured request builder.
+     * @param filename The name of the file to which the entries will be exported.
+     * @throws RuntimeException if there is an API exception while handling the request.
+     */
     public <T extends BaseEntryFilter, E extends BaseEntry, B extends BaseRequestBuilder<ListResponse<E>, B>> void
     exportAllEntriesToFile(T filter, BiFunction<T, FilterPager, B> service, String filename) {
-
-        //TODO: BUGFIX - This creates duplicates entries on larger datasets.
         FilterPager pager = new FilterPager();
         pager.setPageSize(getBatchSize());
         pager.setPageIndex(1);
         filter.setOrderBy(MediaEntryOrderBy.CREATED_AT_ASC.getValue());
 
-        E lasEntry;
         Long lastCreatedTimeStamp = 1700000000L;
         int count = 0;
         List<E> result;
         ObjectMapper mapper = new ObjectMapper();
-        Map<String, String> createdAtMap = new HashMap<>();
-
         Set<String> lastPage = Sets.newHashSet();
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename),
@@ -79,7 +89,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
                 B listBuilder = service.apply(filter, pager);
 
-                result = (List<E>) handleRequest(listBuilder).getObjects();
+                result = handleRequest(listBuilder).getObjects();
 
 
                 for (E mediaEntry : result) {
@@ -105,12 +115,26 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             }
 
         } catch (IOException e) {
-            //TODO handle exception
-            e.printStackTrace();
+            throw new RuntimeException("", e);
         } catch (APIException e) {
             throw new RuntimeException(e);
         }
     }
+
+    /**
+     * Retrieves a list of BaseEntry objects corresponding to the provided list of object IDs.
+     *
+     * <p>This method processes the provided list of object IDs in batches to retrieve entries.
+     * If the input list is null or empty, it logs a warning and returns an empty list. If the
+     * input list exceeds a predefined maximum size, a warning is also logged. The method uses
+     * batching to efficiently retrieve entries in smaller groups.</p>
+     *
+     * @param objectIds A list of object IDs for which the corresponding BaseEntry objects are to be retrieved.
+     *                  If this list is null or empty, an empty list is returned.
+     * @return A list of BaseEntry objects corresponding to the provided object IDs. If no valid IDs are
+     *         provided, an empty list is returned.
+     * @throws APIException If there is an error while retrieving the entries from the service.
+     */
 
     public List<BaseEntry> getEntriesFromIdList(List<String> objectIds) throws APIException {
         if (objectIds == null || objectIds.isEmpty()) {
@@ -130,6 +154,20 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         return results;
     }
 
+    /**
+     * Retrieves a batch of MediaEntry objects based on the provided list of object IDs.
+     *
+     * <p>This method checks if the number of provided object IDs exceeds the defined batch size.
+     * If it does, an IllegalArgumentException is thrown. It constructs a search query
+     * to fetch the corresponding MediaEntry objects from the backend service and logs any
+     * missing IDs or discrepancies in the expected versus actual results.</p>
+     *
+     * @param objectIds A list of object IDs to retrieve MediaEntry objects for.
+     *                  The size of this list must not exceed the configured batch size.
+     * @return A list of MediaEntry objects corresponding to the provided object IDs.
+     * @throws APIException             If there is an error while handling the request to the search service.
+     * @throws IllegalArgumentException If the size of the objectIds list exceeds the configured batch size.
+     */
     private List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
         if (objectIds.size() > getBatchSize()) {
             throw new IllegalArgumentException("Size of ObjectIds is greater than " + getBatchSize());
@@ -165,17 +203,17 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         int resultSize = result.size();
 
-        Set<String> resultIdSet = result.stream().map(mediaEntry -> mediaEntry.getId() ).collect(Collectors.toSet());
+        Set<String> resultIdSet = result.stream().map(BaseEntry::getId).collect(Collectors.toSet());
         objectIds.forEach(objectId ->
         {
-            if (!resultIdSet.contains(objectId)){
+            if (!resultIdSet.contains(objectId)) {
                 log.warn("kaltura id missing: {}", objectId);
             }
         });
         if (objectIds.size() != resultIdSet.size()) {
             log.warn("Requested ({}) != result size({})"
                     , objectIds.size(), resultSize);
-        }else{
+        } else {
             log.info("Requested ({}) == result size({})", objectIds.size(), resultIdSet.size());
         }
 
@@ -258,13 +296,12 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             reportInputFilter.setDomainIn(domainIn);
         }
 
-        StringBuilder objectIdStringBuilder = new StringBuilder();
-        objectIds.forEach(objectId -> {
-            objectIdStringBuilder.append(objectId.trim()).append(",");
-        });
+        String objectIdString = objectIds.stream()
+                .map(String::trim)
+                .collect(Collectors.joining(","));
 
         ReportTableDto reportTableDto = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
-                ReportOrderBy.CREATED_AT_ASC.getValue(), objectIdStringBuilder.toString());
+                ReportOrderBy.CREATED_AT_ASC.getValue(), objectIdString);
         List<TopContentDto> result = reportTableTopContent(reportTableDto);
         log.info("Size of TopContent Report: {}", result.size());
         return result;
@@ -292,9 +329,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         return csvMapper.readerFor(clazz)
                 .with(schema)
-                .<TopContentDto>readValues(new StringReader(reportDto.getHeader()+
+                .<TopContentDto>readValues(new StringReader(reportDto.getHeader() +
                         System.lineSeparator()
-                        +reportDto.getData().replace(
+                        + reportDto.getData().replace(
                         ";",
 
                         System.lineSeparator())))
