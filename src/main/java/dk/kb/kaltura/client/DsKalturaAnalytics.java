@@ -14,6 +14,7 @@ import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.domain.TopContentDto;
+import dk.kb.kaltura.mapper.DtoMapper;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -25,6 +26,8 @@ import java.util.stream.Collectors;
 
 
 public class DsKalturaAnalytics extends DsKalturaClientBase {
+
+    private final DtoMapper dtoMapper;
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -44,6 +47,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     public DsKalturaAnalytics(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
                 sessionRefreshThreshold, MAX_BATCH_SIZE);
+        this.dtoMapper = new DtoMapper();
     }
 
     public int countAllBaseEntries(BaseEntryFilter filter) throws APIException {
@@ -302,40 +306,11 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         ReportTableDto reportTableDto = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 ReportOrderBy.CREATED_AT_ASC.getValue(), objectIdString);
-        List<TopContentDto> result = reportTableTopContent(reportTableDto);
+        List<TopContentDto> result = dtoMapper.reportDtoToTopContentList(reportTableDto);
         log.info("Size of TopContent Report: {}", result.size());
         return result;
     }
 
-    /**
-     * Converts the data in the provided report table DTO into a list of top content DTOs.
-     *
-     * @param reportDto The {@link ReportTableDto} containing the report data to be processed.
-     * @return A list of {@link TopContentDto} objects created from the report data.
-     */
-    private List<TopContentDto> reportTableTopContent(ReportTableDto reportDto) throws IOException {
-        List<TopContentDto> topContentDtos = new ArrayList<>();
-        if (reportDto.getTotalCount() == 0) {
-            return topContentDtos;
-        }
 
-        CsvMapper csvMapper = new CsvMapper();
-        csvMapper.registerModule(new JavaTimeModule());
-
-        CsvSchema schema =
-                CsvSchema.emptySchema().withHeader().withColumnSeparator(',');
-
-        Class<TopContentDto> clazz = TopContentDto.class;
-
-        return csvMapper.readerFor(clazz)
-                .with(schema)
-                .<TopContentDto>readValues(new StringReader(reportDto.getHeader() +
-                        System.lineSeparator()
-                        + reportDto.getData().replace(
-                        ";",
-
-                        System.lineSeparator())))
-                .readAll();
-    }
 
 }
