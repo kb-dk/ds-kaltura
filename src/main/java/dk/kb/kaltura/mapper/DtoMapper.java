@@ -34,15 +34,22 @@ public class DtoMapper {
         csvMapper.registerModule(new JavaTimeModule());
 
         CsvSchema schema =
-                CsvSchema.emptySchema().withHeader().withColumnSeparator(',');
+                CsvSchema.emptySchema().withHeader().withColumnSeparator(',').withoutQuoteChar();
 
         Class<TopContentDto> clazz = TopContentDto.class;
-
-        return csvMapper.readerFor(clazz)
-                .with(schema)
-                .<TopContentDto>readValues(new StringReader(reportTableDto.getHeader() +
-                        System.lineSeparator()
-                        + reportTableDto.getData().replace(";", System.lineSeparator())))
-                .readAll();
+        try {
+            return csvMapper.readerFor(clazz)
+                    .with(schema)
+                    .<TopContentDto>readValues(new StringReader(reportTableDto.getHeader() +
+                            System.lineSeparator()
+                            + reportTableDto.getData()
+                            .replace(";", System.lineSeparator()))) //Titles that contains semicolon is already
+                    // replaced by whitespace.
+                    .readAll();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            log.error(reportTableDto.toString());
+            throw e;
+        }
     }
 }
