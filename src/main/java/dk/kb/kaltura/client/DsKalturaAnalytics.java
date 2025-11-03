@@ -1,9 +1,6 @@
 package dk.kb.kaltura.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.Sets;
 import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
@@ -16,7 +13,10 @@ import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.domain.TopContentDto;
 import dk.kb.kaltura.mapper.DtoMapper;
 
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -75,12 +75,12 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      */
     public <T extends BaseEntryFilter, E extends BaseEntry, B extends BaseRequestBuilder<ListResponse<E>, B>> void
     exportAllEntriesToFile(T filter, BiFunction<T, FilterPager, B> service, String filename) {
-        FilterPager pager = new FilterPager();
-        pager.setPageSize(getBatchSize());
-        pager.setPageIndex(1);
+        FilterPager filterPager = new FilterPager();
+        filterPager.setPageSize(getBatchSize());
+        filterPager.setPageIndex(1);
         filter.setOrderBy(MediaEntryOrderBy.CREATED_AT_ASC.getValue());
 
-        Long lastCreatedTimeStamp = 1700000000L;
+        Long lastCreatedTimestamp = 1L;
         int count = 0;
         List<E> result;
         ObjectMapper mapper = new ObjectMapper();
@@ -89,9 +89,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename),
                 StandardCharsets.UTF_8))) {
             while (true) {
-                filter.setCreatedAtGreaterThanOrEqual(lastCreatedTimeStamp);
+                filter.setCreatedAtGreaterThanOrEqual(lastCreatedTimestamp);
 
-                B listBuilder = service.apply(filter, pager);
+                B listBuilder = service.apply(filter, filterPager);
 
                 result = handleRequest(listBuilder).getObjects();
 
@@ -101,15 +101,15 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                         continue;
                     }
                     count += 1;
-                    lastCreatedTimeStamp = mediaEntry.getCreatedAt();
+                    lastCreatedTimestamp = mediaEntry.getCreatedAt();
                     writer.write(mapper.writeValueAsString(mediaEntry));
                     writer.newLine();
                 }
                 writer.flush();
 
-                log.info("Page: " + pager.getPageIndex());
+                log.info("Page: " + filterPager.getPageIndex());
                 log.info("Response.size(): {}, total received: {}", result.size(), count);
-                log.info("LatstCreatedTimeStamp: {}", lastCreatedTimeStamp);
+                log.info("LatstCreatedTimeStamp: {}", lastCreatedTimestamp);
 
                 if (result.size() < getBatchSize()) {
                     log.info("No more entries found");
@@ -136,7 +136,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @param objectIds A list of object IDs for which the corresponding BaseEntry objects are to be retrieved.
      *                  If this list is null or empty, an empty list is returned.
      * @return A list of BaseEntry objects corresponding to the provided object IDs. If no valid IDs are
-     *         provided, an empty list is returned.
+     * provided, an empty list is returned.
      * @throws APIException If there is an error while retrieving the entries from the service.
      */
 
@@ -208,17 +208,16 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         int resultSize = result.size();
 
         Set<String> resultIdSet = result.stream().map(BaseEntry::getId).collect(Collectors.toSet());
-        objectIds.forEach(objectId ->
-        {
+        for (String objectId : objectIds) {
             if (!resultIdSet.contains(objectId)) {
                 log.warn("kaltura id missing: {}", objectId);
             }
-        });
+        }
         if (objectIds.size() != resultIdSet.size()) {
             log.warn("Requested ({}) != result size({})"
                     , objectIds.size(), resultSize);
         } else {
-            log.info("Requested ({}) == result size({})", objectIds.size(), resultIdSet.size());
+            log.debug("Requested ({}) == result size({})", objectIds.size(), resultIdSet.size());
         }
 
         return result;
@@ -310,7 +309,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         log.info("Size of TopContent Report: {}", result.size());
         return result;
     }
-
 
 
 }
