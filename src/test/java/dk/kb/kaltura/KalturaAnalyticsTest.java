@@ -10,6 +10,7 @@ import com.kaltura.client.types.*;
 import dk.kb.kaltura.client.DsKalturaAnalytics;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.kaltura.domain.ReportTableDto;
+import dk.kb.kaltura.domain.TopContentDto;
 import dk.kb.util.yaml.YAML;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -139,11 +140,12 @@ public class KalturaAnalyticsTest {
     @Test
     public void getReportTableNoObjectIds() throws Exception {
         DsKalturaAnalytics client = getClient();
-        var filter = new ReportInputFilter();
+        ReportInputFilter filter = new ReportInputFilter();
         filter.setFromDay("20250101");
         filter.setToDay("20260101");
-        var reportType = ReportType.TOP_CONTENT;
-        var map = client.getReportTable(reportType, filter, null, null);
+        filter.setDomainIn("kb.dk");
+        ReportType reportType = ReportType.TOP_CONTENT;
+        ReportTableDto map = client.getReportTable(reportType, filter, null, null);
         String path = "src/test/resources/test_files/" + reportType.name() + "-" + LocalDateTime.now(ZoneId.systemDefault());
         writeToFile(path, map);
     }
@@ -161,10 +163,10 @@ public class KalturaAnalyticsTest {
 //        ids.forEach(System.out::println);
         String fromDay = "20250101";
         String toDay = "20251231";
-//        String domain = "www.kb.dk";
+        String domain = "www.kb.dk";
 
         DsKalturaAnalytics client = getClient();
-        var dtos = client.getTopContentFromIdList(fromDay, toDay, "", ids);
+        List<TopContentDto> dtos = client.getTopContentFromIdList(fromDay, toDay, "", ids);
         dtos.forEach(System.out::println);
     }
 
