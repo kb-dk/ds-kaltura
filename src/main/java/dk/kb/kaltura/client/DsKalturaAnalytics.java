@@ -11,7 +11,7 @@ import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.domain.TopContentDto;
-import dk.kb.kaltura.mapper.DtoMapper;
+import dk.kb.kaltura.mapper.TopContentDtoMapper;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -24,10 +24,9 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-
 public class DsKalturaAnalytics extends DsKalturaClientBase {
 
-    private final DtoMapper dtoMapper;
+    private final TopContentDtoMapper topContentDtoMapper;
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -47,7 +46,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     public DsKalturaAnalytics(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
                 sessionRefreshThreshold, MAX_BATCH_SIZE);
-        this.dtoMapper = new DtoMapper();
+        this.topContentDtoMapper = new TopContentDtoMapper();
     }
 
     public int countAllBaseEntries(BaseEntryFilter filter) throws APIException {
@@ -95,7 +94,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
                 result = handleRequest(listBuilder).getObjects();
 
-
                 for (E mediaEntry : result) {
                     if (lastPage.contains(mediaEntry.getId())) {
                         continue;
@@ -108,7 +106,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                 writer.flush();
 
                 log.info("Page: " + filterPager.getPageIndex());
-                log.info("Response.size(): {}, total received: {}", result.size(), count);
+                log.info("result.size(): {}, total received: {}", result.size(), count);
                 log.info("LatstCreatedTimeStamp: {}", lastCreatedTimestamp);
 
                 if (result.size() < getBatchSize()) {
@@ -119,9 +117,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             }
 
         } catch (IOException e) {
-            throw new RuntimeException("", e);
+            throw new RuntimeException("IOExeption while writing to file: ", e);
         } catch (APIException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("APIException while handling request: ", e);
         }
     }
 
@@ -139,7 +137,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * provided, an empty list is returned.
      * @throws APIException If there is an error while retrieving the entries from the service.
      */
-
     public List<BaseEntry> getEntriesFromIdList(List<String> objectIds) throws APIException {
         if (objectIds == null || objectIds.isEmpty()) {
             log.warn("objectIds is empty or null");
@@ -174,11 +171,11 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      */
     private List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
         if (objectIds.size() > getBatchSize()) {
-            throw new IllegalArgumentException("Size of ObjectIds is greater than " + getBatchSize());
+            throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() +" is greater than batchSize: " + getBatchSize());
         }
 
-        FilterPager pager = new FilterPager();
-        pager.setPageSize(getBatchSize());
+        FilterPager filterPager = new FilterPager();
+        filterPager.setPageSize(getBatchSize());
         ESearchEntryOperator entryOperator = new ESearchEntryOperator();
         entryOperator.setOperator(ESearchOperatorType.OR_OP);
         ESearchEntryParams searchParams = new ESearchEntryParams();
@@ -186,7 +183,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         entryOperator.setSearchItems(
                 objectIds.stream()
                         .map(entryId -> {
-                            var item = new ESearchEntryItem();
+                            ESearchEntryItem item = new ESearchEntryItem();
                             item.setFieldName(ESearchEntryFieldName.ID);
                             item.setItemType(ESearchItemType.EXACT_MATCH);
                             item.setSearchTerm(entryId);
@@ -197,7 +194,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         searchParams.setSearchOperator(entryOperator);
 
         List<MediaEntry> result = new ArrayList<>();
-        ESearchEntryResponse response = handleRequest(ESearchService.searchEntry(searchParams, pager));
+        ESearchEntryResponse response = handleRequest(ESearchService.searchEntry(searchParams, filterPager));
 
         response.getObjects()
                 .stream()
@@ -214,8 +211,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             }
         }
         if (objectIds.size() != resultIdSet.size()) {
-            log.warn("Requested ({}) != result size({})"
-                    , objectIds.size(), resultSize);
+            log.warn("Requested ({}) != result size({})", objectIds.size(), resultSize);
         } else {
             log.debug("Requested ({}) == result size({})", objectIds.size(), resultIdSet.size());
         }
@@ -245,30 +241,30 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      */
     public ReportTableDto getReportTable(ReportType reportType, ReportInputFilter reportInputFilter,
                                          String order, String objectIds) throws APIException {
-        FilterPager pager = new FilterPager();
-        pager.setPageSize(getBatchSize());
+        FilterPager filterPager = new FilterPager();
+        filterPager.setPageSize(getBatchSize());
 
-        StringBuilder data = new StringBuilder();
+        StringBuilder stringBuilderData = new StringBuilder();
         int totalCount = getBatchSize();
         int index = 0;
         String header = "";
         while (totalCount > getBatchSize() * index && MAX_RESULT_SIZE > getBatchSize() * index) {
             totalCount = 0;
             index++;
-            pager.setPageIndex(index);
+            filterPager.setPageIndex(index);
             ReportService.GetTableReportBuilder requestBuilder = ReportService.getTable(reportType, reportInputFilter,
-                    pager, order, objectIds);
+                    filterPager, order, objectIds);
 
             ReportTable results = handleRequest(requestBuilder);
 
             if (results.getData() == null) {
                 break;
             }
-            data.append(results.getData());
+            stringBuilderData.append(results.getData());
             totalCount = results.getTotalCount();
             header = results.getHeader();
         }
-        return new ReportTableDto(header, data.toString(), totalCount);
+        return new ReportTableDto(header, stringBuilderData.toString(), totalCount);
     }
 
     /**
@@ -305,7 +301,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         ReportTableDto reportTableDto = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 ReportOrderBy.CREATED_AT_ASC.getValue(), objectIdString);
-        List<TopContentDto> result = dtoMapper.reportDtoToTopContentList(reportTableDto);
+        List<TopContentDto> result = topContentDtoMapper.reportDtoToTopContentList(reportTableDto);
         log.info("Size of TopContent Report: {}", result.size());
         return result;
     }

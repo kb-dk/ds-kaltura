@@ -13,9 +13,9 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DtoMapper {
+public class TopContentDtoMapper {
 
-    private static final Logger log = LoggerFactory.getLogger(DtoMapper.class);
+    private static final Logger log = LoggerFactory.getLogger(TopContentDtoMapper.class);
 
     /**
      * Converts the data in the provided report table DTO into a list of top content DTOs.
