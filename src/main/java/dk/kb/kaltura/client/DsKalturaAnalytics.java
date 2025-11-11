@@ -106,9 +106,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                 }
                 writer.flush();
 
-                log.info("Page: " + filterPager.getPageIndex());
-                log.info("result.size(): {}, total received: {}", result.size(), count);
-                log.info("LatstCreatedTimeStamp: {}", lastCreatedTimestamp);
+                log.info("Page: {}, result.size(): {}, total received: {}", filterPager.getPageIndex(), result.size(),
+                        count);
+                log.debug("LastCreatedTimestamp: {}", lastCreatedTimestamp);
 
                 if (result.size() < getBatchSize()) {
                     log.info("No more entries found");
