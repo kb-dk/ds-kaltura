@@ -60,7 +60,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     /**
      * Exports all entries of a specified type to a file, applying a given filter and service for pagination.
-     *
      * This method retrieves entries in batches based on the provided filter and writes them
      * to a specified file in JSON format. It handles pagination and ensures no duplicate entries
      * are written to the file. The entries are ordered by their creation timestamp.
@@ -126,7 +125,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     /**
      * Retrieves a list of BaseEntry objects corresponding to the provided list of object IDs.
-     *
      * This method processes the provided list of object IDs in batches to retrieve entries.
      * If the input list is null or empty, it logs a warning and returns an empty list. If the
      * input list exceeds a predefined maximum size, a warning is also logged. The method uses
@@ -157,11 +155,10 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     /**
      * Retrieves a batch of MediaEntry objects based on the provided list of object IDs.
-     *
-     * <p>This method checks if the number of provided object IDs exceeds the defined batch size.
+     * This method checks if the number of provided object IDs exceeds the defined batch size.
      * If it does, an IllegalArgumentException is thrown. It constructs a search query
      * to fetch the corresponding MediaEntry objects from the backend service and logs any
-     * missing IDs or discrepancies in the expected versus actual results.</p>
+     * missing IDs or discrepancies in the expected versus actual results.
      *
      * @param objectIds A list of object IDs to retrieve MediaEntry objects for.
      *                  The size of this list must not exceed the configured batch size.
