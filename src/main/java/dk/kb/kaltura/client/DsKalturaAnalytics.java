@@ -29,7 +29,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     private final TopContentDtoMapper topContentDtoMapper;
 
     /**
-     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
+     * This Client fetches analytics data from Kaltura. Either a token/tokenId a adminSecret must be provided
+     * for authentication in order to start a session. Session will be reused between Kaltura calls
+     * without authenticating again.
      *
      * @param kalturaUrl              The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
      * @param userId                  The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
@@ -40,8 +42,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @param sessionDurationSeconds  The duration of Kaltura Session in seconds. Beware that when using AppTokens
      *                                this might have an upper bound tied to the AppToken.
      * @param sessionRefreshThreshold The threshold in seconds for session renewal.
-     *                                <p>
-     *                                Either a token/tokenId a adminSecret must be provided for authentication.
+     *
      */
     public DsKalturaAnalytics(String kalturaUrl, String userId, int partnerId, String token, String tokenId, String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
@@ -60,9 +61,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     /**
      * Exports all entries of a specified type to a file, applying a given filter and service for pagination.
      *
-     * <p>This method retrieves entries in batches based on the provided filter and writes them
+     * This method retrieves entries in batches based on the provided filter and writes them
      * to a specified file in JSON format. It handles pagination and ensures no duplicate entries
-     * are written to the file. The entries are ordered by their creation timestamp.</p>
+     * are written to the file. The entries are ordered by their creation timestamp.
      *
      * @param <T>      The type of filter used to specify the criteria for entries to export.
      * @param <E>      The type of entries being exported, extending from BaseEntry.
@@ -126,10 +127,10 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     /**
      * Retrieves a list of BaseEntry objects corresponding to the provided list of object IDs.
      *
-     * <p>This method processes the provided list of object IDs in batches to retrieve entries.
+     * This method processes the provided list of object IDs in batches to retrieve entries.
      * If the input list is null or empty, it logs a warning and returns an empty list. If the
      * input list exceeds a predefined maximum size, a warning is also logged. The method uses
-     * batching to efficiently retrieve entries in smaller groups.</p>
+     * batching to efficiently retrieve entries in smaller groups.
      *
      * @param objectIds A list of object IDs for which the corresponding BaseEntry objects are to be retrieved.
      *                  If this list is null or empty, an empty list is returned.
@@ -171,7 +172,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      */
     private List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
         if (objectIds.size() > getBatchSize()) {
-            throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() +" is greater than batchSize: " + getBatchSize());
+            throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() + " is greater than batchSize: " + getBatchSize());
         }
 
         FilterPager filterPager = new FilterPager();
@@ -249,7 +250,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         int index = 0;
         String header = "";
         while (totalCount > getBatchSize() * index && MAX_RESULT_SIZE > getBatchSize() * index) {
-            totalCount = 0;
             index++;
             filterPager.setPageIndex(index);
             ReportService.GetTableReportBuilder requestBuilder = ReportService.getTable(reportType, reportInputFilter,
@@ -258,6 +258,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             ReportTable results = handleRequest(requestBuilder);
 
             if (results.getData() == null) {
+                totalCount = 0;
                 break;
             }
             stringBuilderData.append(results.getData());
@@ -268,10 +269,10 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     }
 
     /**
-     * Retrieves a list of top content based on the specified date range, domain, and object IDs.
+     * Retrieves a list of  {@link TopContentDto} based on the specified date range, domain, and objectIDs.
      *
-     * @param fromDay   The start date for the report in the format "yyyy-MM-dd".
-     * @param toDay     The end date for the report in the format "yyyy-MM-dd".
+     * @param fromDay   The start date for the report in the format "yyyyMMdd".
+     * @param toDay     The end date for the report in the format "yyyyMMdd".
      * @param domainIn  A string representing the domain filter for the report. Can be empty.
      * @param objectIds A list of object IDs to filter the report by. Must not be empty and must not exceed the
      *                  maximum result size: {@link #MAX_RESULT_SIZE}.
@@ -281,11 +282,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     public List<TopContentDto> getTopContentFromIdList(String fromDay, String toDay, String domainIn,
                                                        List<String> objectIds) throws APIException, IOException {
         if (objectIds == null || objectIds.isEmpty()) {
-            log.warn("Report from empty list will give unpredictable results on larger datasets. Returning empty map.");
+            log.warn("Report from empty list will give unpredictable results on larger datasets. Returning a empty " +
+                    "List<TopContentDto>.");
             return new ArrayList<>();
         }
         if (objectIds.size() > MAX_RESULT_SIZE) {
-            throw new IllegalArgumentException("Size of ObjectIds is greater than " + MAX_RESULT_SIZE);
+            throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() + " is greater than " +
+                    "MAX_RESULT_SIZE: " + MAX_RESULT_SIZE);
         }
 
         ReportInputFilter reportInputFilter = new ReportInputFilter();
@@ -305,6 +308,4 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         log.info("Size of TopContent Report: {}", result.size());
         return result;
     }
-
-
 }
