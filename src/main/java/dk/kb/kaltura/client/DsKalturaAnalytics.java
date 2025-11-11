@@ -140,8 +140,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      */
     public List<BaseEntry> getEntriesFromIdList(List<String> objectIds) throws APIException {
         if (objectIds == null || objectIds.isEmpty()) {
-            log.warn("objectIds is empty or null");
-            return new ArrayList<>();
+            throw new IllegalArgumentException("Null or empty objectIds list");
         }
         if (objectIds.size() > MAX_RESULT_SIZE) {
             log.warn("This method is not designed to conserve memory and is not meant for larger datasets.");
@@ -282,9 +281,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
     public List<TopContentDto> getTopContentFromIdList(String fromDay, String toDay, String domainIn,
                                                        List<String> objectIds) throws APIException, IOException {
         if (objectIds == null || objectIds.isEmpty()) {
-            log.warn("Report from empty list will give unpredictable results on larger datasets. Returning a empty " +
-                    "List<TopContentDto>.");
-            return new ArrayList<>();
+            throw new IllegalArgumentException("objectIds is empty or null");
         }
         if (objectIds.size() > MAX_RESULT_SIZE) {
             throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() + " is greater than " +
