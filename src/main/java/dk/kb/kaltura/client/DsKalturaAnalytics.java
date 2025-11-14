@@ -20,6 +20,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -287,7 +288,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                     "MAX_RESULT_SIZE: " + MAX_RESULT_SIZE);
         }
 
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd", Locale.getDefault());
         String formattedFromDate = fromDay.format(dateTimeFormatter);
         String formattedToDate = toDay.format(dateTimeFormatter);
 
