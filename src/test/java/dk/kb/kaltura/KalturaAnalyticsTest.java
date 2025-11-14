@@ -143,7 +143,7 @@ public class KalturaAnalyticsTest {
         ReportInputFilter filter = new ReportInputFilter();
         filter.setFromDay("20250101");
         filter.setToDay("20260101");
-        filter.setDomainIn("kb.dk");
+        filter.setDomainIn("");
         ReportType reportType = ReportType.TOP_CONTENT;
         ReportTableDto map = client.getReportTable(reportType, filter, null, null);
         String path = "src/test/resources/test_files/" + reportType.name() + "-" + LocalDateTime.now(ZoneId.systemDefault());
@@ -166,7 +166,7 @@ public class KalturaAnalyticsTest {
         String domain = "www.kb.dk";
 
         DsKalturaAnalytics client = getClient();
-        List<TopContentDto> dtos = client.getTopContentFromIdList(fromDay, toDay, "", ids);
+        List<TopContentDto> dtos = client.getTopContentFromIdList(fromDay, toDay, null, ids);
         dtos.forEach(System.out::println);
     }
 

@@ -288,7 +288,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay(fromDay);
         reportInputFilter.setToDay(toDay);
-        if (domainIn == null || !domainIn.isEmpty()) {
+        if (domainIn != null && !domainIn.isEmpty()) {
             reportInputFilter.setDomainIn(domainIn);
         }
 
@@ -298,7 +298,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
         ReportTableDto reportTableDto = getReportTable(ReportType.TOP_CONTENT, reportInputFilter,
                 ReportOrderBy.CREATED_AT_ASC.getValue(), objectIdString);
-        List<TopContentDto> result = topContentDtoMapper.reportDtoToTopContentList(reportTableDto);
+        List<TopContentDto> result = topContentDtoMapper.map(reportTableDto);
         log.info("Size of TopContent Report: {}", result.size());
         return result;
     }
