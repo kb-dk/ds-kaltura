@@ -8,10 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
+- Added DsKalturaAnalytics that extends DsKalturaClientBase. This class serves to extract meta data from Kaltura,
+  like TopContent rapport and baseEntry list data. A lot of the design decisions in this class is made to accommodate
+  Kaltura API where queries on larger datasets have shown to give inconsistent results.
 ### Changed
 
 ### Fixed
+
 
 ## [3.0.2](https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.2) - 2025-09-01
 
