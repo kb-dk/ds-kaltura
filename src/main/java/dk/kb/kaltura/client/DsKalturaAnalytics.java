@@ -18,6 +18,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -275,7 +277,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @return A list of {@link TopContentDto} containing the top content data for the specified parameters.
      * @throws APIException if an error occurs while calling the API to retrieve the report.
      */
-    public List<TopContentDto> getTopContentFromIdList(String fromDay, String toDay, String domainIn,
+    public List<TopContentDto> getTopContentFromIdList(LocalDate fromDay, LocalDate toDay, String domainIn,
                                                        List<String> objectIds) throws APIException, IOException {
         if (objectIds == null || objectIds.isEmpty()) {
             throw new IllegalArgumentException("objectIds is empty or null");
@@ -285,9 +287,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                     "MAX_RESULT_SIZE: " + MAX_RESULT_SIZE);
         }
 
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        String formattedFromDate = fromDay.format(dateTimeFormatter);
+        String formattedToDate = toDay.format(dateTimeFormatter);
+
         ReportInputFilter reportInputFilter = new ReportInputFilter();
-        reportInputFilter.setFromDay(fromDay);
-        reportInputFilter.setToDay(toDay);
+        reportInputFilter.setFromDay(formattedFromDate);
+        reportInputFilter.setToDay(formattedToDate);
         if (domainIn != null && !domainIn.isEmpty()) {
             reportInputFilter.setDomainIn(domainIn);
         }

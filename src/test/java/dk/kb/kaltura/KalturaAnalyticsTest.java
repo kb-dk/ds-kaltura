@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -161,8 +162,8 @@ public class KalturaAnalyticsTest {
                         .map(x -> x.get("id").asText())
                         .collect(Collectors.toList());
 //        ids.forEach(System.out::println);
-        String fromDay = "20250101";
-        String toDay = "20251231";
+        LocalDate fromDay = LocalDate.of(2025, 1, 1);
+        LocalDate toDay = LocalDate.of(2026, 1, 1);
         String domain = "www.kb.dk";
 
         DsKalturaAnalytics client = getClient();
