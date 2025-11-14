@@ -23,7 +23,7 @@ public class TopContentDtoMapper {
      * @param reportTableDto The {@link ReportTableDto} containing the report data to be processed.
      * @return A list of {@link TopContentDto} objects created from the report data.
      */
-    public List<TopContentDto> reportDtoToTopContentList(ReportTableDto reportTableDto) throws IOException {
+    public List<TopContentDto> map(ReportTableDto reportTableDto) throws IOException {
 
         List<TopContentDto> topContentDtos = new ArrayList<>();
         if (reportTableDto.getTotalCount() == 0) {
