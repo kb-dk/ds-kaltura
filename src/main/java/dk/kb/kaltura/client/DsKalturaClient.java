@@ -1,9 +1,6 @@
 package dk.kb.kaltura.client;
 
-import com.kaltura.client.enums.ESearchEntryFieldName;
-import com.kaltura.client.enums.ESearchItemType;
-import com.kaltura.client.enums.ESearchOperatorType;
-import com.kaltura.client.enums.MediaType;
+import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
 import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
@@ -14,8 +11,11 @@ import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
+import dk.kb.kaltura.enums.MimeType;
 
+import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,6 +33,12 @@ import java.util.stream.Collectors;
  * </ul><p>
  */
 public class DsKalturaClient extends DsKalturaClientBase {
+
+
+    //TODO: put in config
+    String MP3_FILEEXT = ".mp3";
+    String MP4_FILEEXT = ".mp4";
+
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -307,20 +313,36 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      * @throws APIException
      */
-    private String uploadFile(String uploadTokenId, String filePath) throws APIException, IOException {
+    private String uploadFile(String uploadTokenId, String filePath, @Nullable String fileExt) throws APIException,
+            IOException {
         //Upload the file using the upload token.
         File fileData = new File(filePath);
+        FileInputStream fis =  new FileInputStream(fileData);
+        String kalturaFileName = fileExt == null || filePath.endsWith(fileExt)? filePath : filePath + fileExt;
+
+        MimeType mimeType;
+                if (kalturaFileName.endsWith(MP4_FILEEXT)){
+                    mimeType=  MimeType.VIDEO_MP4;
+                } else if (kalturaFileName.endsWith(MP3_FILEEXT) ) {
+                    mimeType = MimeType.AUDIO_MPEG;
+                }else{
+                    throw new IllegalArgumentException("Can not determine mime type from args " +
+                            "filePath: " +filePath+ " and FileExt: " + fileExt);
+                }
+
         boolean resume = false;
         boolean finalChunk = true;
-        int resumeAt = -1;
 
         if (!fileData.exists() & !fileData.canRead()) {
             throw new IOException(filePath + " not accessible");
         }
 
+
         try {
-            UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileData, resume, finalChunk,
-                    resumeAt));
+            UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fis,
+                    mimeType == null ? null : mimeType.getValue(),
+                    kalturaFileName, resume, finalChunk));
+
             log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
                     results.getId());
             return results.getId();
@@ -429,9 +451,16 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
      * @throws IOException the io exception
      */
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
+                              String description,
                               String tag) throws IOException, APIException {
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null);
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, null);
+    }
+
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
+                              String description,
+                              String tag, Integer flavorParamId) throws IOException, APIException {
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, flavorParamId, null);
     }
 
     /**
@@ -460,7 +489,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException the io exception
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
-                              String title, String description, String tag, Integer flavorParamId)
+                              String title, String description, String tag, @Nullable Integer flavorParamId,
+                              @Nullable String fileExt)
             throws IOException, APIException {
 
         if (referenceId == null) {
@@ -471,7 +501,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
         }
 
         String uploadTokenId = addUploadToken();
-        uploadFile(uploadTokenId, filePath);
+        uploadFile(uploadTokenId, filePath, fileExt);
         String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
         addUploadTokenToEntry(uploadTokenId, entryId, flavorParamId);
 
@@ -503,12 +533,12 @@ public class DsKalturaClient extends DsKalturaClientBase {
     }
 
     public String urlUpload(String url, String referenceId, MediaType mediaType, String title, String description,
-                            String tag) throws APIException {
+                            String tag) throws APIException, InterruptedException {
         return urlUpload(url, referenceId, mediaType, title, description, tag, null);
     }
 
     public String urlUpload(String url, String referenceId, MediaType mediaType, String title, String description,
-                            String tag, Integer flavorParamId) throws APIException {
+                            String tag, Integer flavorParamId) throws APIException, InterruptedException {
 
         if (referenceId == null) {
             throw new IllegalArgumentException("referenceId must be defined");
@@ -525,4 +555,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
         return entryId;
     }
+
+    private EntryStatus checkEntryStatus(String entryId) throws APIException {
+        MediaService.GetMediaBuilder getMediaBuilder = MediaService.get(entryId);
+        return handleRequest(getMediaBuilder).getStatus();
+    }
+
 }

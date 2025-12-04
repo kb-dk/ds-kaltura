@@ -175,14 +175,16 @@ public class KalturaApiIntegrationTest {
     @Test
     public void kalturaUploadWithFlavorParam() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/xxxx/Videos/test.mp4"; // <-- Change to local video file
+        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodAudio"; // <-- Change to local video file
         String referenceId = "ref_test_1234s";
-        MediaType mediaType = MediaType.VIDEO;
+        MediaType mediaType = MediaType.AUDIO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
         Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, flavorParamId);
+        String fileExt = ".mp3";
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
+                flavorParamId, fileExt);
         assertNotNull(kalturaId);
     }
 
@@ -193,7 +195,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void kalturaUrlUploadWithFlavorParam() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String url = "www.kb.dk/path/to/content"; // <-- Change to url
+        String url = "https://deic-download.kb.dk/bart-access-copies-radio/9c/b3/9cb36500-f957-4975-9799-ea236e3eee04.mp3"; // <-- Change to url
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.AUDIO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura

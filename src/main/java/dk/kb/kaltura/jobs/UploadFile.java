@@ -42,6 +42,10 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
                                    description = "The referenceId given to the entry at Kaltura.")
     private String referenceId;
 
+    @CommandLine.Option(names = {"-fileExtension", "--fileExtension"}, required = true, type = String.class,
+            description = "The referenceId given to the entry at Kaltura.")
+    private String fileExtension;
+
     @CommandLine.Option(names = {"-type", "--type"}, required = true, type =  MEDIATYPES.class,
             description = "Valid values: ${COMPLETION-CANDIDATES}")
     private MEDIATYPES mediatype;    
@@ -80,8 +84,8 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
         } 
 
         DsKalturaClient kalturaClient = getKalturaClient();
-        String kalturaId=kalturaClient.uploadMedia(filePath,referenceId,kalturaMediaType,title,description,tag,
-                flavorId);
+        String kalturaId=kalturaClient.uploadMedia(filePath, referenceId, kalturaMediaType, title,
+                description, tag, flavorId, fileExtension);
         String message="Upload succes. Entry has kalturaId:"+kalturaId;
         log.info(message);
         System.out.println(message);
