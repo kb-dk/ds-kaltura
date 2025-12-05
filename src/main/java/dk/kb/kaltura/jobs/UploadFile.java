@@ -3,6 +3,7 @@ package dk.kb.kaltura.jobs;
 import dk.kb.kaltura.BuildInfoManager;
 import dk.kb.kaltura.client.DsKalturaClient;
 
+import dk.kb.kaltura.enums.FileExtension;
 import picocli.CommandLine;
 
 import java.util.Arrays;
@@ -42,9 +43,9 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
                                    description = "The referenceId given to the entry at Kaltura.")
     private String referenceId;
 
-    @CommandLine.Option(names = {"-fileExtension", "--fileExtension"}, required = true, type = String.class,
+    @CommandLine.Option(names = {"-fileExtension", "--fileExtension"}, required = true, type = FileExtension.class,
             description = "The referenceId given to the entry at Kaltura.")
-    private String fileExtension;
+    private FileExtension fileExtension;
 
     @CommandLine.Option(names = {"-type", "--type"}, required = true, type =  MEDIATYPES.class,
             description = "Valid values: ${COMPLETION-CANDIDATES}")

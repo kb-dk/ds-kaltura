@@ -14,7 +14,7 @@ public enum MimeType {
         return mimeType;
     }
 
-    public static MimeType fromFileExtension(MediaFileExtension fileExtension) {
+    public static MimeType fromFileExtension(FileExtension fileExtension) {
         switch(fileExtension) {
             case MP4:
                 return VIDEO_MP4; // Assuming MP4 corresponds to VIDEO_MP4

@@ -11,7 +11,7 @@ import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
-import dk.kb.kaltura.enums.MediaFileExtension;
+import dk.kb.kaltura.enums.FileExtension;
 import dk.kb.kaltura.enums.MimeType;
 
 import javax.annotation.Nullable;
@@ -314,7 +314,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      * @throws APIException
      */
-    private String uploadFile(String uploadTokenId, String filePath, String fileExt, MimeType mimeType) throws APIException,
+    private String uploadFile(String uploadTokenId, String filePath, FileExtension fileExt, MimeType mimeType) throws APIException,
             IOException {
         //Upload the file using the upload token.
         File fileData = new File(filePath);
@@ -327,7 +327,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IOException(filePath + " not accessible");
         }
 
-        String kalturaFileName = filePath.endsWith(fileExt)? filePath : filePath + fileExt;
+        String kalturaFileName = filePath.endsWith(fileExt.getExtension())? filePath : filePath + fileExt.getExtension();
 
         try {
             UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileInputStream,
@@ -480,7 +480,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
                               String title, String description, String tag, @Nullable Integer flavorParamId,
-                              @Nullable String fileExt)
+                              @Nullable FileExtension fileExt)
             throws IOException, APIException {
 
         if (referenceId == null) {
@@ -491,15 +491,15 @@ public class DsKalturaClient extends DsKalturaClientBase {
         }
 
         if (fileExt == null) {
-            fileExt = filePath.substring(filePath.lastIndexOf('.'));
-            if (fileExt.isEmpty()){
+            try {
+                fileExt = FileExtension.fromString(filePath.substring(filePath.lastIndexOf('.')));
+            }catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Valid media file extension must be defined on either filePath or " +
-                        "FileExt arg");
-            };
+                        "FileExt arg", e);
+             }
         }
 
-        MediaFileExtension fileExtEnum = MediaFileExtension.valueOf(fileExt);
-        MimeType mimeType = MimeType.fromFileExtension(fileExtEnum);
+        MimeType mimeType = MimeType.fromFileExtension(fileExt);
 
         String uploadTokenId = addUploadToken();
         uploadFile(uploadTokenId, filePath, fileExt, mimeType);

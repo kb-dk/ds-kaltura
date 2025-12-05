@@ -4,6 +4,7 @@ import com.kaltura.client.enums.MediaType;
 import com.kaltura.client.types.APIException;
 import dk.kb.kaltura.client.DsKalturaClient;
 import dk.kb.kaltura.config.ServiceConfig;
+import dk.kb.kaltura.enums.FileExtension;
 import dk.kb.util.yaml.YAML;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -182,7 +183,7 @@ public class KalturaApiIntegrationTest {
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
         Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        String fileExt = ".mp3";
+        FileExtension fileExt = FileExtension.MP3;
         String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
                 flavorParamId, fileExt);
         assertNotNull(kalturaId);
