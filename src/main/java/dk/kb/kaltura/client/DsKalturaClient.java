@@ -1,6 +1,9 @@
 package dk.kb.kaltura.client;
 
-import com.kaltura.client.enums.*;
+import com.kaltura.client.enums.ESearchEntryFieldName;
+import com.kaltura.client.enums.ESearchItemType;
+import com.kaltura.client.enums.ESearchOperatorType;
+import com.kaltura.client.enums.MediaType;
 import com.kaltura.client.services.BaseEntryService;
 import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
@@ -34,12 +37,6 @@ import java.util.stream.Collectors;
  * </ul><p>
  */
 public class DsKalturaClient extends DsKalturaClientBase {
-
-
-    //TODO: put in config
-    String MP3_FILEEXT = ".mp3";
-    String MP4_FILEEXT = ".mp4";
-
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -318,7 +315,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
             IOException {
         //Upload the file using the upload token.
         File fileData = new File(filePath);
-        FileInputStream fileInputStream =  new FileInputStream(fileData);
+        FileInputStream fileInputStream = new FileInputStream(fileData);
 
         boolean resume = false;
         boolean finalChunk = true;
@@ -327,11 +324,11 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IOException(filePath + " not accessible");
         }
 
-        String kalturaFileName = filePath.endsWith(fileExt.getExtension())? filePath : filePath + fileExt.getExtension();
+        String kalturaFileName = filePath.endsWith(fileExt.getExtension()) ? filePath : filePath + fileExt.getExtension();
 
         try {
             UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileInputStream,
-                   mimeType.getValue(), kalturaFileName, resume, finalChunk));
+                    mimeType.getValue(), kalturaFileName, resume, finalChunk));
 
             log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
                     results.getId());
@@ -493,10 +490,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
         if (fileExt == null) {
             try {
                 fileExt = FileExtension.fromString(filePath.substring(filePath.lastIndexOf('.')));
-            }catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 throw new IllegalArgumentException("Valid media file extension must be defined on either filePath or " +
                         "FileExt arg", e);
-             }
+            }
         }
 
         MimeType mimeType = MimeType.fromFileExtension(fileExt);
