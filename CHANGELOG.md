@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Changed upload method to take a file extension as an argument. Upload now requires fileextension either on
+  filepath or specified in the new file extension arg.
 
 ### Added
-- Added upload method using Url
-
 
 ## [3.0.2] (https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.2) - 2025-09-01
 ### Changed

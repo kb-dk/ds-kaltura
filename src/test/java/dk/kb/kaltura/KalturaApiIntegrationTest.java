@@ -188,24 +188,6 @@ public class KalturaApiIntegrationTest {
         assertNotNull(kalturaId);
     }
 
-    /**
-     * When uploading a file to Kaltura, remember to delete it from the Kaltura
-     *
-     */
-    @Test
-    public void kalturaUrlUploadWithFlavorParam() throws Exception {
-        DsKalturaClient clientSession = getClient();
-        String url = "https://deic-download.kb.dk/bart-access-copies-radio/9c/b3/9cb36500-f957-4975-9799-ea236e3eee04.mp3"; // <-- Change to url
-        String referenceId = "ref_test_1234s";
-        MediaType mediaType = MediaType.AUDIO;
-        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
-        String title = "test3 title from unittest";
-        String description = "test3 description from unittest";
-        Integer flavorParamId = 359; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        String kalturaId = clientSession.urlUpload(url, referenceId, mediaType, title, description, tag, flavorParamId);
-        assertNotNull(kalturaId);
-    }
-
     private DsKalturaClient getClient() throws APIException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(
