@@ -189,6 +189,25 @@ public class KalturaApiIntegrationTest {
         assertNotNull(kalturaId);
     }
 
+    /**
+     * When uploading a file to Kaltura, remember to delete it from the Kaltura
+     *
+     */
+    @Test
+    public void kalturaUploadNoex() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodAudio"; // <-- Change to local video file
+        String referenceId = "ref_test_1234s";
+        MediaType mediaType = MediaType.AUDIO;
+        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
+        String title = "test3 title from unittest";
+        String description = "test3 description from unittest";
+        Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
+                flavorParamId);
+        assertNotNull(kalturaId);
+    }
+
     private DsKalturaClient getClient() throws APIException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
         return new DsKalturaClient(

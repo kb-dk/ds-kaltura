@@ -490,7 +490,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
         if (fileExt == null) {
             try {
                 fileExt = FileExtension.fromString(filePath.substring(filePath.lastIndexOf('.')));
-            } catch (IllegalArgumentException e) {
+            } catch (Exception e) {
                 throw new IllegalArgumentException("Valid media file extension must be defined on either filePath or " +
                         "FileExt arg", e);
             }
