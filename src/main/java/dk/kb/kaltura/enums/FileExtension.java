@@ -1,5 +1,6 @@
 package dk.kb.kaltura.enums;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 public enum FileExtension {
@@ -33,5 +34,16 @@ public enum FileExtension {
                 throw new IllegalArgumentException("MediaFileExtension '" + mediaFileExtension + "' is invalid");
         }
 
+    }
+
+    public static boolean checkExtension(String filePath, FileExtension expectedExtension) {
+                boolean filePathMatchedUnexpected = Arrays.stream(FileExtension.values())
+                        .filter(fileExtension -> !fileExtension.equals(expectedExtension))
+                        .anyMatch(fileExtension -> filePath.toLowerCase(Locale.ROOT).endsWith(fileExtension.getExtension()));
+                if(filePathMatchedUnexpected) {
+                    throw new IllegalArgumentException("file path: '" + filePath + "' has valid extension not matching expected" +
+                            " extension: " + expectedExtension.getExtension());
+                }
+                return filePath.toLowerCase(Locale.ROOT).endsWith(expectedExtension.getExtension());
     }
 }

@@ -21,10 +21,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -324,7 +321,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IOException(filePath + " not accessible");
         }
 
-        String kalturaFileName = filePath.endsWith(fileExt.getExtension()) ? filePath : filePath + fileExt.getExtension();
+        String kalturaFileName = FileExtension.checkExtension(filePath, fileExt) ? filePath :
+                filePath + fileExt.getExtension();
 
         try {
             UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileInputStream,
