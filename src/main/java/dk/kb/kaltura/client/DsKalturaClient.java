@@ -11,6 +11,7 @@ import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
+import dk.kb.kaltura.enums.MediaFileExtension;
 import dk.kb.kaltura.enums.MimeType;
 
 import javax.annotation.Nullable;
@@ -313,22 +314,11 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      * @throws APIException
      */
-    private String uploadFile(String uploadTokenId, String filePath, @Nullable String fileExt) throws APIException,
+    private String uploadFile(String uploadTokenId, String filePath, String fileExt, MimeType mimeType) throws APIException,
             IOException {
         //Upload the file using the upload token.
         File fileData = new File(filePath);
-        FileInputStream fis =  new FileInputStream(fileData);
-        String kalturaFileName = fileExt == null || filePath.endsWith(fileExt)? filePath : filePath + fileExt;
-
-        MimeType mimeType;
-                if (kalturaFileName.endsWith(MP4_FILEEXT)){
-                    mimeType=  MimeType.VIDEO_MP4;
-                } else if (kalturaFileName.endsWith(MP3_FILEEXT) ) {
-                    mimeType = MimeType.AUDIO_MPEG;
-                }else{
-                    throw new IllegalArgumentException("Can not determine mime type from args " +
-                            "filePath: " +filePath+ " and FileExt: " + fileExt);
-                }
+        FileInputStream fileInputStream =  new FileInputStream(fileData);
 
         boolean resume = false;
         boolean finalChunk = true;
@@ -337,11 +327,11 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IOException(filePath + " not accessible");
         }
 
+        String kalturaFileName = filePath.endsWith(fileExt)? filePath : filePath + fileExt;
 
         try {
-            UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fis,
-                    mimeType == null ? null : mimeType.getValue(),
-                    kalturaFileName, resume, finalChunk));
+            UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileInputStream,
+                   mimeType.getValue(), kalturaFileName, resume, finalChunk));
 
             log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
                     results.getId());
@@ -500,8 +490,19 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IllegalArgumentException("Kaltura mediaType must be defined");
         }
 
+        if (fileExt == null) {
+            fileExt = filePath.substring(filePath.lastIndexOf('.'));
+            if (fileExt.isEmpty()){
+                throw new IllegalArgumentException("Valid media file extension must be defined on either filePath or " +
+                        "FileExt arg");
+            };
+        }
+
+        MediaFileExtension fileExtEnum = MediaFileExtension.valueOf(fileExt);
+        MimeType mimeType = MimeType.fromFileExtension(fileExtEnum);
+
         String uploadTokenId = addUploadToken();
-        uploadFile(uploadTokenId, filePath, fileExt);
+        uploadFile(uploadTokenId, filePath, fileExt, mimeType);
         String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
         addUploadTokenToEntry(uploadTokenId, entryId, flavorParamId);
 
