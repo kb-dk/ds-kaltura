@@ -182,7 +182,7 @@ public class KalturaApiIntegrationTest {
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
-        Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
+        Integer flavorParamId = 359; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
         FileExtension fileExt = FileExtension.MP3;
         String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
                 flavorParamId, fileExt);
