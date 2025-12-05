@@ -192,9 +192,9 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void kalturaUploadWithWithExtension() throws Exception {
+    public void kalturaUploadWithExtension() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/xxxx/Videos/test1.mp4"; // <-- Change to local video file with file extention
+        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodVideo2.MP4"; // <-- Change to local video file with file extension
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.VIDEO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
@@ -207,16 +207,10 @@ public class KalturaApiIntegrationTest {
         assertNotNull(kalturaId);
     }
 
-    /**
-     * When uploading a file to Kaltura, remember to delete it from the Kaltura
-     *
-     */
     @Test
     public void kalturaUploadNoexNoFileExt() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/xxxx/Audio/test1"; // <--
-        // Change to
-        // local video file
+        String file = "/home/xxxx/Audio/test1"; // <-- Change to local video file without extension
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.AUDIO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
@@ -228,24 +222,21 @@ public class KalturaApiIntegrationTest {
         log.debug(t.toString());
     }
 
-    /**
-     * When uploading a file to Kaltura, remember to delete it from the Kaltura
-     *
-     */
+
     @Test
-    public void kalturaUploadNoexFileExt() throws Exception {
+    public void kalturaUploadMisMatchExt() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodVideo2.mp4"; // <--Change to local video file with file extension
+        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodVideo3.mp4"; //
+        // <--Change to local video file with mp4
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.AUDIO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
         Integer flavorParamId = 359;// <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title,
-                description, tag, flavorParamId, FileExtension.MP3);
-        assertNotNull(kalturaId);
-
+        Throwable t = assertThrows(Exception.class, () -> clientSession.uploadMedia(file, referenceId, mediaType, title,
+                description, tag, flavorParamId, FileExtension.MP3));
+        log.debug(t.toString());
     }
 
     private DsKalturaClient getClient() throws APIException {

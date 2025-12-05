@@ -37,6 +37,9 @@ public enum FileExtension {
     }
 
     public static boolean checkExtension(String filePath, FileExtension expectedExtension) {
+
+                // Check if file path extension matches other valid extension other than expected
+                // Like filePath=video.mp4, expectedExtension=MP3
                 boolean filePathMatchedUnexpected = Arrays.stream(FileExtension.values())
                         .filter(fileExtension -> !fileExtension.equals(expectedExtension))
                         .anyMatch(fileExtension -> filePath.toLowerCase(Locale.ROOT).endsWith(fileExtension.getExtension()));
