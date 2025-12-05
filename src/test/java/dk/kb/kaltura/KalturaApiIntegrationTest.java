@@ -176,14 +176,31 @@ public class KalturaApiIntegrationTest {
     @Test
     public void kalturaUploadWithFlavorParam() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodAudio"; // <-- Change to local video file
+        String file = "/home/xxxx/Videos/test1"; // <--
+        // Change to local video file
         String referenceId = "ref_test_1234s";
-        MediaType mediaType = MediaType.AUDIO;
+        MediaType mediaType = MediaType.VIDEO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
-        Integer flavorParamId = 359; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        FileExtension fileExt = FileExtension.MP3;
+        Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
+        FileExtension fileExt = FileExtension.MP4;
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
+                flavorParamId, fileExt);
+        assertNotNull(kalturaId);
+    }
+
+    @Test
+    public void kalturaUploadWithWithExtension() throws Exception {
+        DsKalturaClient clientSession = getClient();
+        String file = "/home/xxxx/Videos/test1.mp4"; // <-- Change to local video file with file extention
+        String referenceId = "ref_test_1234s";
+        MediaType mediaType = MediaType.VIDEO;
+        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
+        String title = "test3 title from unittest";
+        String description = "test3 description from unittest";
+        Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
+        FileExtension fileExt = FileExtension.MP4;
         String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
                 flavorParamId, fileExt);
         assertNotNull(kalturaId);
@@ -194,18 +211,20 @@ public class KalturaApiIntegrationTest {
      *
      */
     @Test
-    public void kalturaUploadNoex() throws Exception {
+    public void kalturaUploadNoexNoFileExt() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodAudio"; // <-- Change to local video file
+        String file = "/home/xxxx/Audio/test1"; // <--
+        // Change to
+        // local video file
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.AUDIO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
-        Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
-                flavorParamId);
-        assertNotNull(kalturaId);
+        Integer flavorParamId = 359; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
+        Throwable t = assertThrows(Exception.class, () -> clientSession.uploadMedia(file, referenceId, mediaType, title,
+                description, tag, flavorParamId));
+        log.debug(t.toString());
     }
 
     private DsKalturaClient getClient() throws APIException {
