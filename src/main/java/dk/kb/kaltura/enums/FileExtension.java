@@ -1,5 +1,7 @@
 package dk.kb.kaltura.enums;
 
+import java.util.Locale;
+
 public enum FileExtension {
     MP3(".mp3"),
     MP4(".mp4");
@@ -22,7 +24,7 @@ public enum FileExtension {
             mediaFileExtension = "." + mediaFileExtension;
         }
 
-        switch (mediaFileExtension.toLowerCase()) {
+        switch (mediaFileExtension.toLowerCase(Locale.ROOT)) {
             case ".mp3":
                 return MP3;
             case ".mp4":

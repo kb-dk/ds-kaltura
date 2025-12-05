@@ -471,7 +471,9 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param title         Name/titel for the resource in Kaltura
      * @param description   , optional description
      * @param tag           Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
-     * @param flavorParamId Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor                 will be source, i.e. flavorParamId = 0.
+     * @param flavorParamId Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor
+     *         will be source, i.e. flavorParamId = 0.
+     * @param fileExt fileextension appended to filename if not present in filepath when uploading to Kaltura
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
      * @throws IOException the io exception
      */
