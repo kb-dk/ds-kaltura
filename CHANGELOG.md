@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-## [3.0.4](https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.4) - 2025-12-08
+## [3.0.3](https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.3) - 2025-12-08
 ### Changed
 - Upload now requires file extension to be set separately. This insures that file always have a file extension when
   uploaded.
