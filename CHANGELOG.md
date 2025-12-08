@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Changed upload method to take a file extension as an argument. Upload now requires fileextension either on
-  filepath or specified in the new file extension arg.
+- Upload now requires file extension to be set separately. This insures that file always have a file extension when 
+  uploaded.
 
 ### Added
 
