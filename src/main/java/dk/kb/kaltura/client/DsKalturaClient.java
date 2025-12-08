@@ -308,7 +308,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      * @throws APIException
      */
-    private String uploadFile(String uploadTokenId, String filePath, FileExtension fileExt, MimeType mimeType) throws APIException,
+    private String uploadFile(String uploadTokenId, String filePath, MimeType mimeType,
+                              String kalturaFileName) throws APIException,
             IOException {
         //Upload the file using the upload token.
         File fileData = new File(filePath);
@@ -320,9 +321,6 @@ public class DsKalturaClient extends DsKalturaClientBase {
         if (!fileData.exists() & !fileData.canRead()) {
             throw new IOException(filePath + " not accessible");
         }
-
-        String kalturaFileName = FileExtension.checkExtension(filePath, fileExt) ? filePath :
-                filePath + fileExt.getExtension();
 
         try {
             UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileInputStream,
@@ -438,14 +436,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
                               String description,
-                              String tag) throws IOException, APIException {
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, null);
-    }
-
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
-                              String description,
-                              String tag, Integer flavorParamId) throws IOException, APIException {
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, flavorParamId, null);
+                              String tag, FileExtension fileExtension) throws IOException, APIException {
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, fileExtension);
     }
 
     /**
@@ -477,7 +469,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
                               String title, String description, String tag, @Nullable Integer flavorParamId,
-                              @Nullable FileExtension fileExt)
+                              FileExtension fileExt)
             throws IOException, APIException {
 
         if (referenceId == null) {
@@ -488,18 +480,16 @@ public class DsKalturaClient extends DsKalturaClientBase {
         }
 
         if (fileExt == null) {
-            try {
-                fileExt = FileExtension.fromString(filePath.substring(filePath.lastIndexOf('.')));
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Valid media file extension must be defined on either filePath or " +
-                        "FileExt arg", e);
-            }
+            throw new IllegalArgumentException("fileExt must be defined");
         }
 
+        FileExtension.checkExtension(filePath, fileExt);
+
         MimeType mimeType = MimeType.fromFileExtension(fileExt);
+        String kalturaFileName = referenceId + fileExt.getExtension();
 
         String uploadTokenId = addUploadToken();
-        uploadFile(uploadTokenId, filePath, fileExt, mimeType);
+        uploadFile(uploadTokenId, filePath, mimeType, kalturaFileName);
         String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
         addUploadTokenToEntry(uploadTokenId, entryId, flavorParamId);
 

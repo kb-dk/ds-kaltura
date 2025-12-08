@@ -166,7 +166,8 @@ public class KalturaApiIntegrationTest {
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test2 title from unittest";
         String description = "test2 description from unittest";
-        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag);
+        FileExtension fileExtension = FileExtension.MP4;
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, fileExtension);
         assertNotNull(kalturaId);
     }
 
@@ -177,7 +178,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void kalturaUploadWithFlavorParam() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/xxxx/Videos/test1"; // <--
+        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodVideo3.mp4"; // <--
         // Change to local video file
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.VIDEO;
@@ -208,18 +209,19 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void kalturaUploadNoexNoFileExt() throws Exception {
+    public void kalturaUploadNoex() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/xxxx/Audio/test1"; // <-- Change to local video file without extension
+        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodAudio"; // <--
+        // Change to local video file without extension
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.AUDIO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
         Integer flavorParamId = 359; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        Throwable t = assertThrows(Exception.class, () -> clientSession.uploadMedia(file, referenceId, mediaType, title,
-                description, tag, flavorParamId));
-        log.debug(t.toString());
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title,
+                description, tag, flavorParamId, FileExtension.MP3);
+        assertNotNull(kalturaId);
     }
 
 
