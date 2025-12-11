@@ -4,12 +4,12 @@
     <parent>
         <groupId>dk.kb.dsparent</groupId>
         <artifactId>ds-parent</artifactId>
-        <version>3.0.1-SNAPSHOT</version>
+        <version>3.0.2-SNAPSHOT</version>
     </parent>
     
     <groupId>dk.kb.kaltura</groupId>
     <artifactId>ds-kaltura</artifactId>
-    <version>3.0.3-SNAPSHOT</version>
+    <version>3.0.4-SNAPSHOT</version>
     <packaging>jar</packaging>
 
    <scm>

@@ -14,13 +14,14 @@ import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
+import dk.kb.kaltura.enums.FileExtension;
+import dk.kb.kaltura.enums.MimeType;
 
+import javax.annotation.Nullable;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 
@@ -307,20 +308,24 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException
      * @throws APIException
      */
-    private String uploadFile(String uploadTokenId, String filePath) throws APIException, IOException {
+    private String uploadFile(String uploadTokenId, String filePath, MimeType mimeType,
+                              String kalturaFileName) throws APIException,
+            IOException {
         //Upload the file using the upload token.
         File fileData = new File(filePath);
+        FileInputStream fileInputStream = new FileInputStream(fileData);
+
         boolean resume = false;
         boolean finalChunk = true;
-        int resumeAt = -1;
 
         if (!fileData.exists() & !fileData.canRead()) {
             throw new IOException(filePath + " not accessible");
         }
 
         try {
-            UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileData, resume, finalChunk,
-                    resumeAt));
+            UploadToken results = handleRequest(UploadTokenService.upload(uploadTokenId, fileInputStream,
+                    mimeType.getValue(), kalturaFileName, resume, finalChunk));
+
             log.debug("File '{}' uploaded successfully to upload token '{}'.", filePath,
                     results.getId());
             return results.getId();
@@ -379,7 +384,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws APIException
      * @throws IOException
      */
-    private String addContentToEntry(String uploadtokenId, String entryId, Integer flavorParamId)
+    private String addUploadTokenToEntry(String uploadtokenId, String entryId, Integer flavorParamId)
             throws APIException {
 
         //Connect uploaded file with meta data entry
@@ -429,9 +434,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
      * @throws IOException the io exception
      */
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title, String description,
-                              String tag) throws IOException, APIException {
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null);
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
+                              String description,
+                              String tag, FileExtension fileExtension) throws IOException, APIException {
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, fileExtension);
     }
 
     /**
@@ -455,12 +461,15 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param title         Name/titel for the resource in Kaltura
      * @param description   , optional description
      * @param tag           Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
-     * @param flavorParamId Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor                 will be source, i.e. flavorParamId = 0.
+     * @param flavorParamId Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor
+     *         will be source, i.e. flavorParamId = 0.
+     * @param fileExt fileextension appended to filename if not present in filepath when uploading to Kaltura
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
      * @throws IOException the io exception
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
-                              String title, String description, String tag, Integer flavorParamId)
+                              String title, String description, String tag, @Nullable Integer flavorParamId,
+                              FileExtension fileExt)
             throws IOException, APIException {
 
         if (referenceId == null) {
@@ -470,10 +479,19 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IllegalArgumentException("Kaltura mediaType must be defined");
         }
 
+        if (fileExt == null) {
+            throw new IllegalArgumentException("fileExt must be defined");
+        }
+
+        FileExtension.checkExtension(filePath, fileExt);
+
+        MimeType mimeType = MimeType.fromFileExtension(fileExt);
+        String kalturaFileName = referenceId + fileExt.getExtension();
+
         String uploadTokenId = addUploadToken();
-        uploadFile(uploadTokenId, filePath);
+        uploadFile(uploadTokenId, filePath, mimeType, kalturaFileName);
         String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
-        addContentToEntry(uploadTokenId, entryId, flavorParamId);
+        addUploadTokenToEntry(uploadTokenId, entryId, flavorParamId);
 
         return entryId;
     }
