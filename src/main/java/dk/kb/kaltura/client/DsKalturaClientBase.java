@@ -128,7 +128,7 @@ public abstract class DsKalturaClientBase {
      * @return the result of the executed request
      * @throws APIException if an API error occurs during the request execution
      */
-    protected <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>>
+    public <ReturnedType, SelfType extends BaseRequestBuilder<ReturnedType, SelfType>>
     ReturnedType handleRequest(SelfType requestBuilder) throws APIException {
         return handleRequest(requestBuilder, true);
     }

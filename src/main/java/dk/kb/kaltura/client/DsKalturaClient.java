@@ -1,9 +1,6 @@
 package dk.kb.kaltura.client;
 
-import com.kaltura.client.enums.ESearchEntryFieldName;
-import com.kaltura.client.enums.ESearchItemType;
-import com.kaltura.client.enums.ESearchOperatorType;
-import com.kaltura.client.enums.MediaType;
+import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
 import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
@@ -13,6 +10,7 @@ import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
+import com.kaltura.client.utils.request.MultiRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
 import dk.kb.kaltura.enums.FileExtension;
 import dk.kb.kaltura.enums.MimeType;
@@ -22,6 +20,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -34,6 +33,10 @@ import java.util.stream.Collectors;
  * </ul><p>
  */
 public class DsKalturaClient extends DsKalturaClientBase {
+
+    private static final Integer SOURCE_FLAVOR = 0;
+    private final Integer conversionQueueThreshold;
+    private final Integer conversionQueueRetryDelaySeconds;
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
@@ -52,9 +55,12 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws IOException If session could not be created at Kaltura
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
-                           String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold) throws APIException {
+                           String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
+                           int conversionQueueThreshold, int conversionQueueRetryDelaySeconds) throws APIException {
         super(kalturaUrl, userId, partnerId, token, tokenId, adminSecret, sessionDurationSeconds,
                 sessionRefreshThreshold, MAX_BATCH_SIZE);
+        this.conversionQueueThreshold = conversionQueueThreshold;
+        this.conversionQueueRetryDelaySeconds = conversionQueueRetryDelaySeconds;
     }
 
     /**
@@ -104,6 +110,15 @@ public class DsKalturaClient extends DsKalturaClientBase {
         RejectMediaBuilder request = MediaService.reject(entryId);
         return buildAndExecute(request, true).isSuccess();
     }
+
+    public ListResponse<MediaEntry> listMediaEntry(MediaEntryFilter filter) throws APIException {
+        return handleRequest(MediaService.list(filter));
+    }
+
+    public int countMediaEntry(MediaEntryFilter filter) throws APIException {
+        return handleRequest(MediaService.count(filter));
+    }
+
 
     /**
      * Search Kaltura for a referenceId. The referenceId was given to Kaltura when uploading the record.<br>
@@ -349,13 +364,15 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @throws APIException
      */
     private String addEmptyEntry(MediaType mediaType, String title, String description, String referenceId,
-                                 String tag) throws APIException {
+                                 String tag, Integer conversionProfileId) throws APIException {
         //Create entry with meta data
         MediaEntry entry = new MediaEntry();
         entry.setMediaType(mediaType);
         entry.setName(title);
         entry.setDescription(description);
         entry.setReferenceId(referenceId);
+        entry.setConversionProfileId(conversionProfileId);
+
         if (tag != null) {
             entry.setTags(tag);
         }
@@ -437,7 +454,21 @@ public class DsKalturaClient extends DsKalturaClientBase {
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
                               String description,
                               String tag, FileExtension fileExtension) throws IOException, APIException {
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, fileExtension);
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, fileExtension, null);
+    }
+
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
+                              String description,
+                              String tag, FileExtension fileExtension, @Nullable Integer conversionProfileId) throws IOException, APIException {
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, fileExtension, conversionProfileId);
+    }
+
+
+    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
+                              String description,
+                              String tag, Integer flavorParamID, FileExtension fileExtension) throws IOException,
+            APIException {
+        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, flavorParamID, fileExtension, null);
     }
 
     /**
@@ -469,7 +500,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
                               String title, String description, String tag, @Nullable Integer flavorParamId,
-                              FileExtension fileExt)
+                              FileExtension fileExt, @Nullable Integer conversionProfileId)
             throws IOException, APIException {
 
         if (referenceId == null) {
@@ -483,17 +514,61 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IllegalArgumentException("fileExt must be defined");
         }
 
+        if (flavorParamId != null && !flavorParamId.equals(SOURCE_FLAVOR) && conversionProfileId != null) {
+            log.warn("FlavorParamId will override conversion profile. Media will not be transcode in Kaltura.");
+        }
+
         FileExtension.checkExtension(filePath, fileExt);
 
         MimeType mimeType = MimeType.fromFileExtension(fileExt);
         String kalturaFileName = referenceId + fileExt.getExtension();
 
+        conversionQueueCheckAndWait();
+
         String uploadTokenId = addUploadToken();
         uploadFile(uploadTokenId, filePath, mimeType, kalturaFileName);
-        String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag);
+        String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag, conversionProfileId);
         addUploadTokenToEntry(uploadTokenId, entryId, flavorParamId);
 
         return entryId;
     }
+
+    private void conversionQueueCheckAndWait() throws APIException {
+        while(true){
+            int conversionQueueLength = getConversionQueueLength();
+            if (conversionQueueLength <= conversionQueueThreshold) {
+                break;
+            }
+            log.warn("Kaltura Conversion Queue (conversionQueueLength: {}), larger than threshold"
+                    + "(conversionQueueThreshold: {}), retry in {} seconds",
+                    conversionQueueLength,
+                    conversionQueueThreshold,
+                    conversionQueueRetryDelaySeconds);
+            try {
+                TimeUnit.SECONDS.sleep(conversionQueueRetryDelaySeconds);
+            } catch (InterruptedException ie) {
+                log.error("Thread was interrupted while waiting for kaltura conversion queue to decrease");
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public int getConversionQueueLength() throws APIException {
+
+        MediaEntryFilter replacementFilter = new MediaEntryFilter();
+        replacementFilter.setReplacementStatusIn(EntryReplacementStatus.APPROVED_BUT_NOT_READY.getValue()
+                + "," + EntryReplacementStatus.READY_BUT_NOT_APPROVED.getValue() + "," + EntryReplacementStatus.NOT_READY_AND_NOT_APPROVED);
+
+        MediaEntryFilter conversionFilter = new MediaEntryFilter();
+        conversionFilter.setStatusIn(EntryStatus.IMPORT.getValue() + "," + EntryStatus.PRECONVERT.getValue());
+
+        MultiRequestBuilder multiRequestBuilder =
+                MediaService.count(replacementFilter).add(MediaService.count(conversionFilter));
+        int count = handleRequest(multiRequestBuilder).stream().mapToInt(x -> (int) x).sum();
+        log.debug("Queue length is : {}", count);
+        return count;
+    }
+
+
 
 }
