@@ -1,7 +1,10 @@
 package dk.kb.kaltura;
 
-import com.kaltura.client.enums.MediaType;
-import com.kaltura.client.types.APIException;
+import com.kaltura.client.enums.*;
+import com.kaltura.client.services.BaseEntryService;
+import com.kaltura.client.services.ESearchService;
+import com.kaltura.client.services.MediaService;
+import com.kaltura.client.types.*;
 import dk.kb.kaltura.client.DsKalturaClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.kaltura.enums.FileExtension;
@@ -12,9 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -200,7 +202,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void uploadWithExtension() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodVideo2.MP4"; // <-- Change to local video file with file extension
+        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/dr1_1976-05-06_20.00-20.40.mp4"; // <-- Change to local video file with file extension
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.VIDEO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
@@ -251,21 +253,53 @@ public class KalturaApiIntegrationTest {
 
     @Test
     public void uploadWithConversionId() throws Exception {
-        DsKalturaClient clientSession = getClient();
-        String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodVideo3.mp4"; //
-        // <--Change to local video file with mp4
-        String referenceId = "ref_test_1234s";
-        MediaType mediaType = MediaType.VIDEO;
-        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
-        String title = "test3 title from unittest";
-        String description = "test3 description from unittest";
-        Integer conversionProfileId = 1409;
-        FileExtension fileExtension = FileExtension.MP4;
+        int uploadCount = 100;
 
-        //Upload to specified conversionprofile and default flavor (Source)
-        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, 0,
-                fileExtension, conversionProfileId);
-        assertNotNull(kalturaId);
+        DsKalturaClient clientSession = getClient();
+        List<String> entryIdList = new ArrayList<>();
+
+        long startUploadTime = System.currentTimeMillis();
+
+        for (int i = 0; i < uploadCount; i++){
+
+            String file =  "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/Ibiza - Direkte (MP3 Audio).mp3"; //
+            // <--Change to local video file with mp4
+            String referenceId = "ref_test_" + i;
+            MediaType mediaType = MediaType.AUDIO;
+            String tag = "TEST-TRANSCODING-SPEED"; //This tag is use for all upload from DS to Kaltura
+            String title = "conversion test : "+i;
+            String description = "test3 description from unittest";
+            Integer conversionProfileId = 1507;
+            FileExtension fileExtension = FileExtension.MP3;
+
+            //Upload to specified conversionprofile and default flavor (Source)
+            String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, 0,
+                    fileExtension, conversionProfileId);
+            entryIdList.add(kalturaId);
+        }
+
+        long endUploadTime = System.currentTimeMillis();
+
+        // Check if done transcoding
+        MediaEntryFilter filter = new MediaEntryFilter();
+        filter.setIdIn(entryIdList.stream().collect(Collectors.joining(",")));
+        filter.setStatusNotEqual(EntryStatus.READY);
+        int done = uploadCount;
+        while (done > 0){
+            done = clientSession.countMediaEntry(filter);
+            log.info("Converting count: {}", done);
+            Thread.sleep(5000);
+        }
+
+        //Log Time
+        long convertedTime = System.currentTimeMillis();
+        log.info("Time to upload: {}", endUploadTime - startUploadTime);
+        log.info("Time to upload and convert: {}", convertedTime - startUploadTime);
+
+        //Clean up
+        for (String entry : entryIdList){
+            clientSession.deleteStreamByEntryId(entry);
+        }
     }
 
     private DsKalturaClient getClient() throws APIException {
@@ -278,7 +312,9 @@ public class KalturaApiIntegrationTest {
                 conf.getString("tokenId"),
                 conf.getString("adminSecret", null),
                 conf.getInteger("sessionDurationSeconds", DEFAULT_SESSION_DURATION_SECONDS),
-                conf.getInteger("sessionRefreshThreshold", DEFAULT_REFRESH_THRESHOLD));
+                conf.getInteger("sessionRefreshThreshold", DEFAULT_REFRESH_THRESHOLD),
+                conf.getInteger("conversionQueueThreshold"),
+                conf.getInteger("conversionQueueDelaySeconds"));
     }
 
 }
