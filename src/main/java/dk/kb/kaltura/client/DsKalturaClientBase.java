@@ -46,7 +46,6 @@ public abstract class DsKalturaClientBase {
     private final String adminSecret;
     private final int sessionKeepAliveSeconds;
     private long lastSessionStart = 0;
-    private final int sessionRefreshThreshold;
     private final int sessionDurationSeconds;
     private int batchSize;
 
@@ -69,7 +68,6 @@ public abstract class DsKalturaClientBase {
                                String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
                                int batchSize) throws APIException {
         this.sessionDurationSeconds = sessionDurationSeconds;
-        this.sessionRefreshThreshold = sessionRefreshThreshold;
         this.sessionKeepAliveSeconds = sessionDurationSeconds - sessionRefreshThreshold;
         this.kalturaUrl = kalturaUrl;
         this.userId = userId;
