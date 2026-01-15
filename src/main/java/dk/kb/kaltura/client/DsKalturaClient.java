@@ -96,7 +96,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *
      * @param entryId The unique id in the Kaltura platform for the stream
      * @return True if record was found and deleted. False if the record with the entryId could not be found in Kaltura.
-     * @throws IOException if Kaltura API called failed.
+     * @throws APIException if Kaltura API called failed.
      */
     public boolean deleteStreamByEntryId(String entryId) throws APIException {
         DeleteMediaBuilder request = MediaService.delete(entryId);
@@ -112,7 +112,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *
      * @param entryId The unique id in the Kaltura platform for the stream
      * @return True if record was found and blocked. False if the record with the entryId could not be found in Kaltura.
-     * @throws IOException if Kaltura API called failed.
+     * @throws APIException if Kaltura API called failed.
      */
     public boolean blockStreamByEntryId(String entryId) throws APIException {
         RejectMediaBuilder request = MediaService.reject(entryId);
@@ -196,7 +196,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param kalturaIDs a list of {@code kalturaIDs}.
      * @return a map from {@code kalturaID} to {@code referenceID}.
      * Unresolvable {@code kalturaIDs} will not be present in the map.
-     * @throws IOException if the remote request failed.
+     * @throws APIException if the remote request failed.
      */
     public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws APIException {
         if (kalturaIDs.isEmpty()) {
@@ -219,7 +219,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *
      * @param term a search term, such as {@code dr} or {@code tv avisen}.
      * @return a list of Kaltura IDs for matching records, empty if no hits. Max result size is {@link #getBatchSize()}.
-     * @throws IOException if the remote request failed.
+     * @throws APIException if the remote request failed.
      */
     public List<String> searchTerm(String term) throws APIException {
         ESearchUnifiedItem item = new ESearchUnifiedItem();
@@ -238,7 +238,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *
      * @param items at least 1 search item.
      * @return the response from a Kaltura search for the given items.
-     * @throws IOException if the remote request failed.
+     * @throws APIException if the remote request failed.
      */
     @SuppressWarnings("unchecked")
     private Response<ESearchEntryResponse> searchMulti(List<ESearchEntryBaseItem> items) throws APIException {
@@ -306,8 +306,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * Create empty upload token to be filled later.
      *
      * @return uploadTokenId of empty uploadToken
-     * @throws IOException
-     * @throws APIException
+     * @throws APIException If request fails
      */
     private String addUploadToken() throws APIException {
         //Get a token that will allow upload
@@ -328,8 +327,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param uploadTokenId The uploadToken created beforehand
      * @param filePath      The path of file to be uploaded
      * @return The UploadTokenId when upload is complete
-     * @throws IOException
-     * @throws APIException
+     * @throws APIException if request fails
      */
     private String uploadFile(String uploadTokenId, String filePath, MimeType mimeType,
                               String kalturaFileName) throws APIException,
@@ -368,8 +366,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param referenceId Id external from Kaltura
      * @param tag         Tags on Entry. Used for ease of searching and grouping of entries within KMC.
      * @return EntryId
-     * @throws IOException
-     * @throws APIException
+     * @throws APIException if request fails
      */
     private String addEmptyEntry(MediaType mediaType, String title, String description, String referenceId,
                                  String tag, Integer conversionProfileId) throws APIException {
@@ -407,8 +404,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param entryId       Entry to receive content
      * @param flavorParamId Id of the flavorParam where the content needs to be added within the Entry.
      * @return EntryId of updated entry
-     * @throws APIException
-     * @throws IOException
+     * @throws APIException if request fails
      */
     private String addUploadTokenToEntry(String uploadtokenId, String entryId, Integer flavorParamId)
             throws APIException {
