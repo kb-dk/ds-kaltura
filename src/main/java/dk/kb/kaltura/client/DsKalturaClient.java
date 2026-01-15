@@ -60,7 +60,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *                                         conversionQueueThreshold.
      *                                <p>
      *                                Either a token/tokenId a adminSecret must be provided for authentication.
-     * @throws IOException If session could not be created at Kaltura
+     * @throws APIException If session could not be created at Kaltura
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
                            String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
