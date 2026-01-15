@@ -1,10 +1,9 @@
 package dk.kb.kaltura;
 
-import com.kaltura.client.enums.*;
-import com.kaltura.client.services.BaseEntryService;
-import com.kaltura.client.services.ESearchService;
-import com.kaltura.client.services.MediaService;
-import com.kaltura.client.types.*;
+import com.kaltura.client.enums.EntryStatus;
+import com.kaltura.client.enums.MediaType;
+import com.kaltura.client.types.APIException;
+import com.kaltura.client.types.MediaEntryFilter;
 import dk.kb.kaltura.client.DsKalturaClient;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.kaltura.enums.FileExtension;
@@ -134,7 +133,7 @@ public class KalturaApiIntegrationTest {
     }
 
     @Test
-    public void simpleSearch() throws IOException, APIException {
+    public void simpleSearch() throws APIException {
         List<String> ids = getClient().searchTerm("dr");
         assertFalse(ids.isEmpty(), "Search result should not be empty");
         System.out.println(ids);
@@ -258,13 +257,13 @@ public class KalturaApiIntegrationTest {
 
         long startUploadTime = System.currentTimeMillis();
 
-        for (int i = 0; i < uploadCount; i++){
+        for (int i = 0; i < uploadCount; i++) {
 
-            String file =  "/path/to/file"; //<-- Change to local video file with mp4
+            String file = "/path/to/file"; //<-- Change to local video file with mp4
             String referenceId = "ref_test_" + i;
             MediaType mediaType = MediaType.AUDIO;
             String tag = "TEST-TRANSCODING-SPEED"; //This tag is use for all upload from DS to Kaltura
-            String title = "conversion test : "+i;
+            String title = "conversion test : " + i;
             String description = "test3 description from unittest";
             Integer conversionProfileId = 1507;
             FileExtension fileExtension = FileExtension.MP3;
@@ -279,10 +278,10 @@ public class KalturaApiIntegrationTest {
 
         // Check if done transcoding
         MediaEntryFilter filter = new MediaEntryFilter();
-        filter.setIdIn(entryIdList.stream().collect(Collectors.joining(",")));
+        filter.setIdIn(String.join(",", entryIdList));
         filter.setStatusNotEqual(EntryStatus.READY);
         int done = uploadCount;
-        while (done > 0){
+        while (done > 0) {
             done = clientSession.countMediaEntry(filter);
             log.info("Converting count: {}", done);
             Thread.sleep(5000);
@@ -294,7 +293,7 @@ public class KalturaApiIntegrationTest {
         log.info("Time to upload and convert: {}", convertedTime - startUploadTime);
 
         //Clean up
-        for (String entry : entryIdList){
+        for (String entry : entryIdList) {
             clientSession.deleteStreamByEntryId(entry);
         }
     }
