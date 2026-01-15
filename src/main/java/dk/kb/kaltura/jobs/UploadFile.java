@@ -78,19 +78,19 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
     @Override
     public Integer call() throws Exception {        
 
-        MediaType kalturaMediaType=null;
+        MediaType mediaType=null;
         switch (mediatype) {
         case VIDEO:
-            kalturaMediaType=MediaType.VIDEO;
+            mediaType=MediaType.VIDEO;
             break;              
 
         case AUDIO:
-            kalturaMediaType=MediaType.AUDIO;
+            mediaType=MediaType.AUDIO;
             break;              
         } 
 
         DsKalturaClient kalturaClient = getKalturaClient();
-        String kalturaId=kalturaClient.uploadMedia(filePath, referenceId, kalturaMediaType, title,
+        String kalturaId=kalturaClient.uploadMedia(filePath, referenceId, mediaType, title,
                 description, tag, flavorId, fileExtension, conversionProfileId);
         String message="Upload succes. Entry has kalturaId:"+kalturaId;
         log.info(message);
