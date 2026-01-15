@@ -393,7 +393,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
 
     /**
-     * Adds content from an uploadToken to an Entry and return flavorID's of that flavor. If FlavorParamID is not null,
+     * Adds content from an uploadToken to an Entry and return entryId. If flavorParamID is not
+     * null,
      * content is added to specified flavor within the Entry. If FlavorParamID is null content is added as source
      * flavor.
      *

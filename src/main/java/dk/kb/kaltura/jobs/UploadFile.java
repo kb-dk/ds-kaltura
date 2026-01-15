@@ -63,13 +63,13 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
             description = "The tag given to the entry. Tag works a collection identifier at Kaltura. Recommended value is 'DS-KALTURA'")
     private String tag;
 
-    @CommandLine.Option(names = {"-flavorId", "--flavorId"}, required = true, type = Integer.class,
+    @CommandLine.Option(names = {"-flavorParamId", "--flavorParamId"}, required = true, type = Integer.class,
             description = "Id of the flavor the media will be uploaded as.")
-    private Integer flavorId;
+    private Integer flavorParamId;
 
     @CommandLine.Option(names = {"-conversionProfileId", "--conversionProfileId"}, required = true, type =
             Integer.class,
-            description = "Id of the flavor the media will be uploaded as.")
+            description = "Id of the conversion/transcoding profile that will be used after file is uploaded")
     private Integer conversionProfileId;
 
     /*
@@ -91,8 +91,8 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
 
         DsKalturaClient kalturaClient = getKalturaClient();
         String kalturaId=kalturaClient.uploadMedia(filePath, referenceId, mediaType, title,
-                description, tag, flavorId, fileExtension, conversionProfileId);
-        String message="Upload succes. Entry has kalturaId:"+kalturaId;
+                description, tag, flavorParamId, fileExtension, conversionProfileId);
+        String message="Upload success. Entry has kalturaId:"+kalturaId;
         log.info(message);
         System.out.println(message);
         return 0; //Exit code
