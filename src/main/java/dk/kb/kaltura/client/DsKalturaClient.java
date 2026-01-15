@@ -428,34 +428,6 @@ public class DsKalturaClient extends DsKalturaClientBase {
     }
 
     /**
-     * @see #uploadMedia(String, String, MediaType,String, String, String, Integer,FileExtension, Integer)
-     */
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
-                              String description,
-                              String tag, FileExtension fileExtension) throws IOException, APIException {
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, fileExtension, null);
-    }
-
-    /**
-     * @see #uploadMedia(String, String, MediaType,String, String, String, Integer,FileExtension, Integer)
-     */
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
-                              String description,
-                              String tag, FileExtension fileExtension, @Nullable Integer conversionProfileId) throws IOException, APIException {
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, null, fileExtension, conversionProfileId);
-    }
-
-    /**
-     * @see #uploadMedia(String, String, MediaType,String, String, String, Integer,FileExtension, Integer)
-    */
-    public String uploadMedia(String filePath, String referenceId, MediaType mediaType, String title,
-                              String description,
-                              String tag, Integer flavorParamID, FileExtension fileExtension) throws IOException,
-            APIException {
-        return uploadMedia(filePath, referenceId, mediaType, title, description, tag, flavorParamID, fileExtension, null);
-    }
-
-    /**
      * Upload a video or audio file to Kaltura.
      * The upload require 4 API calls to Kaltura
      * <p><ul>
