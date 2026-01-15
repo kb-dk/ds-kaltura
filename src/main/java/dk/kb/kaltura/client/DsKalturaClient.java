@@ -453,7 +453,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param tag                 Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
      * @param flavorParamId       Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor
      *                            will be source, i.e. flavorParamId = 0.
-     * @param fileExt             file extension appended to filename if not present in filepath when uploading to Kaltura
+     * @param fileExtension             file extension appended to filename if not present in filepath when uploading to Kaltura
      * @param conversionProfileId Optional conversionProfileId that match conversion/transcoding profile in Kaltura.
      *                            If null or 0, the default conversion profile in Kaltura is used.
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
@@ -463,7 +463,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
                               String title, String description, String tag, @Nullable Integer flavorParamId,
-                              FileExtension fileExt, @Nullable Integer conversionProfileId)
+                              FileExtension fileExtension, @Nullable Integer conversionProfileId)
             throws IOException, APIException {
 
         if (referenceId == null) {
@@ -473,8 +473,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IllegalArgumentException("Kaltura mediaType must be defined");
         }
 
-        if (fileExt == null) {
-            throw new IllegalArgumentException("fileExt must be defined");
+        if (fileExtension == null) {
+            throw new IllegalArgumentException("fileExtension must be defined");
         }
 
         if (!(flavorParamId == null || flavorParamId.equals(SOURCE_FLAVOR))) {
@@ -483,10 +483,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
             conversionQueueCheckAndWait();
         }
 
-        FileExtension.checkExtension(filePath, fileExt);
+        FileExtension.checkExtension(filePath, fileExtension);
 
-        MimeType mimeType = MimeType.fromFileExtension(fileExt);
-        String kalturaFileName = referenceId + fileExt.getExtension();
+        MimeType mimeType = MimeType.fromFileExtension(fileExtension);
+        String kalturaFileName = referenceId + fileExtension.getExtension();
 
         String uploadTokenId = addUploadToken();
         uploadFile(uploadTokenId, filePath, mimeType, kalturaFileName);
