@@ -8,9 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-Added option to pecify and use conversionProfile when uploading. This enables transcoding in Kaltura.
+- Added option to specify and use conversionProfile when uploading. This enables transcoding in Kaltura.
 
 ### Changed
+- int conversionQueueThreshold, int conversionQueueRetryDelaySeconds is now needed to initialize kalturaClient.
 
 ### Fixed
 

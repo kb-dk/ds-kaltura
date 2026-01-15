@@ -53,6 +53,11 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param sessionDurationSeconds  The duration of Kaltura Session in seconds. Beware that when using AppTokens
      *                                this might have an upper bound tied to the AppToken.
      * @param sessionRefreshThreshold The threshold in seconds for session renewal.
+     * @param conversionQueueThreshold The threshold for the size of the conversionQueue. If queue gets larger than
+     *                                 this threshold, upload will wait and retry.
+     * @param conversionQueueRetryDelaySeconds the delay in seconds to wait for a retry if the
+     *                                         conversionQueueLength is larger than or equal to
+     *                                         conversionQueueThreshold.
      *                                <p>
      *                                Either a token/tokenId a adminSecret must be provided for authentication.
      * @throws IOException If session could not be created at Kaltura
