@@ -184,8 +184,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void uploadWithFlavorParam() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/path/to/file"; // <--
-        // Change to local video file
+        String file = "/path/to/file"; // <-- Change to local video file
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.VIDEO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
@@ -221,8 +220,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void uploadNoex() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/path/to/file"; // <--
-        // Change to local video file without extension
+        String file = "/path/to/file"; // <-- Change to local video file without extension
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.AUDIO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
@@ -238,8 +236,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void uploadMisMatchExt() throws Exception {
         DsKalturaClient clientSession = getClient();
-        String file = "/path/to/file"; //
-        // <--Change to local video file with mp4
+        String file = "/path/to/file"; //<--Change to local video file with mp4
         String referenceId = "ref_test_1234s";
         MediaType mediaType = MediaType.AUDIO;
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
@@ -263,8 +260,7 @@ public class KalturaApiIntegrationTest {
 
         for (int i = 0; i < uploadCount; i++){
 
-            String file =  "/path/to/file"; //
-            // <--Change to local video file with mp4
+            String file =  "/path/to/file"; //<-- Change to local video file with mp4
             String referenceId = "ref_test_" + i;
             MediaType mediaType = MediaType.AUDIO;
             String tag = "TEST-TRANSCODING-SPEED"; //This tag is use for all upload from DS to Kaltura
