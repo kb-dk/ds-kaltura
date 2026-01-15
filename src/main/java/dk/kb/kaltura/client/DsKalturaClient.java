@@ -19,7 +19,10 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -442,21 +445,21 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * If there for some reason happens an error after the file is uploaded and not connected to the metadata record, it does not
      * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it.
      *
-     * @param filePath      File path to the media file to upload.
-     * @param referenceId   Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
-     * @param mediaType     MediaType.AUDIO or MediaType.VIDEO
-     * @param title         Name/titel for the resource in Kaltura
-     * @param description   Optional description
-     * @param tag           Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
-     * @param flavorParamId Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor
-     *         will be source, i.e. flavorParamId = 0.
-     * @param fileExt file extension appended to filename if not present in filepath when uploading to Kaltura
+     * @param filePath            File path to the media file to upload.
+     * @param referenceId         Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
+     * @param mediaType           MediaType.AUDIO or MediaType.VIDEO
+     * @param title               Name/titel for the resource in Kaltura
+     * @param description         Optional description
+     * @param tag                 Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
+     * @param flavorParamId       Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor
+     *                            will be source, i.e. flavorParamId = 0.
+     * @param fileExt             file extension appended to filename if not present in filepath when uploading to Kaltura
      * @param conversionProfileId Optional conversionProfileId that match conversion/transcoding profile in Kaltura.
-     *                           If null or 0, the default conversion profile in Kaltura is used.
+     *                            If null or 0, the default conversion profile in Kaltura is used.
      * @return The internal id for the Kaltura record. Example format: '0_jqmzfljb'
-     * @throws IOException the io exception
+     * @throws IOException  the io exception
      * @throws APIException Thrown when API request goes wrong. Message only readable when using java 11, since
-     * implementation uses reflection.
+     *                      implementation uses reflection.
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
                               String title, String description, String tag, @Nullable Integer flavorParamId,
@@ -494,13 +497,13 @@ public class DsKalturaClient extends DsKalturaClientBase {
     }
 
     private void conversionQueueCheckAndWait() throws APIException {
-        while(true){
+        while (true) {
             int conversionQueueLength = getConversionQueueLength();
             if (conversionQueueLength <= conversionQueueThreshold) {
                 break;
             }
             log.warn("Kaltura Conversion Queue (conversionQueueLength: {}), larger than threshold"
-                    + "(conversionQueueThreshold: {}), retry in {} seconds",
+                            + "(conversionQueueThreshold: {}), retry in {} seconds",
                     conversionQueueLength,
                     conversionQueueThreshold,
                     conversionQueueRetryDelaySeconds);
@@ -528,7 +531,6 @@ public class DsKalturaClient extends DsKalturaClientBase {
         log.debug("Queue length is : {}", count);
         return count;
     }
-
 
 
 }
