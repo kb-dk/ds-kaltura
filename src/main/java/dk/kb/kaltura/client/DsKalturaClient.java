@@ -474,10 +474,9 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IllegalArgumentException("fileExt must be defined");
         }
 
-        if (!(flavorParamId == null || flavorParamId.equals(SOURCE_FLAVOR)) || conversionProfileId != null) {
+        if (!(flavorParamId == null || flavorParamId.equals(SOURCE_FLAVOR))) {
             log.warn("FlavorParamId will override conversion profile. Media will not transcode in Kaltura.");
         } else {
-            tag += ", transcode";
             conversionQueueCheckAndWait();
         }
 
