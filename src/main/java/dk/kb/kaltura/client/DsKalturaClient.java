@@ -38,28 +38,31 @@ import java.util.stream.Collectors;
 public class DsKalturaClient extends DsKalturaClientBase {
 
     private static final Integer SOURCE_FLAVOR = 0;
+    private static final Integer MAX_RETRY_COUNT = 3;
+
     private final Integer conversionQueueThreshold;
     private final Integer conversionQueueRetryDelaySeconds;
+
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
      *
-     * @param kalturaUrl              The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
-     * @param userId                  The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
-     * @param partnerId               The partner id for kaltura. Kind of a collectionId.
-     * @param token                   The application token used for generating client sessions
-     * @param tokenId                 The id of the application token
-     * @param adminSecret             The adminsecret used as password for authenticating. Must not be shared.
-     * @param sessionDurationSeconds  The duration of Kaltura Session in seconds. Beware that when using AppTokens
-     *                                this might have an upper bound tied to the AppToken.
-     * @param sessionRefreshThreshold The threshold in seconds for session renewal.
-     * @param conversionQueueThreshold The threshold for the size of the conversionQueue. If queue gets larger than
-     *                                 this threshold, upload will wait and retry.
+     * @param kalturaUrl                       The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
+     * @param userId                           The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
+     * @param partnerId                        The partner id for kaltura. Kind of a collectionId.
+     * @param token                            The application token used for generating client sessions
+     * @param tokenId                          The id of the application token
+     * @param adminSecret                      The adminsecret used as password for authenticating. Must not be shared.
+     * @param sessionDurationSeconds           The duration of Kaltura Session in seconds. Beware that when using AppTokens
+     *                                         this might have an upper bound tied to the AppToken.
+     * @param sessionRefreshThreshold          The threshold in seconds for session renewal.
+     * @param conversionQueueThreshold         The threshold for the size of the conversionQueue. If queue gets larger than
+     *                                         this threshold, upload will wait and retry.
      * @param conversionQueueRetryDelaySeconds the delay in seconds to wait for a retry if the
      *                                         conversionQueueLength is larger than or equal to
      *                                         conversionQueueThreshold.
-     *                                <p>
-     *                                Either a token/tokenId a adminSecret must be provided for authentication.
+     *                                         <p>
+     *                                         Either a token/tokenId a adminSecret must be provided for authentication.
      * @throws APIException If session could not be created at Kaltura
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
@@ -499,16 +502,24 @@ public class DsKalturaClient extends DsKalturaClientBase {
     }
 
     private void conversionQueueCheckAndWait() throws APIException {
+
+        int retryCount = 1;
         while (true) {
             int conversionQueueLength = getConversionQueueLength();
             if (conversionQueueLength <= conversionQueueThreshold) {
                 break;
             }
+            if (retryCount < MAX_RETRY_COUNT) {
+                throw new RuntimeException("Maximum retries (" + MAX_RETRY_COUNT + ") was reached while waiting for " +
+                        "conversion queue");
+            }
             log.warn("Kaltura Conversion Queue (conversionQueueLength: {}), larger than threshold"
-                            + "(conversionQueueThreshold: {}), retry in {} seconds",
+                            + "(conversionQueueThreshold: {}), retry {} in {} seconds",
                     conversionQueueLength,
                     conversionQueueThreshold,
+                    retryCount,
                     conversionQueueRetryDelaySeconds);
+            retryCount++;
             try {
                 TimeUnit.SECONDS.sleep(conversionQueueRetryDelaySeconds);
             } catch (InterruptedException ie) {
@@ -518,7 +529,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
         }
     }
 
-    public int getConversionQueueLength() throws APIException {
+    private int getConversionQueueLength() throws APIException {
 
         MediaEntryFilter replacementFilter = new MediaEntryFilter();
         replacementFilter.setReplacementStatusIn(EntryReplacementStatus.APPROVED_BUT_NOT_READY.getValue()
