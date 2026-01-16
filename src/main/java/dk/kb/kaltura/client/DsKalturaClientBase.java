@@ -50,7 +50,8 @@ public abstract class DsKalturaClientBase {
     private int batchSize;
 
     /**
-     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
+     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without
+     * authenticating again. Either a token/tokenId a adminSecret must be provided for authentication.
      *
      * @param kalturaUrl              The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
      * @param userId                  The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
@@ -61,8 +62,6 @@ public abstract class DsKalturaClientBase {
      * @param sessionDurationSeconds  The duration of Kaltura Session in seconds. Beware that when using AppTokens
      *                                this might have an upper bound tied to the AppToken.
      * @param sessionRefreshThreshold The threshold in seconds for session renewal.
-     *                                <p>
-     *                                Either a token/tokenId a adminSecret must be provided for authentication.
      */
     public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
                                String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,

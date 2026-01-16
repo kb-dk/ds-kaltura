@@ -45,7 +45,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
 
     /**
-     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without authenticating again.
+     * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without
+     * authenticating again. Either a token/tokenId a adminSecret must be provided for authentication.
      *
      * @param kalturaUrl                       The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
      * @param userId                           The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
@@ -61,8 +62,6 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param conversionQueueRetryDelaySeconds the delay in seconds to wait for a retry if the
      *                                         conversionQueueLength is larger than or equal to
      *                                         conversionQueueThreshold.
-     *                                         <p>
-     *                                         Either a token/tokenId a adminSecret must be provided for authentication.
      * @throws APIException If session could not be created at Kaltura
      */
     public DsKalturaClient(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
@@ -502,31 +501,32 @@ public class DsKalturaClient extends DsKalturaClientBase {
     }
 
     private void conversionQueueCheckAndWait() throws APIException {
-
         int retryCount = 1;
-        while (true) {
+        while (retryCount <= MAX_RETRY_COUNT) {
             int conversionQueueLength = getConversionQueueLength();
             if (conversionQueueLength <= conversionQueueThreshold) {
-                break;
+                return;
             }
-            if (retryCount < MAX_RETRY_COUNT) {
-                throw new RuntimeException("Maximum retries (" + MAX_RETRY_COUNT + ") was reached while waiting for " +
-                        "conversion queue");
-            }
-            log.warn("Kaltura Conversion Queue (conversionQueueLength: {}), larger than threshold"
+
+            log.info("Kaltura Conversion Queue (conversionQueueLength: {}), larger than threshold"
                             + "(conversionQueueThreshold: {}), retry {} in {} seconds",
                     conversionQueueLength,
                     conversionQueueThreshold,
                     retryCount,
                     conversionQueueRetryDelaySeconds);
-            retryCount++;
+
             try {
                 TimeUnit.SECONDS.sleep(conversionQueueRetryDelaySeconds);
             } catch (InterruptedException ie) {
                 log.error("Thread was interrupted while waiting for kaltura conversion queue to decrease");
                 Thread.currentThread().interrupt();
             }
+
+            retryCount++;
         }
+
+        throw new RuntimeException("Maximum retry count (" + MAX_RETRY_COUNT + ") was reached while waiting for " +
+                "conversion queue");
     }
 
     private int getConversionQueueLength() throws APIException {
