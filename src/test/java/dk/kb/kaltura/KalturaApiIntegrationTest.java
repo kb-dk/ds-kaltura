@@ -171,32 +171,11 @@ public class KalturaApiIntegrationTest {
         FileExtension fileExtension = FileExtension.MP4;
 
         //Upload with default flavor and default conversionProfileID
-        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, 0,
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
                 fileExtension, 0);
         assertNotNull(kalturaId);
     }
 
-    /**
-     * When uploading a file to Kaltura, remember to delete it from the Kaltura
-     *
-     */
-    @Test
-    public void uploadWithFlavorParam() throws Exception {
-        DsKalturaClient clientSession = getClient();
-        String file = "/path/to/file"; // <-- Change to local video file
-        String referenceId = "ref_test_1234s";
-        MediaType mediaType = MediaType.VIDEO;
-        String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
-        String title = "test3 title from unittest";
-        String description = "test3 description from unittest";
-        Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
-        FileExtension fileExt = FileExtension.MP4;
-
-        //Upload with default conversionProfileID
-        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
-                flavorParamId, fileExt, 0);
-        assertNotNull(kalturaId);
-    }
 
     @Test
     public void uploadWithExtension() throws Exception {
@@ -207,12 +186,10 @@ public class KalturaApiIntegrationTest {
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
-        Integer flavorParamId = 3; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
         FileExtension fileExt = FileExtension.MP4;
 
         //Upload with default conversionProfileID
-        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
-                flavorParamId, fileExt, 0);
+        String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, fileExt, 0);
         assertNotNull(kalturaId);
     }
 
@@ -225,9 +202,8 @@ public class KalturaApiIntegrationTest {
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
-        Integer flavorParamId = 359; // <-- Change according to MediaType. 3 for lowQ video and 359 for audio
         String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title,
-                description, tag, flavorParamId, FileExtension.MP3, 0);
+                description, tag, FileExtension.MP3, 0);
         assertNotNull(kalturaId);
     }
 
@@ -241,15 +217,14 @@ public class KalturaApiIntegrationTest {
         String tag = "DS-KALTURA"; //This tag is use for all upload from DS to Kaltura
         String title = "test3 title from unittest";
         String description = "test3 description from unittest";
-        Integer flavorParamId = 359;// <-- Change according to MediaType. 3 for lowQ video and 359 for audio
         Throwable t = assertThrows(Exception.class, () -> clientSession.uploadMedia(file, referenceId, mediaType, title,
-                description, tag, flavorParamId, FileExtension.MP3, 0));
+                description, tag, FileExtension.MP3, 0));
         log.debug(t.toString());
     }
 
 
     @Test
-    public void uploadWithConversionId() throws Exception {
+    public void uploadBatchWithConversionId() throws Exception {
         int uploadCount = 100;
 
         DsKalturaClient clientSession = getClient();
@@ -259,7 +234,7 @@ public class KalturaApiIntegrationTest {
 
         for (int i = 0; i < uploadCount; i++) {
 
-            String file = "/path/to/file"; //<-- Change to local video file with mp4
+            String file = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/test_files/goodAudio2.noex"; //<-- Change to local video file with mp4
             String referenceId = "ref_test_" + i;
             MediaType mediaType = MediaType.AUDIO;
             String tag = "TEST-TRANSCODING-SPEED"; //This tag is use for all upload from DS to Kaltura
@@ -269,7 +244,7 @@ public class KalturaApiIntegrationTest {
             FileExtension fileExtension = FileExtension.MP3;
 
             //Upload to specified conversionprofile and default flavor (Source)
-            String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag, 0,
+            String kalturaId = clientSession.uploadMedia(file, referenceId, mediaType, title, description, tag,
                     fileExtension, conversionProfileId);
             entryIdList.add(kalturaId);
         }
