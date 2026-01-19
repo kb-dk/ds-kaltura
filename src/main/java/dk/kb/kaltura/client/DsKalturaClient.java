@@ -43,7 +43,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
     private final Integer conversionQueueThreshold;
     private final Integer conversionQueueRetryDelaySeconds;
 
-    private static Integer estimatedQueueLength;
+    private Integer estimatedQueueLength;
 
 
     /**
@@ -408,11 +408,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *
      * @param uploadtokenId Upload token with content
      * @param entryId       Entry to receive content
-     * @param flavorParamId Id of the flavorParam where the content needs to be added within the Entry.
      * @return EntryId of updated entry
      * @throws APIException if request fails
      */
-    private String addUploadTokenToEntry(String uploadtokenId, String entryId, Integer flavorParamId)
+    private String addUploadTokenToEntry(String uploadtokenId, String entryId)
             throws APIException {
 
         //Connect uploaded file with meta data entry
@@ -420,14 +419,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
         resource.setToken(uploadtokenId);
         AddContentMediaBuilder requestBuilder;
 
-        if (flavorParamId == null) {
-            requestBuilder = MediaService.addContent(entryId, resource);
-        } else {
-            AssetParamsResourceContainer paramContainer = new AssetParamsResourceContainer();
-            paramContainer.setAssetParamsId(flavorParamId);
-            paramContainer.setResource(resource);
-            requestBuilder = MediaService.addContent(entryId, paramContainer);
-        }
+        requestBuilder = MediaService.addContent(entryId, resource);
 
         try {
             return handleRequest(requestBuilder).getId();
@@ -459,8 +451,6 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param title               Name/titel for the resource in Kaltura
      * @param description         Optional description
      * @param tag                 Optional tag. Uploads from the DS should always use tag 'DS-KALTURA'.  There is no backup for this tag in Kaltura and all uploads can be deleted easy.
-     * @param flavorParamId       Optional flavorParamId. This sets what flavor the file should be uploaded as. If not set flavor
-     *                            will be source, i.e. flavorParamId = 0.
      * @param fileExtension       file extension appended to filename if not present in filepath when uploading to Kaltura
      * @param conversionProfileId Optional conversionProfileId that match conversion/transcoding profile in Kaltura.
      *                            If null or 0, the default conversion profile in Kaltura is used.
@@ -470,7 +460,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      *                      implementation uses reflection.
      */
     public String uploadMedia(String filePath, String referenceId, MediaType mediaType,
-                              String title, String description, String tag, @Nullable Integer flavorParamId,
+                              String title, String description, String tag,
                               FileExtension fileExtension, @Nullable Integer conversionProfileId)
             throws IOException, APIException {
 
@@ -485,11 +475,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
             throw new IllegalArgumentException("fileExtension must be defined");
         }
 
-        if (!(flavorParamId == null || flavorParamId.equals(SOURCE_FLAVOR))) {
-            log.warn("FlavorParamId will override conversion profile. Media will not transcode in Kaltura.");
-        } else {
-            conversionQueueCheckAndWait();
-        }
+        conversionQueueCheckAndWait();
 
         FileExtension.checkExtension(filePath, fileExtension);
 
@@ -499,23 +485,20 @@ public class DsKalturaClient extends DsKalturaClientBase {
         String uploadTokenId = addUploadToken();
         uploadFile(uploadTokenId, filePath, mimeType, kalturaFileName);
         String entryId = addEmptyEntry(mediaType, title, description, referenceId, tag, conversionProfileId);
-        addUploadTokenToEntry(uploadTokenId, entryId, flavorParamId);
-
+        addUploadTokenToEntry(uploadTokenId, entryId);
+        estimatedQueueLength++; // Add 1 to conversion queue
         return entryId;
     }
 
     private void conversionQueueCheckAndWait() throws APIException {
-
         if (estimatedQueueLength < conversionQueueThreshold) {
-            estimatedQueueLength++;
             return;
         }
 
         int retryCount = 1;
         while (retryCount <= MAX_RETRY_COUNT) {
-            estimatedQueueLength = getConversionQueueLength();
+            estimatedQueueLength = getConversionQueueLength(); // Get actual queue length from Kaltura
             if (estimatedQueueLength <= conversionQueueThreshold) {
-                estimatedQueueLength++;
                 return;
             }
 
@@ -529,7 +512,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
             try {
                 TimeUnit.SECONDS.sleep(conversionQueueRetryDelaySeconds);
             } catch (InterruptedException ie) {
-                log.error("Thread was interrupted while waiting for kaltura conversion queue to decrease");
+                log.error("Thread was interrupted while waiting for Kaltura conversion queue to decrease");
                 Thread.currentThread().interrupt();
             }
 
