@@ -43,6 +43,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
     private final Integer conversionQueueThreshold;
     private final Integer conversionQueueRetryDelaySeconds;
 
+    private static Integer estimatedQueueLength;
+
 
     /**
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without
@@ -71,6 +73,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
                 sessionRefreshThreshold, MAX_BATCH_SIZE);
         this.conversionQueueThreshold = conversionQueueThreshold;
         this.conversionQueueRetryDelaySeconds = conversionQueueRetryDelaySeconds;
+
+        estimatedQueueLength = getConversionQueueLength();
     }
 
     /**
@@ -501,16 +505,23 @@ public class DsKalturaClient extends DsKalturaClientBase {
     }
 
     private void conversionQueueCheckAndWait() throws APIException {
+
+        if (estimatedQueueLength < conversionQueueThreshold) {
+            estimatedQueueLength++;
+            return;
+        }
+
         int retryCount = 1;
         while (retryCount <= MAX_RETRY_COUNT) {
-            int conversionQueueLength = getConversionQueueLength();
-            if (conversionQueueLength <= conversionQueueThreshold) {
+            estimatedQueueLength = getConversionQueueLength();
+            if (estimatedQueueLength <= conversionQueueThreshold) {
+                estimatedQueueLength++;
                 return;
             }
 
             log.info("Kaltura Conversion Queue (conversionQueueLength: {}), larger than threshold"
                             + "(conversionQueueThreshold: {}), retry {} in {} seconds",
-                    conversionQueueLength,
+                    estimatedQueueLength,
                     conversionQueueThreshold,
                     retryCount,
                     conversionQueueRetryDelaySeconds);
