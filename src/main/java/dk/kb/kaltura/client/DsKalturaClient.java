@@ -497,8 +497,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
         int retryCount = 1;
         while (retryCount <= MAX_RETRY_COUNT) {
-            estimatedQueueLength = getConversionQueueLength(); // Get actual queue length from Kaltura
-            if (estimatedQueueLength <= conversionQueueThreshold) {
+            estimatedQueueLength = getConversionQueueLength(); // update estimated with actual queue length from Kaltura
+            if (estimatedQueueLength < conversionQueueThreshold) {
                 return;
             }
 
