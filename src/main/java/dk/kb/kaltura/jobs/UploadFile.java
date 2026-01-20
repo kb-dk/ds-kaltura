@@ -1,22 +1,19 @@
 package dk.kb.kaltura.jobs;
 
+import com.kaltura.client.enums.MediaType;
 import dk.kb.kaltura.BuildInfoManager;
 import dk.kb.kaltura.client.DsKalturaClient;
-
 import dk.kb.kaltura.enums.FileExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.util.Arrays;
 import java.util.concurrent.Callable;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.kaltura.client.enums.MediaType;
-
 /**
  * <p>
- * The script uploadfile.sh will call this class main method. If the video/audio has been uploaded sucessfully, the internal KalturaID will be logged  
+ * The script uploadfile.sh will call this class main method. If the video/audio has been uploaded sucessfully, the internal KalturaID will be logged
  * The script takes 1 arguments and 5 options that has meta-data information
  * </p>
  * <ul>
@@ -28,7 +25,7 @@ import com.kaltura.client.enums.MediaType;
  *   <li>option -tag  or --tag. Use 'DR-KULTURA' since all uploaded record that then be found easy in Kaltura/li>
  * </ul>
  */
-public class UploadFile extends JobsBase implements Callable<Integer>{ 
+public class UploadFile extends JobsBase implements Callable<Integer> {
 
     private static final Logger log = LoggerFactory.getLogger(UploadFile.class);
 
@@ -37,29 +34,29 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
 
     @CommandLine.Parameters(index = "0", type = String.class) //Required
     private String filePath;
-    
-    
-    @CommandLine.Option(names = {"-referenceid", "--referenceid"}, required = true, type = String.class, 
-                                   description = "The referenceId given to the entry at Kaltura.")
+
+
+    @CommandLine.Option(names = {"-referenceid", "--referenceid"}, required = true, type = String.class,
+            description = "The referenceId given to the entry at Kaltura.")
     private String referenceId;
 
     @CommandLine.Option(names = {"-fileExtension", "--fileExtension"}, required = true, type = FileExtension.class,
             description = "The referenceId given to the entry at Kaltura.")
     private FileExtension fileExtension;
 
-    @CommandLine.Option(names = {"-type", "--type"}, required = true, type =  MEDIATYPES.class,
+    @CommandLine.Option(names = {"-type", "--type"}, required = true, type = MEDIATYPES.class,
             description = "Valid values: ${COMPLETION-CANDIDATES}")
-    private MEDIATYPES mediatype;    
+    private MEDIATYPES mediatype;
 
-    @CommandLine.Option(names = {"-title", "--title"}, required = true, type = String.class, 
-            description = "The title(name) for the entry in Kaltura")   
+    @CommandLine.Option(names = {"-title", "--title"}, required = true, type = String.class,
+            description = "The title(name) for the entry in Kaltura")
     private String title;
 
-    @CommandLine.Option(names = {"-description", "--description"}, required = true, type = String.class, 
-            description = "The description for the entry in Kaltura")    
+    @CommandLine.Option(names = {"-description", "--description"}, required = true, type = String.class,
+            description = "The description for the entry in Kaltura")
     private String description;
 
-    @CommandLine.Option(names = {"-tag", "--tag"}, required = true, type = String.class, 
+    @CommandLine.Option(names = {"-tag", "--tag"}, required = true, type = String.class,
             description = "The tag given to the entry. Tag works a collection identifier at Kaltura. Recommended value is 'DS-KALTURA'")
     private String tag;
 
@@ -72,23 +69,23 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
      * Implement the normal 'main' method here
      */
     @Override
-    public Integer call() throws Exception {        
+    public Integer call() throws Exception {
 
-        MediaType mediaType=null;
+        MediaType mediaType = null;
         switch (mediatype) {
-        case VIDEO:
-            mediaType=MediaType.VIDEO;
-            break;              
+            case VIDEO:
+                mediaType = MediaType.VIDEO;
+                break;
 
-        case AUDIO:
-            mediaType=MediaType.AUDIO;
-            break;              
-        } 
+            case AUDIO:
+                mediaType = MediaType.AUDIO;
+                break;
+        }
 
         DsKalturaClient kalturaClient = getKalturaClient();
-        String kalturaId=kalturaClient.uploadMedia(filePath, referenceId, mediaType, title,
+        String kalturaId = kalturaClient.uploadMedia(filePath, referenceId, mediaType, title,
                 description, tag, fileExtension, conversionProfileId);
-        String message="Upload success. Entry has kalturaId:"+kalturaId;
+        String message = "Upload success. Entry has kalturaId: " + kalturaId;
         log.info(message);
         System.out.println(message);
         return 0; //Exit code
@@ -103,7 +100,6 @@ public class UploadFile extends JobsBase implements Callable<Integer>{
         int exitCode = app.execute(args);
         SystemControl.exit(exitCode);
     }
-
 
 
     /**
