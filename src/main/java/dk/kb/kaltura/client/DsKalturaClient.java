@@ -489,6 +489,15 @@ public class DsKalturaClient extends DsKalturaClientBase {
         return entryId;
     }
 
+
+    /**
+     * Checks the conversionQueue and waits if too long. This method first looks at the estimated queue and only
+     * checks the actual queue length if the estimated queue surpasses the conversionQueueThreshold. If so, it
+     * updates the estimatedQueueLength with the actual queueLength.
+     *
+     * @throws APIException     If Api request fails.
+     * @throws RuntimeException is thrown if the queue length keeps being full after {@value MAX_RETRY_COUNT}
+     */
     private void conversionQueueCheckAndWait() throws APIException {
         if (estimatedQueueLength < conversionQueueThreshold) {
             return;
@@ -522,6 +531,16 @@ public class DsKalturaClient extends DsKalturaClientBase {
                 "conversion queue");
     }
 
+    /**
+     * Get the length of the conversion queue from Kaltura. We define the conversion queue as the count of all
+     * entries with status or replacementStatus that indicates that it is waiting for or in
+     * progress of being converted/transcoded.
+     * <p>
+     * This method uses multiRequest, which essentially does multiple API requests with one http request,
+     * reducing Round-trip time significantly.
+     * @return length of current queue
+     * @throws APIException Thrown when API request fails.
+     */
     private int getConversionQueueLength() throws APIException {
 
         MediaEntryFilter replacementFilter = new MediaEntryFilter();
