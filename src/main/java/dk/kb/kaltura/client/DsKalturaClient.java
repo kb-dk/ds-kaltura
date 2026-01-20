@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
  */
 public class DsKalturaClient extends DsKalturaClientBase {
 
-    private static final Integer SOURCE_FLAVOR = 0;
     private static final Integer MAX_RETRY_COUNT = 3;
 
     private final Integer conversionQueueThreshold;
