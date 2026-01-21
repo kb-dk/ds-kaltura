@@ -18,6 +18,8 @@ kaltura:
   tokenId: 'yyyyy'
   sessionDurationSeconds: 86400
   sessionRefreshThreshold: 3600
+  conversionQueueThreshold: 50
+  conversionQueueDelaySeconds: 30
 
 # The configuration can auto-update at set intervals. See ServiceConfig for details
 autoupdate:

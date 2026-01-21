@@ -8,8 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Added option to specify and use conversionProfile when uploading. This enables transcoding in Kaltura.
 
 ### Changed
+- int conversionQueueThreshold, int conversionQueueRetryDelaySeconds is now needed to initialize kalturaClient.
+- Removed ability to upload directly under a specified flavorParamId. FlavorParamId can no longer be used when
+  uploading.
 
 ### Fixed
 
