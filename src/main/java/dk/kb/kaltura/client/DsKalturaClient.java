@@ -569,8 +569,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
         return handleRequest(MediaService.update(entryId, mediaEntry));
     }
 
-    public void updateAllContent(MediaEntryFilter filter, Integer audioSourceFlavor,
-                                 Integer videoSourceFlavorParamId, int conversionProfileIdAudio,
+    public void updateAllContent(MediaEntryFilter filter, int audioSourceFlavor,
+                                 int videoSourceFlavorParamId, int conversionProfileIdAudio,
                                  int conversionProfileIdVideo, String successTag, String failTag, String outputFile) throws APIException,
             IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
@@ -602,9 +602,9 @@ public class DsKalturaClient extends DsKalturaClientBase {
                         default:
                             throw new RuntimeException("Unknown MediaType");
                     }
-                    if (!entry.getFlavorParamsIds().contains(audioSourceFlavor.toString())) {
+                    if (!entry.getFlavorParamsIds().contains(Integer.toString(sourceFlavorParamId))) {
                         log.error("Entry {} was skipped due since its flavorParamIds do not contain expected source " +
-                                "flavorParamID: {} not in {}", entry.getId(), audioSourceFlavor, entry.getFlavorParamsIds());
+                                "flavorParamID: {} not in {}", entry.getId(), conversionProfileId, entry.getFlavorParamsIds());
                         MediaEntry tagContainer = new MediaEntry();
                         tagContainer.setTags(entry.getTags() + "," + failTag);
                         updateEntry(entry.getId(), tagContainer);
@@ -626,9 +626,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
 //                    log.info("id: {}, convertedId: {}, tag: {}", entry.getId(), convertedId, successTag);
 
                     writer.append(entry.getId()).append(", ").append(convertedId).append("\n");
+                    writer.flush();
 
                 }
-                writer.flush();
+
             }
         }
     }
