@@ -3,6 +3,7 @@ package dk.kb.kaltura;
 import com.kaltura.client.enums.EntryStatus;
 import com.kaltura.client.enums.MediaType;
 import com.kaltura.client.types.APIException;
+import com.kaltura.client.types.MediaEntry;
 import com.kaltura.client.types.MediaEntryFilter;
 import dk.kb.kaltura.client.DsKalturaClient;
 import dk.kb.kaltura.config.ServiceConfig;
@@ -15,6 +16,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -244,6 +247,33 @@ public class KalturaApiIntegrationTest {
         for (String entry : entryIdList) {
             clientSession.deleteStreamByEntryId(entry);
         }
+    }
+
+
+    @Test
+    public void convertAll() throws APIException, IOException {
+        DsKalturaClient clientSession = getClient();
+
+        MediaEntryFilter filter = new MediaEntryFilter();
+
+        filter.setTagsLike("delta!transcoded!flavorMismatch");
+        int count = clientSession.countMediaEntry(filter);
+        System.out.println(count);
+
+        int conversionProfileIdAudio = 1403;
+        int conversionProfileIdVideo = 1406;
+        int videoFlavorParamId = 3;
+        int audioFlavorParamId = 111;
+
+        String failTag = "flavorMismatch";
+        String successTag = "transcoded";
+
+        String outputFilename = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/retranskode/output-" +
+                LocalDateTime.now(ZoneId.systemDefault()) + ".csv";
+
+        clientSession.updateAllContent(filter, audioFlavorParamId, videoFlavorParamId,
+                conversionProfileIdAudio, conversionProfileIdVideo, successTag, failTag, outputFilename);
+
     }
 
     private DsKalturaClient getClient() throws APIException {

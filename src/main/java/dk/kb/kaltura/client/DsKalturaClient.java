@@ -16,9 +16,7 @@ import dk.kb.kaltura.enums.FileExtension;
 import dk.kb.kaltura.enums.MimeType;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -124,8 +122,10 @@ public class DsKalturaClient extends DsKalturaClientBase {
         return buildAndExecute(request, true).isSuccess();
     }
 
-    public ListResponse<MediaEntry> listMediaEntry(MediaEntryFilter filter) throws APIException {
-        return handleRequest(MediaService.list(filter));
+    public List<MediaEntry> listMediaEntry(MediaEntryFilter filter) throws APIException {
+        FilterPager pager = new FilterPager();
+        pager.setPageSize(getBatchSize());
+        return handleRequest(MediaService.list(filter, pager)).getObjects();
     }
 
     public int countMediaEntry(MediaEntryFilter filter) throws APIException {
@@ -556,6 +556,79 @@ public class DsKalturaClient extends DsKalturaClientBase {
         int sum = countList.stream().mapToInt(x -> (int) x).sum();
         log.debug("Queue length is : {}", sum);
         return sum;
+    }
+
+    private MediaEntry updateContent(String entryId, int sourceFlavor, int conversionProfileId) throws APIException {
+        EntryResource entryResource = new EntryResource();
+        entryResource.setEntryId(entryId);
+        entryResource.setFlavorParamsId(sourceFlavor);
+        return handleRequest(MediaService.updateContent(entryId, entryResource, conversionProfileId));
+    }
+
+    private MediaEntry updateEntry(String entryId, MediaEntry mediaEntry) throws APIException {
+        return handleRequest(MediaService.update(entryId, mediaEntry));
+    }
+
+    public void updateAllContent(MediaEntryFilter filter, Integer audioSourceFlavor,
+                                 Integer videoSourceFlavorParamId, int conversionProfileIdAudio,
+                                 int conversionProfileIdVideo, String succesTag, String failTag, String outputFile) throws APIException,
+            IOException {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+
+            while (true) {
+                List<MediaEntry> entries = listMediaEntry(filter);
+                if (entries.isEmpty()) {
+                    return;
+                }
+                if (entries.size() > entries.stream().map(MediaEntry::getId).distinct().count()) {
+                    throw new RuntimeException("Duplicates in list API");
+                }
+
+                for (MediaEntry entry : entries) {
+                    conversionQueueCheckAndWait();
+                    int conversionProfileId = 0;
+                    int sourceFlavorParamId = 0;
+                    switch (entry.getMediaType()) {
+                        case AUDIO:
+                            conversionProfileId = conversionProfileIdAudio;
+                            sourceFlavorParamId = audioSourceFlavor;
+                            break;
+                        case VIDEO:
+                            conversionProfileId = conversionProfileIdVideo;
+                            sourceFlavorParamId = videoSourceFlavorParamId;
+                            break;
+                        default:
+                            throw new RuntimeException("Unknown MediaType");
+                    }
+                    if (!entry.getFlavorParamsIds().contains(audioSourceFlavor.toString())) {
+                        log.error("Entry {} was skipped due since its flavorParamIds do not contain expected source " +
+                                "flavorParamID: {} not in {}", entry.getId(), audioSourceFlavor, entry.getFlavorParamsIds());
+                        MediaEntry tagContainer = new MediaEntry();
+                        tagContainer.setTags(entry.getTags() + "," + failTag);
+                        updateEntry(entry.getId(), tagContainer);
+
+                        continue;
+                    }
+                    String convertedId;
+                    try {
+                        convertedId = updateContent(entry.getId(), sourceFlavorParamId, conversionProfileId).getReplacingEntryId();
+                    } catch (Exception e) {
+                        log.error("id: {}, tag: {}", entry.getId(), "ERROR");
+                        throw e;
+                    }
+                    estimatedQueueLength++;
+
+                    MediaEntry tagContainer = new MediaEntry();
+                    tagContainer.setTags(entry.getTags() + "," + succesTag);
+                    updateEntry(entry.getId(), tagContainer);
+                    log.info("id: {}, convertedId: {}, tag: {}", entry.getId(), convertedId, succesTag);
+
+                    writer.append(entry.getId()).append(", ").append(convertedId).append("\n");
+
+                }
+                writer.flush();
+            }
+        }
     }
 
 
