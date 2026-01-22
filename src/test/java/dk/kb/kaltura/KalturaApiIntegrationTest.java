@@ -257,13 +257,12 @@ public class KalturaApiIntegrationTest {
         MediaEntryFilter filter = new MediaEntryFilter();
 
         filter.setTagsLike("delta!transcoded!flavorMismatch");
-        int count = clientSession.countMediaEntry(filter);
-        System.out.println(count);
+
 
         int conversionProfileIdAudio = 1403;
         int conversionProfileIdVideo = 1406;
         int videoFlavorParamId = 3;
-        int audioFlavorParamId = 111;
+        int audioFlavorParamId = 359;
 
         String failTag = "flavorMismatch";
         String successTag = "transcoded";

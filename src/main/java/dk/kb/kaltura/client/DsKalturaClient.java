@@ -576,6 +576,8 @@ public class DsKalturaClient extends DsKalturaClientBase {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
 
             while (true) {
+                int count = countMediaEntry(filter);
+                log.info("Entries remaining: {}", count);
                 List<MediaEntry> entries = listMediaEntry(filter);
                 if (entries.isEmpty()) {
                     return;
