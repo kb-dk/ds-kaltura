@@ -267,14 +267,21 @@ public class KalturaApiIntegrationTest {
         int videoFlavorParamId = 3;
         int audioFlavorParamId = 359;
 
-        String failTag = "flavorMismatch";
-        String successTag = "transcoded";
 
         String outputFilename = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/retranskode/output-" +
                 LocalDateTime.now(ZoneId.systemDefault()) + ".csv";
 
-        clientSession.updateAllContent(filter, audioFlavorParamId, videoFlavorParamId,
-                conversionProfileIdAudio, conversionProfileIdVideo, successTag, failTag, outputFilename);
+        int count = clientSession.countMediaEntry(filter);
+        log.info("Entries remaining: {}", count);
+        long startTime = System.currentTimeMillis();
+        try {
+            clientSession.updateAllContent(filter, audioFlavorParamId, videoFlavorParamId,
+                    conversionProfileIdAudio, conversionProfileIdVideo, successTag, failTag, outputFilename);
+        } finally {
+            long endTime = System.currentTimeMillis();
+            log.info("Entries processed: {} entries in {}", clientSession.countMediaEntry(filter) - count,
+                    endTime - startTime);
+        }
 
     }
 

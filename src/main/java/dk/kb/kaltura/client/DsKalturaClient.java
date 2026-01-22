@@ -571,7 +571,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
     public void updateAllContent(MediaEntryFilter filter, Integer audioSourceFlavor,
                                  Integer videoSourceFlavorParamId, int conversionProfileIdAudio,
-                                 int conversionProfileIdVideo, String succesTag, String failTag, String outputFile) throws APIException,
+                                 int conversionProfileIdVideo, String successTag, String failTag, String outputFile) throws APIException,
             IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
 
@@ -621,9 +621,9 @@ public class DsKalturaClient extends DsKalturaClientBase {
                     estimatedQueueLength++;
 
                     MediaEntry tagContainer = new MediaEntry();
-                    tagContainer.setTags(entry.getTags() + "," + succesTag);
+                    tagContainer.setTags(entry.getTags() + "," + successTag);
                     updateEntry(entry.getId(), tagContainer);
-                    log.info("id: {}, convertedId: {}, tag: {}", entry.getId(), convertedId, succesTag);
+//                    log.info("id: {}, convertedId: {}, tag: {}", entry.getId(), convertedId, successTag);
 
                     writer.append(entry.getId()).append(", ").append(convertedId).append("\n");
 
