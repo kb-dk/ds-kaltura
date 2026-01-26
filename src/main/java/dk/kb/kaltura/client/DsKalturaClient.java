@@ -558,10 +558,11 @@ public class DsKalturaClient extends DsKalturaClientBase {
         return sum;
     }
 
-    private MediaEntry updateContent(String entryId, int sourceFlavor, int conversionProfileId) throws APIException {
+    public MediaEntry updateContent(String entryId, int sourceFlavor, int conversionProfileId) throws APIException {
         EntryResource entryResource = new EntryResource();
         entryResource.setEntryId(entryId);
         entryResource.setFlavorParamsId(sourceFlavor);
+
         return handleRequest(MediaService.updateContent(entryId, entryResource, conversionProfileId));
     }
 

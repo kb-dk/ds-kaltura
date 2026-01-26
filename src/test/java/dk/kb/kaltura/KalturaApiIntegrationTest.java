@@ -3,7 +3,6 @@ package dk.kb.kaltura;
 import com.kaltura.client.enums.EntryStatus;
 import com.kaltura.client.enums.MediaType;
 import com.kaltura.client.types.APIException;
-import com.kaltura.client.types.MediaEntry;
 import com.kaltura.client.types.MediaEntryFilter;
 import dk.kb.kaltura.client.DsKalturaClient;
 import dk.kb.kaltura.config.ServiceConfig;
@@ -282,6 +281,13 @@ public class KalturaApiIntegrationTest {
             log.info("Entries processed: {} entries in {}", clientSession.countMediaEntry(filter) - count,
                     endTime - startTime);
         }
+
+    }
+
+    @Test
+    public void updateContent() throws APIException {
+        DsKalturaClient client = getClient();
+        client.updateContent("0_6tgsa6fi", 3, 1400);
 
     }
 
