@@ -287,7 +287,7 @@ public class KalturaApiIntegrationTest {
     @Test
     public void updateContent() throws APIException {
         DsKalturaClient client = getClient();
-        client.updateContent("0_6tgsa6fi", 3, 1400);
+        client.updateContent("0_yo5n21py", 3, 1406);
 
     }
 
