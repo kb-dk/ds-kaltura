@@ -1,0 +1,77 @@
+pipeline {
+    agent {
+        label "DS agent"
+    }
+
+    options {
+        disableConcurrentBuilds()
+        timeout(time: 40, unit: "MINUTES")
+        buildDiscarder(logRotator(numToKeepStr: "5"))
+    }
+
+    environment {
+        PROJECT = "ds-kaltura"
+        BUILD_TO_TRIGGER = "ds-datahandler"
+    }
+
+    parameters {
+        string(name: "VERSION", defaultValue: "X.X.X", description: "Version to release")
+    }
+
+    stages {
+        stage("Echo Environment Variables") {
+            steps {
+                echo "Version: ${params.VERSION}"
+            }
+        }
+
+        stage("Check Version") {
+            steps {
+                script {
+                    if ( !params.VERSION || params.VERSION == "X.X.X" ) {
+                        currentBuild.description = "No valid version"
+                        currentBuild.result = "ABORTED"
+                        error("Stopping pipeline: No valid version is set.")
+                    }
+                }
+            }
+        }
+
+        stage("Change version") {
+            steps {
+                withMaven(options: [artifactsPublisher(fingerprintFilesDisabled: true, archiveFilesDisabled: true)], traceability: true, mavenLocalRepo: "${WORKSPACE}/repository") {
+                    sh "mvn versions:set -DnewVersion=${params.VERSION} -DgenerateBackupPoms=false"
+                    echo "Changing MVN version to: ${params.VERSION}"
+                }
+            }
+        }
+
+        stage("Update parent") {
+            steps {
+                withMaven(options: [artifactsPublisher(fingerprintFilesDisabled: true, archiveFilesDisabled: true)], traceability: true, mavenLocalRepo: "${WORKSPACE}/repository") {
+                    sh """sed -i "/<parent>/,/<version>/ s/<version>.*<\\/version>/<version>${params.VERSION}<\\/version>/" pom.xml"""
+                    echo "Changing parent to: ${params.VERSION}"
+                }
+            }
+        }
+
+        stage("Change dependencies") {
+            steps {
+                withMaven(options: [artifactsPublisher(fingerprintFilesDisabled: true, archiveFilesDisabled: true)], traceability: true, mavenLocalRepo: "${WORKSPACE}/repository") {
+                    sh "mvn versions:use-dep-version -Dincludes=dk.kb.dsshared:*,dk.kb.storage:*,dk.kb.license:*,dk.kb.present:*,dk.kb.kaltura:* -DdepVersion=${params.VERSION} -DforceVersion=true -DgenerateBackupPoms=false"
+                    echo "Changing MVN dependencies to: ${params.VERSION}"
+                }
+            }
+        }
+
+        stage("Release to Nexus") {
+            steps {
+                withMaven(options: [artifactsPublisher(fingerprintFilesDisabled: true, archiveFilesDisabled: true)], traceability: true, mavenLocalRepo: "${WORKSPACE}/repository") {
+                    // Execute Maven Release
+                    sh "mvn clean deploy"
+                }
+            }
+        }
+
+    }
+}
