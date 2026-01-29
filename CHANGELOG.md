@@ -5,7 +5,7 @@ All notable changes to ds-kaltura will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.0.0](https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-4.0.0) - 2026-01-29
 
 ### Added
 - Added option to specify and use conversionProfile when uploading. This enables transcoding in Kaltura.
@@ -14,8 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - int conversionQueueThreshold, int conversionQueueRetryDelaySeconds is now needed to initialize kalturaClient.
 - Removed ability to upload directly under a specified flavorParamId. FlavorParamId can no longer be used when
   uploading.
-
-### Fixed
 
 ## [3.0.3](https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.3) - 2025-12-08
 
