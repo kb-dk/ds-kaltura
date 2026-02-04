@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 public class DsKalturaClient extends DsKalturaClientBase {
 
     private static final Integer MAX_RETRY_COUNT = 3;
+    private static final String TRANSCODE_TAG = "transcoded";
 
     private final Integer conversionQueueThreshold;
     private final Integer conversionQueueRetryDelaySeconds;
@@ -47,7 +48,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * Instantiate a session to Kaltura that can be used. The sessions can be reused between Kaltura calls without
      * authenticating again. Either a token/tokenId a adminSecret must be provided for authentication.
      *
-     * @param kalturaUrl                       The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
+     * @param kalturaUrl                       The Kaltura API url. Using the baseUrl will automatically append the API service part to the URL.
      * @param userId                           The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
      * @param partnerId                        The partner id for kaltura. Kind of a collectionId.
      * @param token                            The application token used for generating client sessions
@@ -109,7 +110,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
     /**
      * <p>
      * Block a stream and all meta-data for the record in Kaltura.
-     * The stream can not be played. An Kaltura administrator can still see the stream in the KMC and remove the flag it needed.
+     * The stream can not be played. A Kaltura administrator can still see the stream in the KMC and remove the flag it needed.
      * In KMC refine -> moderation status -> rejected so see a list of all rejected streams and search in them
      * </p>
      *
@@ -137,12 +138,12 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * Search Kaltura for a referenceId. The referenceId was given to Kaltura when uploading the record.<br>
      * We use filenames (file_id) as refereceIds. Example: b16bc5cb-1ea9-48d4-8e3c-2a94abae501b <br>
      * <br>
-     * The Kaltura response contains a lot more information that is required, so it is not a light weight call against Kaltura.
+     * The Kaltura response contains a lot more information that is required, so it is not a lightweight call against Kaltura.
      *
      * @param referenceId External reference ID given when uploading the entry to Kaltura.
      * @return The Kaltura id (internal id). Return null if the refId is not found.
      * @throws IOException  if more than 1 entry was found with the referenceId.
-     * @throws APIException if the client failed to establish an kaltura session or if the request itself was
+     * @throws APIException if the client failed to establish a kaltura session or if the request itself was
      *                      unsuccessful.
      */
     public String getKalturaInternalId(String referenceId) throws IOException, APIException {
@@ -167,7 +168,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * @param referenceIds a list of {@code referenceIDs}, typically UUIDs from stream filenames.
      * @return a map from {@code referenceID} to {@code kalturaID}.
      * Unresolvable {@code referenceIDs} will not be present in the map.
-     * @throws APIException if the client failed to establish an kaltura session or if the request itself was
+     * @throws APIException if the client failed to establish a Kaltura session or if the request itself was
      *                      unsuccessful.
      */
     public Map<String, String> getKalturaIds(List<String> referenceIds) throws APIException {
@@ -365,7 +366,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
     /**
      * Adds en Entry to Kaltura containing only metadata.
      *
-     * @param mediaType   Intended type of media. Either MediaType.AUDIO or MediaType.VIDEO
+     * @param mediaType   Intended type of media. Either {@link MediaType#AUDIO} or {@link MediaType#VIDEO}
      * @param title       Title of video/audio
      * @param description description
      * @param referenceId Id external from Kaltura
@@ -413,7 +414,7 @@ public class DsKalturaClient extends DsKalturaClientBase {
     private String addUploadTokenToEntry(String uploadtokenId, String entryId)
             throws APIException {
 
-        //Connect uploaded file with meta data entry
+        //Connect uploaded file with metadata entry
         UploadedFileTokenResource resource = new UploadedFileTokenResource();
         resource.setToken(uploadtokenId);
         AddContentMediaBuilder requestBuilder;
@@ -441,8 +442,9 @@ public class DsKalturaClient extends DsKalturaClientBase {
      * <p>
      * </ul><p>
      * <p>
-     * If there for some reason happens an error after the file is uploaded and not connected to the metadata record, it does not
-     * seem possible to later see the file in the kaltura administration gui. This error has only happened because I forced it.
+     * If for some reason an error happens after the file is uploaded and not connected to the metadata record,
+     * it does not seem possible to later see the file in the kaltura administration gui. This error has only
+     * happened because I forced it.
      *
      * @param filePath            File path to the media file to upload.
      * @param referenceId         Use our internal ID's there. This referenceId can be used to find the record at Kaltura and also map to internal KalturaId.
@@ -572,8 +574,14 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
     public void updateAllContent(MediaEntryFilter filter, int audioSourceFlavor,
                                  int videoSourceFlavorParamId, int conversionProfileIdAudio,
-                                 int conversionProfileIdVideo, String successTag, String failTag, String outputFile) throws APIException,
-            IOException {
+                                 int conversionProfileIdVideo, @Nullable String successTag, String failTag,
+                                 String outputFile)
+            throws APIException, IOException {
+
+        if (successTag == null) {
+            successTag = TRANSCODE_TAG;
+        }
+
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
 
             while (true) {
