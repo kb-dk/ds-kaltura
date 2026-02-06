@@ -1,5 +1,6 @@
 package dk.kb.kaltura.client;
 
+import com.google.common.io.Files;
 import com.kaltura.client.enums.*;
 import com.kaltura.client.services.BaseEntryService;
 import com.kaltura.client.services.ESearchService;
@@ -16,7 +17,11 @@ import dk.kb.kaltura.enums.FileExtension;
 import dk.kb.kaltura.enums.MimeType;
 
 import javax.annotation.Nullable;
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,7 +41,9 @@ import java.util.stream.Collectors;
 public class DsKalturaClient extends DsKalturaClientBase {
 
     private static final Integer MAX_RETRY_COUNT = 3;
-    private static final String TRANSCODE_TAG = "transcoded";
+    public static final String DEFAULT_TRANSCODE_TAG = "transcoded";
+    public static final String DEFAULT_TRANSCODE_ERROR_TAG = "FAILED_TRANSCODE";
+
 
     private final Integer conversionQueueThreshold;
     private final Integer conversionQueueRetryDelaySeconds;
@@ -574,15 +581,19 @@ public class DsKalturaClient extends DsKalturaClientBase {
 
     public void updateAllContent(MediaEntryFilter filter, int audioSourceFlavor,
                                  int videoSourceFlavorParamId, int conversionProfileIdAudio,
-                                 int conversionProfileIdVideo, @Nullable String successTag, String failTag,
-                                 String outputFile)
+                                 int conversionProfileIdVideo, String outputFile, @Nullable String successTag,
+                                 @Nullable String failTag)
             throws APIException, IOException {
 
         if (successTag == null) {
-            successTag = TRANSCODE_TAG;
+            successTag = DEFAULT_TRANSCODE_TAG;
+        }
+        if (failTag == null) {
+            successTag = DEFAULT_TRANSCODE_ERROR_TAG;
         }
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+
+        try (BufferedWriter writer = Files.newWriter(new File(outputFile), Charset.defaultCharset())) {
 
             while (true) {
                 int count = countMediaEntry(filter);

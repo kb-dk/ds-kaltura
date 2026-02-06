@@ -252,20 +252,18 @@ public class KalturaApiIntegrationTest {
     @Test
     public void convertAll() throws APIException, IOException {
         DsKalturaClient clientSession = getClient();
-
-        MediaEntryFilter filter = new MediaEntryFilter();
-
-        String failTag = "flavorMismatch";
-        String successTag = "transcoded";
-
-        filter.setTagsLike("delta!" + failTag + "!" + successTag);
-
-
         int conversionProfileIdAudio = 1403;
         int conversionProfileIdVideo = 1406;
         int videoFlavorParamId = 3;
         int audioFlavorParamId = 359;
 
+        MediaEntryFilter filter = new MediaEntryFilter();
+
+        String failTag = DsKalturaClient.DEFAULT_TRANSCODE_ERROR_TAG;
+        String successTag = DsKalturaClient.DEFAULT_TRANSCODE_TAG;
+
+        filter.setTagsLike("delta" + "!" + failTag + "!" + successTag);
+        filter.setFlavorParamsIdsMatchOr(videoFlavorParamId + "," + audioFlavorParamId);
 
         String outputFilename = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/retranskode/output-" +
                 LocalDateTime.now(ZoneId.systemDefault()) + ".csv";
@@ -275,7 +273,7 @@ public class KalturaApiIntegrationTest {
         long startTime = System.currentTimeMillis();
         try {
             clientSession.updateAllContent(filter, audioFlavorParamId, videoFlavorParamId,
-                    conversionProfileIdAudio, conversionProfileIdVideo, successTag, failTag, outputFilename);
+                    conversionProfileIdAudio, conversionProfileIdVideo, outputFilename, successTag, failTag);
         } finally {
             long endTime = System.currentTimeMillis();
             log.info("Entries processed: {} entries in {}", clientSession.countMediaEntry(filter) - count,
