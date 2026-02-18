@@ -262,7 +262,7 @@ public class KalturaApiIntegrationTest {
         String failTag = DsKalturaClient.DEFAULT_TRANSCODE_ERROR_TAG;
         String successTag = DsKalturaClient.DEFAULT_TRANSCODE_TAG;
 
-        filter.setTagsLike("delta" + "!" + failTag + "!" + successTag);
+        filter.setTagsLike("*!" + failTag + "!" + successTag);
         filter.setFlavorParamsIdsMatchOr(videoFlavorParamId + "," + audioFlavorParamId);
 
         String outputFilename = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/retranskode/output-" +
@@ -298,8 +298,8 @@ public class KalturaApiIntegrationTest {
                 conf.getString("token"),
                 conf.getString("tokenId"),
                 conf.getString("adminSecret", null),
-                conf.getInteger("sessionDurationSeconds", DEFAULT_SESSION_DURATION_SECONDS),
-                conf.getInteger("sessionRefreshThreshold", DEFAULT_REFRESH_THRESHOLD),
+                conf.getInteger("sessionDurationSeconds"),
+                conf.getInteger("sessionRefreshThreshold"),
                 conf.getInteger("conversionQueueThreshold"),
                 conf.getInteger("conversionQueueDelaySeconds"));
     }
