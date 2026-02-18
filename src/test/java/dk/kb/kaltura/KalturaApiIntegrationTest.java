@@ -15,8 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -249,38 +247,7 @@ public class KalturaApiIntegrationTest {
     }
 
 
-    @Test
-    public void convertAll() throws APIException, IOException {
-        DsKalturaClient clientSession = getClient();
-        int conversionProfileIdAudio = 1403;
-        int conversionProfileIdVideo = 1406;
-        int videoFlavorParamId = 3;
-        int audioFlavorParamId = 359;
 
-        MediaEntryFilter filter = new MediaEntryFilter();
-
-        String failTag = DsKalturaClient.DEFAULT_TRANSCODE_ERROR_TAG;
-        String successTag = DsKalturaClient.DEFAULT_TRANSCODE_TAG;
-
-        filter.setTagsLike("*!" + failTag + "!" + successTag);
-        filter.setFlavorParamsIdsMatchOr(videoFlavorParamId + "," + audioFlavorParamId);
-
-        String outputFilename = "/home/adpe/IdeaProjects/ds-parent/ds-kaltura/src/test/resources/retranskode/output-" +
-                LocalDateTime.now(ZoneId.systemDefault()) + ".csv";
-
-        int count = clientSession.countMediaEntry(filter);
-        log.info("Entries remaining: {}", count);
-        long startTime = System.currentTimeMillis();
-        try {
-            clientSession.updateAllContent(filter, audioFlavorParamId, videoFlavorParamId,
-                    conversionProfileIdAudio, conversionProfileIdVideo, outputFilename, successTag, failTag);
-        } finally {
-            long endTime = System.currentTimeMillis();
-            log.info("Entries processed: {} entries in {}", clientSession.countMediaEntry(filter) - count,
-                    endTime - startTime);
-        }
-
-    }
 
     @Test
     public void updateContent() throws APIException {

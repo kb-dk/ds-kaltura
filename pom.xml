@@ -9,7 +9,7 @@
     
     <groupId>dk.kb.kaltura</groupId>
     <artifactId>ds-kaltura</artifactId>
-    <version>100.0.0-SNAPSHOT</version>
+    <version>1.0-Retranscode</version>
     <packaging>jar</packaging>
 
    <scm>
