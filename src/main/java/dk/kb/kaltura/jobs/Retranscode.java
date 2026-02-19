@@ -16,8 +16,8 @@ import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
 
-public class Restranscode extends JobsBase implements Callable<Integer> {
-    private static final Logger log = LoggerFactory.getLogger(Restranscode.class);
+public class Retranscode extends JobsBase implements Callable<Integer> {
+    private static final Logger log = LoggerFactory.getLogger(Retranscode.class);
 
 
     final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
