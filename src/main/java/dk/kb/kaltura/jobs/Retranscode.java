@@ -75,7 +75,7 @@ public class Restranscode extends JobsBase implements Callable<Integer> {
         BuildInfoManager.logApplicationInfo(); // Mandated by Operations
         System.out.println("Arguments passed by commandline is: " + Arrays.asList(args));
         ServiceConfig.initialize("src/main/conf/ds-kaltura-*.yaml");
-        CommandLine app = new CommandLine(new Restranscode());
+        CommandLine app = new CommandLine(new Retranscode());
         int exitCode = app.execute(args);
         UploadFile.SystemControl.exit(exitCode);
     }
