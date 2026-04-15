@@ -91,7 +91,7 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void listMediaEntriesTest() throws APIException, IOException {
+    public void listMediaEntriesTest() throws APIException {
         List<String> kalturaIds = List.of(
                 "0_w5s6vp2a",
                 "0_o2e4ngw7",
@@ -139,7 +139,7 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void getReportTableNoObjectIds() throws Exception {
+    public void getReportTableNoObjectIds() throws APIException {
         DsKalturaAnalytics client = getClient();
         ReportInputFilter filter = new ReportInputFilter();
         filter.setFromDay("20250101");
@@ -152,7 +152,7 @@ public class KalturaAnalyticsTest {
     }
 
     @Test
-    public void getReportFromEntryIds() throws Exception {
+    public void getReportFromEntryIds() throws APIException, IOException {
         final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
 
         List<String> ids =
