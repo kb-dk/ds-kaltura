@@ -19,7 +19,6 @@ import java.util.concurrent.Callable;
 public class Retranscode extends JobsBase implements Callable<Integer> {
     private static final Logger log = LoggerFactory.getLogger(Retranscode.class);
 
-
     final YAML conf = ServiceConfig.getConfig().getSubMap("kaltura");
 
     @CommandLine.Option(names = {"-IdIn", "--IdIn"}, required = false, type =
