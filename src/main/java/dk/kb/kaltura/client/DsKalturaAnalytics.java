@@ -35,12 +35,12 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * for authentication in order to start a session. Session will be reused between Kaltura calls
      * without authenticating again.
      *
-     * @param kalturaUrl              The Kaltura API url. Using the baseUrl will automatic append the API service part to the URL.
-     * @param userId                  The userId that must be defined in the kaltura, userId is email xxx@kb.dk in our kaltura
-     * @param partnerId               The partner id for kaltura. Kind of a collectionId.
+     * @param kalturaUrl              The Kaltura API url. Using the baseUrl will automatically append the API service part to the URL.
+     * @param userId                  The userId that must be defined in the Kaltura, userId is email xxx@kb.dk in our Kaltura
+     * @param partnerId               The partner id for Kaltura. Kind of a collectionId.
      * @param token                   The application token used for generating client sessions
      * @param tokenId                 The id of the application token
-     * @param adminSecret             The adminsecret used as password for authenticating. Must not be shared.
+     * @param adminSecret             The admin secret used as password for authenticating. Must not be shared.
      * @param sessionDurationSeconds  The duration of Kaltura Session in seconds. Beware that when using AppTokens
      *                                this might have an upper bound tied to the AppToken.
      * @param sessionRefreshThreshold The threshold in seconds for session renewal.
@@ -111,7 +111,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                 previousPage = result.stream().map(E::getId).collect(Collectors.toSet());
             }
         } catch (IOException e) {
-            throw new RuntimeException("IOExeption while writing to file: ", e);
+            throw new RuntimeException("IOException while writing to file: ", e);
         } catch (APIException e) {
             throw new RuntimeException("APIException while handling request: ", e);
         }
@@ -198,7 +198,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         Set<String> resultIdSet = result.stream().map(BaseEntry::getId).collect(Collectors.toSet());
         for (String objectId : objectIds) {
             if (!resultIdSet.contains(objectId)) {
-                log.warn("kaltura id missing: {}", objectId);
+                log.warn("Kaltura id missing: {}", objectId);
             }
         }
         if (objectIds.size() != resultIdSet.size()) {
@@ -215,7 +215,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * The method paginates through the results to accommodate large datasets and
      * compiles the report data into a single map containing the header, total count,
      * and data of the report. This method is limited to only fetch {@link #MAX_RESULT_SIZE} results
-     * to not exceed Kalturas documented limits on API service.
+     * to not exceed Kaltura's documented limits on API service.
      *
      * @param reportType        The type of report to generate, specified by the {@link ReportType} enum.
      * @param reportInputFilter The filter to apply to the report's input data, specified by {@link ReportInputFilter}.
