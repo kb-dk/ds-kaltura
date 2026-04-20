@@ -285,7 +285,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay(formattedFromDate);
         reportInputFilter.setToDay(formattedToDate);
-        if (!StringUtils.isBlank(domainIn)) {
+        if (StringUtils.isNotBlank(domainIn)) {
             reportInputFilter.setDomainIn(domainIn);
         }
 
