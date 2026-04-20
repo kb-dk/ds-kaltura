@@ -5,12 +5,24 @@ All notable changes to ds-kaltura will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+### Added
+
+- Added DsKalturaAnalytics that extends DsKalturaClientBase. This class serves to extract meta data from Kaltura,
+  like TopContent rapport and baseEntry list data. A lot of the design decisions in this class is made to accommodate
+  Kaltura API where queries on larger datasets have shown to give inconsistent results.
+
 ## [4.0.0](https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-4.0.0) - 2026-01-29
 
 ### Added
+
 - Added option to specify and use conversionProfile when uploading. This enables transcoding in Kaltura.
 
 ### Changed
+
 - int conversionQueueThreshold, int conversionQueueRetryDelaySeconds is now needed to initialize kalturaClient.
 - Removed ability to upload directly under a specified flavorParamId. FlavorParamId can no longer be used when
   uploading.
@@ -18,8 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.0.3](https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.3) - 2025-12-08
 
 ### Changed
+
 - Upload now requires file extension to be set separately. This insures that file always have a file extension when
   uploaded.
+
 
 ## [3.0.2](https://github.com/kb-dk/ds-kaltura/releases/tag/ds-kaltura-3.0.2) - 2025-09-01
 
