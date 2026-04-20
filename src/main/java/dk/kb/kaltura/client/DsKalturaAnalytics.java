@@ -3,15 +3,14 @@ package dk.kb.kaltura.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import com.kaltura.client.enums.*;
-import com.kaltura.client.services.BaseEntryService;
 import com.kaltura.client.services.ESearchService;
-import com.kaltura.client.services.MediaService;
 import com.kaltura.client.services.ReportService;
 import com.kaltura.client.types.*;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.domain.TopContentDto;
 import dk.kb.kaltura.mapper.TopContentDtoMapper;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -20,9 +19,9 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -53,13 +52,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         this.topContentDtoMapper = new TopContentDtoMapper();
     }
 
-    public int countAllBaseEntries(BaseEntryFilter filter) throws APIException {
-        return handleRequest(BaseEntryService.count(filter));
-    }
-
-    public int countAllMediaEntries(MediaEntryFilter filter) throws APIException {
-        return handleRequest(MediaService.count(filter));
-    }
 
     /**
      * Exports all entries of a specified type to a file, applying a given filter and service for pagination.
@@ -86,7 +78,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         int count = 0;
         List<E> result;
         ObjectMapper mapper = new ObjectMapper();
-        Set<String> lastPage = Sets.newHashSet();
+        Set<String> previousPage = Sets.newHashSet();
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename),
                 StandardCharsets.UTF_8))) {
@@ -98,10 +90,10 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                 result = handleRequest(listBuilder).getObjects();
 
                 for (E mediaEntry : result) {
-                    if (lastPage.contains(mediaEntry.getId())) {
+                    if (previousPage.contains(mediaEntry.getId())) {
                         continue;
                     }
-                    count += 1;
+                    count++;
                     lastCreatedTimestamp = mediaEntry.getCreatedAt();
                     writer.write(mapper.writeValueAsString(mediaEntry));
                     writer.newLine();
@@ -116,9 +108,8 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                     log.info("No more entries found");
                     break;
                 }
-                lastPage = result.stream().map(E::getId).collect(Collectors.toSet());
+                previousPage = result.stream().map(E::getId).collect(Collectors.toSet());
             }
-
         } catch (IOException e) {
             throw new RuntimeException("IOExeption while writing to file: ", e);
         } catch (APIException e) {
@@ -295,7 +286,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay(formattedFromDate);
         reportInputFilter.setToDay(formattedToDate);
-        if (domainIn != null && !domainIn.isEmpty()) {
+        if (!StringUtils.isBlank(domainIn)) {
             reportInputFilter.setDomainIn(domainIn);
         }
 

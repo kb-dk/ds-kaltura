@@ -6,7 +6,10 @@ import com.kaltura.client.enums.EntryModerationStatus;
 import com.kaltura.client.enums.EntryStatus;
 import com.kaltura.client.enums.ReportType;
 import com.kaltura.client.services.MediaService;
-import com.kaltura.client.types.*;
+import com.kaltura.client.types.APIException;
+import com.kaltura.client.types.BaseEntry;
+import com.kaltura.client.types.MediaEntryFilter;
+import com.kaltura.client.types.ReportInputFilter;
 import dk.kb.kaltura.client.DsKalturaAnalytics;
 import dk.kb.kaltura.config.ServiceConfig;
 import dk.kb.kaltura.domain.ReportTableDto;
@@ -48,27 +51,6 @@ public class KalturaAnalyticsTest {
             throw new IllegalStateException("An kaltura.token and kaltura.tokenId must be set to perform integration test. Please generate an appToken and" +
                     "add it to the local configuration (NOT the *-behaviour.YAML configuration)");
         }
-    }
-
-    @Test
-    public void countAllBaseEntriesTest() throws APIException {
-        DsKalturaAnalytics client = getClient();
-        BaseEntryFilter filter = new BaseEntryFilter();
-        filter.statusIn(EntryStatus.READY.getValue());
-//        filter.setModerationStatusEqual(EntryModerationStatus.REJECTED);
-        int i = client.countAllBaseEntries(filter);
-        System.out.println("Total: " + i);
-    }
-
-    @Test
-    public void countAllMediaEntriesTest() throws APIException {
-        DsKalturaAnalytics client = getClient();
-        MediaEntryFilter filter = new MediaEntryFilter();
-        filter.statusNotIn("notAStatus");
-        filter.setModerationStatusNotIn("notAStatus");
-        filter.setCreatedAtGreaterThanOrEqual(1704067200L);
-        int i = client.countAllMediaEntries(filter);
-        System.out.println("Total: " + i);
     }
 
     @Test
