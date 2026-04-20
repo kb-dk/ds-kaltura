@@ -271,7 +271,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @return A list of {@link TopContentDto} containing the top content data for the specified parameters.
      * @throws APIException if an error occurs while calling the API to retrieve the report.
      */
-    public List<TopContentDto> getTopContentFromIdList(LocalDate fromDay, LocalDate toDay, @Nullable String domainIn,
+    public List<TopContentDto> getTopContentFromIdList(@Nullable LocalDate fromDay, @Nullable LocalDate toDay, @Nullable String domainIn,
                                                        List<String> objectIds) throws APIException, IOException {
         if (objectIds == null || objectIds.isEmpty()) {
             throw new IllegalArgumentException("objectIds is empty or null");
@@ -282,8 +282,9 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         }
 
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd", Locale.getDefault());
-        String formattedFromDate = fromDay.format(dateTimeFormatter);
-        String formattedToDate = toDay.format(dateTimeFormatter);
+
+        String formattedFromDate = fromDay != null ? fromDay.format(dateTimeFormatter) : null;
+        String formattedToDate = toDay != null ? toDay.format(dateTimeFormatter) : null;
 
         ReportInputFilter reportInputFilter = new ReportInputFilter();
         reportInputFilter.setFromDay(formattedFromDate);
