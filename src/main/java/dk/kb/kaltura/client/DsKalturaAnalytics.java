@@ -202,9 +202,8 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             }
         }
         if (objectIds.size() != resultIdSet.size()) {
-            log.warn("Requested ({}) != result size({})", objectIds.size(), resultSize);
-        } else {
-            log.debug("Requested ({}) == result size({})", objectIds.size(), resultIdSet.size());
+            log.warn("Number of requested objectId's ({}) did not match number of objectId's in result ({})",
+                    objectIds.size(), resultSize);
         }
 
         return result;
