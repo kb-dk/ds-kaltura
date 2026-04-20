@@ -90,6 +90,8 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                 result = handleRequest(listBuilder).getObjects();
 
                 for (E mediaEntry : result) {
+
+                    // Failsafe to not include duplicates from previous page.
                     if (previousPage.contains(mediaEntry.getId())) {
                         continue;
                     }
