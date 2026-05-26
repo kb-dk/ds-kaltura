@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Removed all scripts, jobs and alot of obsolete methods and tests.
+
 ### Added
 
 - Added DsKalturaAnalytics that extends DsKalturaClientBase. This class serves to extract meta data from Kaltura,
