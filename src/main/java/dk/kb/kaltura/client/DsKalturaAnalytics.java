@@ -1,30 +1,22 @@
 package dk.kb.kaltura.client;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
 import com.kaltura.client.enums.*;
 import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.ReportService;
 import com.kaltura.client.types.*;
-import com.kaltura.client.utils.request.BaseRequestBuilder;
 import dk.kb.kaltura.domain.ReportTableDto;
 import dk.kb.kaltura.domain.TopContentDto;
 import dk.kb.kaltura.mapper.TopContentDtoMapper;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.annotation.Nullable;
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 public class DsKalturaAnalytics extends DsKalturaClientBase {
@@ -53,72 +45,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         this.topContentDtoMapper = new TopContentDtoMapper();
     }
 
-
-    /**
-     * Exports all entries of a specified type to a file, applying a given filter and service for pagination.
-     * This method retrieves entries in batches based on the provided filter and writes them
-     * to a specified file in JSON format. It handles pagination and ensures no duplicate entries
-     * are written to the file. The entries are ordered by their creation timestamp.
-     *
-     * @param <T>      The type of filter used to specify the criteria for entries to export.
-     * @param <E>      The type of entries being exported, extending from BaseEntry.
-     * @param <B>      The type of request builder used to create service requests, extending from BaseRequestBuilder.
-     * @param filter   The filter to apply for exporting entries.
-     * @param service  A function that takes the filter and a FilterPager, and returns a configured request builder.
-     * @param filename The name of the file to which the entries will be exported.
-     * @throws RuntimeException if there is an API exception while handling the request.
-     */
-    public <T extends BaseEntryFilter, E extends BaseEntry, B extends BaseRequestBuilder<ListResponse<E>, B>> void
-    exportAllEntriesToFile(T filter, BiFunction<T, FilterPager, B> service, String filename) {
-        FilterPager filterPager = new FilterPager();
-        filterPager.setPageSize(getBatchSize());
-        filterPager.setPageIndex(1);
-        filter.setOrderBy(MediaEntryOrderBy.CREATED_AT_ASC.getValue());
-
-        Long lastCreatedTimestamp = 1L;
-        int count = 0;
-        List<E> result;
-        ObjectMapper mapper = new ObjectMapper();
-        Set<String> previousPage = Sets.newHashSet();
-
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename),
-                StandardCharsets.UTF_8))) {
-            while (true) {
-                filter.setCreatedAtGreaterThanOrEqual(lastCreatedTimestamp);
-
-                B listBuilder = service.apply(filter, filterPager);
-
-                result = handleRequest(listBuilder).getObjects();
-
-                for (E mediaEntry : result) {
-
-                    // Failsafe to not include duplicates from previous page.
-                    if (previousPage.contains(mediaEntry.getId())) {
-                        continue;
-                    }
-                    count++;
-                    lastCreatedTimestamp = mediaEntry.getCreatedAt();
-                    writer.write(mapper.writeValueAsString(mediaEntry));
-                    writer.newLine();
-                }
-                writer.flush();
-
-                log.info("Page: {}, result.size(): {}, total received: {}", filterPager.getPageIndex(), result.size(),
-                        count);
-                log.debug("LastCreatedTimestamp: {}", lastCreatedTimestamp);
-
-                if (result.size() < getBatchSize()) {
-                    log.info("No more entries found");
-                    break;
-                }
-                previousPage = result.stream().map(E::getId).collect(Collectors.toSet());
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("IOException while writing to file: ", e);
-        } catch (APIException e) {
-            throw new RuntimeException("APIException while handling request: ", e);
-        }
-    }
 
     /**
      * Retrieves a list of BaseEntry objects corresponding to the provided list of object IDs.

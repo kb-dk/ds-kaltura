@@ -7,7 +7,6 @@ import com.kaltura.client.enums.SessionType;
 import com.kaltura.client.services.AppTokenService;
 import com.kaltura.client.services.SessionService;
 import com.kaltura.client.types.APIException;
-import com.kaltura.client.types.SessionInfo;
 import com.kaltura.client.types.StartWidgetSessionResponse;
 import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.request.RequestElement;
@@ -20,9 +19,6 @@ import javax.annotation.Nullable;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 
 public abstract class DsKalturaClientBase {
 
@@ -182,33 +178,6 @@ public abstract class DsKalturaClientBase {
         log.debug("Widget Session started successfully");
 
         return results.getKs();
-    }
-
-    /**
-     * logs SessionInfo response from SessionService.get(ks).
-     *
-     * @param ks Kaltura session to log
-     * @throws APIException
-     */
-    public void logSessionInfo(String ks) throws APIException {
-
-        SessionService.GetSessionBuilder requestBuilder = SessionService.get(ks);
-        SessionInfo result = handleRequest(requestBuilder, false);
-
-        // Convert Unix time to Instant
-        ZonedDateTime expiry = Instant.ofEpochSecond(result.getExpiry()).atZone(ZoneId.systemDefault());
-
-        log.info("Session expiry: '{}', Session type: '{}', Privileges: '{}'", expiry,
-                result.getSessionType(), result.getPrivileges());
-    }
-
-    /**
-     * logs SessionInfo response from SessionService.get(client.getKs()).
-     *
-     * @throws APIException
-     */
-    public void logSessionInfo() throws APIException {
-        logSessionInfo(client.getKs());
     }
 
     private void initializeKalturaClient() throws APIException {
