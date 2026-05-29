@@ -60,9 +60,9 @@ public abstract class DsKalturaClientBase {
      *                                this might have an upper bound tied to the AppToken.
      * @param sessionRefreshThreshold The threshold in seconds for session renewal.
      */
-    public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
-                               String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
-                               int batchSize) throws APIException {
+    public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token,
+                               String tokenId, String adminSecret, int sessionDurationSeconds,
+                               int sessionRefreshThreshold, int batchSize) {
         this.sessionDurationSeconds = sessionDurationSeconds;
         this.sessionKeepAliveSeconds = sessionDurationSeconds - sessionRefreshThreshold;
         this.kalturaUrl = kalturaUrl;
@@ -78,7 +78,11 @@ public abstract class DsKalturaClientBase {
             throw new IllegalArgumentException("The difference between the configured sessionDurationSeconds and " +
                     "sessionRefreshThreshold (SessionKeepAliveSession) must be at least 600 seconds (10 minutes) ");
         }
-        initializeKalturaClient();
+
+        Configuration config = new Configuration();
+        config.setEndpoint(kalturaUrl);
+        client = new Client(config);
+        client.setPartnerId(partnerId);
     }
 
     public int getBatchSize() {
@@ -180,13 +184,18 @@ public abstract class DsKalturaClientBase {
         return results.getKs();
     }
 
-    private void initializeKalturaClient() throws APIException {
-        log.info("Initializing Kaltura client");
-        Configuration config = new Configuration();
-        config.setEndpoint(kalturaUrl);
-        client = new Client(config);
-        client.setPartnerId(partnerId);
-        startClientSession();//Start session now to fail now rather than later if config is wrong.
+    /**
+     * Checks if Kaltura API can be connected to, so we fail fast rather than later if config is
+     * wrong.
+     *
+     * @return Boolean, true if we have started a Kaltura session, false if we have failed
+     * @throws APIException
+     */
+    public Boolean checkReadiness() throws APIException {
+        if (startClientSession()) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -215,8 +224,8 @@ public abstract class DsKalturaClientBase {
      *
      * @throws Exception
      */
-    private void startClientSession() throws APIException {
-
+    private Boolean startClientSession() throws APIException {
+        log.info("Initializing Kaltura client");
         String ks = null;
         if (StringUtils.isEmpty(adminSecret)) {
             log.info("Starting KalturaSession from appToken");
@@ -233,6 +242,7 @@ public abstract class DsKalturaClientBase {
         }
         client.setKs(ks);
         lastSessionStart = System.currentTimeMillis(); //Reset timer
+        return true;
     }
 
     /**
