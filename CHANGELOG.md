@@ -9,7 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Removed all scripts, jobs and alot of obsolete methods and tests.
+- Removed all scripts, jobs and a lot of obsolete methods and tests.
+- Use null safe `StringUtils.isBlank` instead of `String.isEmpty`.
+- Start on unittest for `DsKalturaAnalytics`.
+- Refactored creating search query and call to Kaltura from method `listEntryBatch` into own method `getMediaEntries`.
+- Changed method `listEntryBatch` from `private` to `public` to be able to unittest the behavior.
 
 ### Added
 
