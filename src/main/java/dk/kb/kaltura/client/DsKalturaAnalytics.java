@@ -49,10 +49,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     /**
      * Retrieves a list of BaseEntry objects corresponding to the provided list of object IDs.
-     * This method processes the provided list of object IDs in batches to retrieve entries.
-     * If the input list is null or empty, it logs a warning and returns an empty list. If the
-     * input list exceeds a predefined maximum size, a warning is also logged. The method uses
-     * batching to efficiently retrieve entries in smaller groups.
+     * The method uses batching of list of object IDs to efficiently retrieve entries in smaller
+     * groups.
+     * Checks if the list of object IDs is null or empty, if it does, an IllegalArgumentException is
+     * thrown.
+     * Checks if the list of object IDs exceeds a predefined maximum size, a warning is logged.
+     * Checks if the number of provided object IDs exceeds the defined batch size, if it does, an
+     * IllegalArgumentException is thrown.
      *
      * @param objectIds A list of object IDs for which the corresponding BaseEntry objects are to be retrieved.
      *                  If this list is null or empty, an empty list is returned.
@@ -64,8 +67,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         if (objectIds == null || objectIds.isEmpty()) {
             throw new IllegalArgumentException("Null or empty objectIds list");
         }
+
         if (objectIds.size() > MAX_RESULT_SIZE) {
             log.warn("This method is not designed to conserve memory and is not meant for larger datasets.");
+        }
+
+        if (objectIds.size() > getBatchSize()) {
+            throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() + " is greater than batchSize: " + getBatchSize());
         }
 
         int batchSize = getBatchSize();
@@ -87,8 +95,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     /**
      * Retrieves a batch of MediaEntry objects based on the provided list of object IDs.
-     * This method checks if the number of provided object IDs exceeds the defined batch size.
-     * If it does, an IllegalArgumentException is thrown.
      * Logs if any missing IDs or discrepancies in the expected versus actual results.
      *
      * @param objectIds A list of object IDs to retrieve MediaEntry objects for.
@@ -97,11 +103,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @throws APIException             If there is an error while handling the request to the search service.
      * @throws IllegalArgumentException If the size of the objectIds list exceeds the configured batch size.
      */
-    public List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
-        if (objectIds.size() > getBatchSize()) {
-            throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() + " is greater than batchSize: " + getBatchSize());
-        }
-
+    private List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
         List<MediaEntry> result = getMediaEntries(objectIds);
 
         int resultSize = result.size();
