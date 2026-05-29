@@ -186,7 +186,7 @@ public abstract class DsKalturaClientBase {
 
     /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
-     * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
+     * Synchronized to avoid race condition if using the DsKalturaClient class multithreaded
      */
     private synchronized Client getClientInstance() throws APIException {
         try {
@@ -195,17 +195,17 @@ public abstract class DsKalturaClientBase {
                         (System.currentTimeMillis() - lastSessionStart));
                 //Create the client
                 if (startClientSession()) {
-                    log.info("Refreshed Kaltura client session");
+                    log.info("Started/refreshed Kaltura client session");
                 }
                 else {
-                    String errorMessage = "Connecting to Kaltura failed. KalturaUrl=" + kalturaUrl;
-                    log.warn(errorMessage);
+                    String errorMessage = "Failed to connect to Kaltura: '{" + kalturaUrl + "}'";
+                    log.error(errorMessage);
                     throw new APIException(errorMessage);
                 }
             }
             return client;
         } catch (APIException e) {
-            log.warn("Connecting to Kaltura failed. KalturaUrl={}, error={}", kalturaUrl, e.getMessage());
+            log.error("Connecting to Kaltura failed. KalturaUrl='{}', error='{}'", kalturaUrl, e.getMessage());
             throw e;
         }
     }
