@@ -204,7 +204,7 @@ public abstract class DsKalturaClientBase {
      */
     private synchronized Client getClientInstance() throws APIException {
         try {
-            if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L || client.getKs().isEmpty()) {
+            if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L || StringUtils.isBlank(client.getKs())) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:" +
                         (System.currentTimeMillis() - lastSessionStart));
                 //Create the client
