@@ -205,7 +205,7 @@ public abstract class DsKalturaClientBase {
             }
             return client;
         } catch (APIException e) {
-            log.warn("Connecting to Kaltura failed. KalturaUrl={},error={}", kalturaUrl, e.getMessage());
+            log.warn("Connecting to Kaltura failed. KalturaUrl={}, error={}", kalturaUrl, e.getMessage());
             throw e;
         }
     }
