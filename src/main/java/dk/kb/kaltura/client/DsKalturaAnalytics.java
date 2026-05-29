@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
 
 public class DsKalturaAnalytics extends DsKalturaClientBase {
 
@@ -72,10 +71,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
             log.warn("This method is not designed to conserve memory and is not meant for larger datasets.");
         }
 
-        if (objectIds.size() > getBatchSize()) {
-            throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() + " is greater than batchSize: " + getBatchSize());
-        }
-
         int batchSize = getBatchSize();
         int totalElements = objectIds.size();
         List<BaseEntry> results = new ArrayList<>();
@@ -103,7 +98,11 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @throws APIException             If there is an error while handling the request to the search service.
      * @throws IllegalArgumentException If the size of the objectIds list exceeds the configured batch size.
      */
-    private List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
+    public List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
+        if (objectIds.size() > getBatchSize()) {
+            throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() + " is greater than batchSize: " + getBatchSize());
+        }
+
         List<MediaEntry> result = getMediaEntries(objectIds);
 
         int resultSize = result.size();

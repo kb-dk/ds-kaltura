@@ -8,7 +8,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import com.kaltura.client.types.APIException;
-import com.kaltura.client.types.BaseEntry;
 import com.kaltura.client.types.MediaEntry;
 import dk.kb.kaltura.client.DsKalturaAnalytics;
 import java.util.List;
@@ -56,19 +55,19 @@ public class KalturaAnalyticsTest {
   }
 
   @Test
-  public void getEntriesFromIdList_whenListOfObjectIdsIsGreaterThanBatchSize_thenThrowIllegalArgumentException() {
+  public void listEntryBatch_whenListOfObjectIdsIsGreaterThanBatchSize_thenThrowIllegalArgumentException() {
     // Arrange
     List<String> mockList = mock(List.class);
     when(mockList.size()).thenReturn(501);
 
     // Act and Assert
     Exception exception = assertThrows(IllegalArgumentException.class,
-        () -> dsKalturaAnalytics.getEntriesFromIdList(mockList));
+        () -> dsKalturaAnalytics.listEntryBatch(mockList));
     assertEquals("Size of objectIds: 501 is greater than batchSize: 500", exception.getMessage());
   }
 
   @Test
-  public void getEntriesFromIdList_whenHavingOneObjectId_thenReturnCorrespondingBaseEntry()
+  public void listEntryBatch_whenHavingOneObjectId_thenReturnCorrespondingMediaEntry()
       throws APIException {
     // Arrange
     DsKalturaAnalytics spyDsKalturaAnalytics = spy(dsKalturaAnalytics);
@@ -84,7 +83,7 @@ public class KalturaAnalyticsTest {
     doReturn(mediaEntryList).when(spyDsKalturaAnalytics).getMediaEntries(objectIds);
 
     // Act
-    List<BaseEntry> resultBaseEntryList = spyDsKalturaAnalytics.getEntriesFromIdList(objectIds);
+    List<MediaEntry> resultBaseEntryList = spyDsKalturaAnalytics.listEntryBatch(objectIds);
 
     // Assert
     assertEquals(1, resultBaseEntryList.size());
