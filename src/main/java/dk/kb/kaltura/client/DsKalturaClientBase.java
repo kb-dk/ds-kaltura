@@ -185,20 +185,6 @@ public abstract class DsKalturaClientBase {
     }
 
     /**
-     * Checks if Kaltura API can be connected to, so we fail fast rather than later if config is
-     * wrong.
-     *
-     * @return Boolean, true if we have started a Kaltura session, false if we have failed
-     * @throws APIException
-     */
-    public Boolean checkReadiness() throws APIException {
-        if (startClientSession()) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
      * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
      */
@@ -208,8 +194,14 @@ public abstract class DsKalturaClientBase {
                 log.info("Refreshing Kaltura client session, millis since last refresh:" +
                         (System.currentTimeMillis() - lastSessionStart));
                 //Create the client
-                startClientSession();
-                log.info("Refreshed Kaltura client session");
+                if (startClientSession()) {
+                    log.info("Refreshed Kaltura client session");
+                }
+                else {
+                    String errorMessage = "Connecting to Kaltura failed. KalturaUrl=" + kalturaUrl;
+                    log.warn(errorMessage);
+                    throw new APIException(errorMessage);
+                }
             }
             return client;
         } catch (APIException e) {
