@@ -1,7 +1,6 @@
 package dk.kb.kaltura.client;
 
 import com.kaltura.client.enums.*;
-import com.kaltura.client.services.BaseEntryService;
 import com.kaltura.client.services.ESearchService;
 import com.kaltura.client.services.MediaService;
 import com.kaltura.client.services.MediaService.AddContentMediaBuilder;
@@ -9,7 +8,6 @@ import com.kaltura.client.services.MediaService.DeleteMediaBuilder;
 import com.kaltura.client.services.MediaService.RejectMediaBuilder;
 import com.kaltura.client.services.UploadTokenService;
 import com.kaltura.client.types.*;
-import com.kaltura.client.utils.request.BaseRequestBuilder;
 import com.kaltura.client.utils.request.MultiRequestBuilder;
 import com.kaltura.client.utils.response.base.Response;
 import dk.kb.kaltura.enums.FileExtension;
@@ -74,23 +72,6 @@ public class DsKalturaClient extends DsKalturaClientBase {
         this.conversionQueueRetryDelaySeconds = conversionQueueRetryDelaySeconds;
 
         estimatedQueueLength = getConversionQueueLength();
-    }
-
-    /**
-     * Retrieves a {@link BaseEntry} object based on the provided entry ID.
-     * <p>
-     * This method handles the API request to fetch the entry from the service.
-     * It calls the static method {@link BaseEntryService#get(String)} to initiate
-     * the retrieval process and then processes the response using the
-     * {@link DsKalturaClientBase#handleRequest(BaseRequestBuilder)} method.
-     *
-     * @param entryId the ID of the entry to be retrieved
-     * @return a {@link BaseEntry} object representing the requested entry
-     * @throws APIException if there is an error related to the API request,
-     *                      such as an invalid entry ID or server-side issues
-     */
-    public BaseEntry getEntry(String entryId) throws APIException {
-        return handleRequest(BaseEntryService.get(entryId));
     }
 
     /**
@@ -196,30 +177,6 @@ public class DsKalturaClient extends DsKalturaClientBase {
     }
 
     /**
-     * Resolve referenceIDs for a list of Kaltura IDs.
-     *
-     * @param kalturaIDs a list of {@code kalturaIDs}.
-     * @return a map from {@code kalturaID} to {@code referenceID}.
-     * Unresolvable {@code kalturaIDs} will not be present in the map.
-     * @throws APIException if the remote request failed.
-     */
-    public Map<String, String> getReferenceIds(List<String> kalturaIDs) throws APIException {
-        if (kalturaIDs.isEmpty()) {
-            log.info("getReferenceIds(kalturaIDs) called with empty list of IDs");
-            return Collections.emptyMap();
-        }
-
-        List<ESearchEntryBaseItem> items = kalturaIDs.stream()
-                .map(this::createKalturaIdItem)
-                .collect(Collectors.toList());
-        Response<ESearchEntryResponse> response = searchMulti(items);
-
-        return response.results.getObjects().stream()
-                .map(ESearchEntryResult::getObject)
-                .collect(Collectors.toMap(BaseEntry::getId, BaseEntry::getReferenceId));
-    }
-
-    /**
      * Simple free form term search in Kaltura.
      *
      * @param term a search term, such as {@code dr} or {@code tv avisen}.
@@ -289,20 +246,6 @@ public class DsKalturaClient extends DsKalturaClientBase {
         ESearchEntryItem item = new ESearchEntryItem();
         item.setFieldName(ESearchEntryFieldName.REFERENCE_ID);
         item.searchTerm(referenceID);
-        item.setItemType(ESearchItemType.EXACT_MATCH);
-        return item;
-    }
-
-    /**
-     * Build a search item aka search clause for the given {@code ID}.
-     *
-     * @param kalturaID typically the UUID for a stream filename.
-     * @return a search item ready for search or for building more complex search requests.
-     */
-    private ESearchEntryItem createKalturaIdItem(String kalturaID) {
-        ESearchEntryItem item = new ESearchEntryItem();
-        item.setFieldName(ESearchEntryFieldName.ID);
-        item.searchTerm(kalturaID);
         item.setItemType(ESearchItemType.EXACT_MATCH);
         return item;
     }
