@@ -48,10 +48,13 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
 
     /**
      * Retrieves a list of BaseEntry objects corresponding to the provided list of object IDs.
-     * This method processes the provided list of object IDs in batches to retrieve entries.
-     * If the input list is null or empty, it logs a warning and returns an empty list. If the
-     * input list exceeds a predefined maximum size, a warning is also logged. The method uses
-     * batching to efficiently retrieve entries in smaller groups.
+     * The method uses batching of list of object IDs to efficiently retrieve entries in smaller
+     * groups.
+     * Checks if the list of object IDs is null or empty, if it does, an IllegalArgumentException is
+     * thrown.
+     * Checks if the list of object IDs exceeds a predefined maximum size, a warning is logged.
+     * Checks if the number of provided object IDs exceeds the defined batch size, if it does, an
+     * IllegalArgumentException is thrown.
      *
      * @param objectIds A list of object IDs for which the corresponding BaseEntry objects are to be retrieved.
      *                  If this list is null or empty, an empty list is returned.
@@ -63,6 +66,7 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         if (objectIds == null || objectIds.isEmpty()) {
             throw new IllegalArgumentException("Null or empty objectIds list");
         }
+
         if (objectIds.size() > MAX_RESULT_SIZE) {
             log.warn("This method is not designed to conserve memory and is not meant for larger datasets.");
         }
@@ -70,18 +74,23 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
         int batchSize = getBatchSize();
         int totalElements = objectIds.size();
         List<BaseEntry> results = new ArrayList<>();
+
         for (int i = 0; i < totalElements; i += batchSize) {
-            results.addAll(listEntryBatch(objectIds.subList(i, Math.min(batchSize + i, totalElements))));
+            // Splits the objectIdsList up into batch size sub lists
+            List<String> batchList = objectIds.subList(i, Math.min(batchSize + i, totalElements));
+
+            // Returns list of MediaEntries from List from objectIds
+            List<MediaEntry> mediaEntryList = listEntryBatch(batchList);
+
+            // Add list of MediaEntry to result
+            results.addAll(mediaEntryList);
         }
         return results;
     }
 
     /**
      * Retrieves a batch of MediaEntry objects based on the provided list of object IDs.
-     * This method checks if the number of provided object IDs exceeds the defined batch size.
-     * If it does, an IllegalArgumentException is thrown. It constructs a search query
-     * to fetch the corresponding MediaEntry objects from the backend service and logs any
-     * missing IDs or discrepancies in the expected versus actual results.
+     * Logs if any missing IDs or discrepancies in the expected versus actual results.
      *
      * @param objectIds A list of object IDs to retrieve MediaEntry objects for.
      *                  The size of this list must not exceed the configured batch size.
@@ -89,11 +98,38 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
      * @throws APIException             If there is an error while handling the request to the search service.
      * @throws IllegalArgumentException If the size of the objectIds list exceeds the configured batch size.
      */
-    private List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
+    public List<MediaEntry> listEntryBatch(List<String> objectIds) throws APIException {
         if (objectIds.size() > getBatchSize()) {
             throw new IllegalArgumentException("Size of objectIds: " + objectIds.size() + " is greater than batchSize: " + getBatchSize());
         }
 
+        List<MediaEntry> result = getMediaEntries(objectIds);
+
+        int resultSize = result.size();
+
+        Set<String> resultIdSet = result.stream().map(BaseEntry::getId).collect(Collectors.toSet());
+        for (String objectId : objectIds) {
+            if (!resultIdSet.contains(objectId)) {
+                log.warn("Kaltura id missing: {}", objectId);
+            }
+        }
+        if (objectIds.size() != resultIdSet.size()) {
+            log.warn("Number of requested objectId's ({}) did not match number of objectId's in result ({})",
+                    objectIds.size(), resultSize);
+        }
+
+        return result;
+    }
+
+    /**
+     * Constructs a search query to fetch the corresponding MediaEntry objects from Kaltura API
+     * service and make the request to Kaltura
+     *
+     * @param objectIds A list of object IDs to retrieve MediaEntry objects for.
+     * @return A list of MediaEntry objects corresponding to the provided object IDs.
+     * @throws APIException If there is an error while handling the request to the search service.
+     */
+    public List<MediaEntry> getMediaEntries(List<String> objectIds) throws APIException {
         FilterPager filterPager = new FilterPager();
         filterPager.setPageSize(getBatchSize());
         ESearchEntryOperator entryOperator = new ESearchEntryOperator();
@@ -121,20 +157,6 @@ public class DsKalturaAnalytics extends DsKalturaClientBase {
                 .map(ESearchEntryResult::getObject)
                 .map(entry -> (MediaEntry) entry)
                 .forEach(result::add);
-
-        int resultSize = result.size();
-
-        Set<String> resultIdSet = result.stream().map(BaseEntry::getId).collect(Collectors.toSet());
-        for (String objectId : objectIds) {
-            if (!resultIdSet.contains(objectId)) {
-                log.warn("Kaltura id missing: {}", objectId);
-            }
-        }
-        if (objectIds.size() != resultIdSet.size()) {
-            log.warn("Number of requested objectId's ({}) did not match number of objectId's in result ({})",
-                    objectIds.size(), resultSize);
-        }
-
         return result;
     }
 

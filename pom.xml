@@ -1,155 +1,151 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>dk.kb.dsparent</groupId>
         <artifactId>ds-parent</artifactId>
         <version>100.0.0-SNAPSHOT</version>
     </parent>
-    
+
     <groupId>dk.kb.kaltura</groupId>
     <artifactId>ds-kaltura</artifactId>
     <version>100.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-   <scm>
-     <url>https://github.com/kb-dk/ds-kaltura</url>
-     <connection>scm:git:git@github.com:kb-dk/ds-kaltura.git</connection>
-     <developerConnection>scm:git:git@github.com:kb-dk/ds-kaltura.git</developerConnection>
-     <tag>HEAD</tag>
+    <scm>
+        <url>https://github.com/kb-dk/ds-kaltura</url>
+        <connection>scm:git:git@github.com:kb-dk/ds-kaltura.git</connection>
+        <developerConnection>scm:git:git@github.com:kb-dk/ds-kaltura.git</developerConnection>
+        <tag>HEAD</tag>
     </scm>
 
-  <properties>
-    <!-- Specify java version here, to support forbiddenapis plugin -->
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
-    <!-- Replace the line below with
-         <api.check.phase>none</api.check.phase>
-         to disable forbidden APIs check -->
-    <api.check.phase>process-test-classes</api.check.phase>
+    <properties>
+        <!-- Specify java version here, to support forbiddenapis plugin -->
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <!-- Replace the line below with
+             <api.check.phase>none</api.check.phase>
+             to disable forbidden APIs check -->
+        <api.check.phase>process-test-classes</api.check.phase>
 
-    <!-- Needed to populate build.properties -->
-    <timestamp>${maven.build.timestamp}</timestamp>
-    <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
-  </properties>
+        <!-- Needed to populate build.properties -->
+        <timestamp>${maven.build.timestamp}</timestamp>
+        <maven.build.timestamp.format>yyyy-MM-dd HH:mm</maven.build.timestamp.format>
+    </properties>
 
-  <dependencies>
-      <dependency>
-          <groupId>dk.kb.dsshared</groupId>
-          <artifactId>ds-shared</artifactId>
-          <version>100.0.0-SNAPSHOT</version>
-      </dependency>
-      
-    <!--Command line -->
-    <dependency>
-      <groupId>info.picocli</groupId>
-      <artifactId>picocli</artifactId>
-      <version>4.6.1</version>
-    </dependency>
-  
-     <!--Latest Kaltura API client as of 20240404 -->
-    <dependency>
-      <groupId>com.kaltura</groupId>
-      <artifactId>kalturaApiClient</artifactId>
-      <version>19.3.0</version>
-    
-    <!-- These are exluded to prevent too much debug log from kaltura client using log4j. -->
-    <exclusions>
-        <exclusion>
-            <groupId>log4j</groupId>
-            <artifactId>log4j</artifactId>
-        </exclusion>
-        <exclusion>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-        </exclusion>
-    </exclusions>
-    </dependency>
-        
-    <dependency>
-      <groupId>dk.kb.util</groupId>
-      <artifactId>kb-util</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-inline</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
-    </dependency>
-  <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-csv</artifactId>
-      <version>2.20.0</version>
-  </dependency>
-  </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>dk.kb.dsshared</groupId>
+            <artifactId>ds-shared</artifactId>
+            <version>100.0.0-SNAPSHOT</version>
+        </dependency>
+        <!--Command line -->
+        <dependency>
+            <groupId>info.picocli</groupId>
+            <artifactId>picocli</artifactId>
+            <version>4.6.1</version>
+        </dependency>
+        <!--Latest Kaltura API client as of 20240404 -->
+        <dependency>
+            <groupId>com.kaltura</groupId>
+            <artifactId>kalturaApiClient</artifactId>
+            <version>19.3.0</version>
+            <!-- These are exluded to prevent too much debug log from kaltura client using log4j. -->
+            <exclusions>
+                <exclusion>
+                    <groupId>log4j</groupId>
+                    <artifactId>log4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>dk.kb.util</groupId>
+            <artifactId>kb-util</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.mockito/mockito-junit-jupiter -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-junit-jupiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-csv</artifactId>
+            <version>2.20.0</version>
+        </dependency>
+    </dependencies>
 
-  <build>
-    <resources>
-      <resource>
-        <directory>src/main/resources/</directory>
-        <includes>
-          <include>build.properties</include>
-        </includes>
-        <filtering>true</filtering>
-      </resource>
-    </resources>
-    <plugins>
-      
-      
-        <plugin>
-            <artifactId>maven-assembly-plugin</artifactId>
-            <version>3.7.1</version>
-            <configuration>              
-                <descriptorRefs>
-                    <descriptorRef>jar-with-dependencies</descriptorRef>
-                </descriptorRefs>
-            </configuration>
-            <executions>
-             <execution>
-                 <id>make-assembly</id>
-                 <goals>
-                     <goal>single</goal>
-                 </goals>
-             </execution>
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources/</directory>
+                <includes>
+                    <include>build.properties</include>
+                </includes>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
 
-             <!-- was missing the following one -->
-             <execution>
-                <phase>package</phase>
-                <goals>
-                    <goal>single</goal>
-                </goals>
-            </execution>
+                    <!-- was missing the following one -->
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
 
-            </executions>
-        </plugin>
-      <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>3.3.0</version>
-        <configuration>
-          <tarLongFileMode>posix</tarLongFileMode>
-          <descriptors>
-            <descriptor>src/main/assembly/assembly.xml</descriptor>
-          </descriptors>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <phase>package</phase>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <tarLongFileMode>posix</tarLongFileMode>
+                    <descriptors>
+                        <descriptor>src/main/assembly/assembly.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

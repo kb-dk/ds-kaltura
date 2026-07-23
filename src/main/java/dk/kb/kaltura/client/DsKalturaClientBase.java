@@ -60,9 +60,9 @@ public abstract class DsKalturaClientBase {
      *                                this might have an upper bound tied to the AppToken.
      * @param sessionRefreshThreshold The threshold in seconds for session renewal.
      */
-    public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token, String tokenId,
-                               String adminSecret, int sessionDurationSeconds, int sessionRefreshThreshold,
-                               int batchSize) throws APIException {
+    public DsKalturaClientBase(String kalturaUrl, String userId, int partnerId, String token,
+                               String tokenId, String adminSecret, int sessionDurationSeconds,
+                               int sessionRefreshThreshold, int batchSize) {
         this.sessionDurationSeconds = sessionDurationSeconds;
         this.sessionKeepAliveSeconds = sessionDurationSeconds - sessionRefreshThreshold;
         this.kalturaUrl = kalturaUrl;
@@ -78,7 +78,11 @@ public abstract class DsKalturaClientBase {
             throw new IllegalArgumentException("The difference between the configured sessionDurationSeconds and " +
                     "sessionRefreshThreshold (SessionKeepAliveSession) must be at least 600 seconds (10 minutes) ");
         }
-        initializeKalturaClient();
+
+        Configuration config = new Configuration();
+        config.setEndpoint(kalturaUrl);
+        client = new Client(config);
+        client.setPartnerId(partnerId);
     }
 
     public int getBatchSize() {
@@ -180,31 +184,28 @@ public abstract class DsKalturaClientBase {
         return results.getKs();
     }
 
-    private void initializeKalturaClient() throws APIException {
-        log.info("Initializing Kaltura client");
-        Configuration config = new Configuration();
-        config.setEndpoint(kalturaUrl);
-        client = new Client(config);
-        client.setPartnerId(partnerId);
-        startClientSession();//Start session now to fail now rather than later if config is wrong.
-    }
-
     /**
      * Will return a kaltura client and refresh session every sessionKeepAliveSeconds.
-     * Synchronized to avoid race condition if using the DsKalturaClient class multi-threaded
+     * Synchronized to avoid race condition if using the DsKalturaClient class multithreaded
      */
     private synchronized Client getClientInstance() throws APIException {
         try {
-            if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L || client.getKs().isEmpty()) {
+            if (System.currentTimeMillis() - lastSessionStart >= sessionKeepAliveSeconds * 1000L || StringUtils.isBlank(client.getKs())) {
                 log.info("Refreshing Kaltura client session, millis since last refresh:" +
                         (System.currentTimeMillis() - lastSessionStart));
                 //Create the client
-                startClientSession();
-                log.info("Refreshed Kaltura client session");
+                if (startClientSession()) {
+                    log.info("Started/refreshed Kaltura client session");
+                }
+                else {
+                    String errorMessage = "Failed to connect to Kaltura: '{" + kalturaUrl + "}'";
+                    log.error(errorMessage);
+                    throw new APIException(errorMessage);
+                }
             }
             return client;
         } catch (APIException e) {
-            log.warn("Connecting to Kaltura failed. KalturaUrl={},error={}", kalturaUrl, e.getMessage());
+            log.error("Connecting to Kaltura failed. KalturaUrl='{}', error='{}'", kalturaUrl, e.getMessage());
             throw e;
         }
     }
@@ -215,8 +216,8 @@ public abstract class DsKalturaClientBase {
      *
      * @throws Exception
      */
-    private void startClientSession() throws APIException {
-
+    private Boolean startClientSession() throws APIException {
+        log.info("Initializing Kaltura client");
         String ks = null;
         if (StringUtils.isEmpty(adminSecret)) {
             log.info("Starting KalturaSession from appToken");
@@ -233,6 +234,7 @@ public abstract class DsKalturaClientBase {
         }
         client.setKs(ks);
         lastSessionStart = System.currentTimeMillis(); //Reset timer
+        return true;
     }
 
     /**
